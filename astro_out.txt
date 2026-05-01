@@ -1,0 +1,391 @@
+
+> nueva-web@0.0.1 dev
+> astro dev
+
+[33m[1m21:40:18[22m [WARN] [router][39m The route "/admin-colegio/[...index]" is defined in both "src/pages/admin-colegio/[...index].astro" and "node_modules/@sanity/astro/dist/studio/studio-route.astro" using SSR mode. A dynamic SSR route cannot be defined more than once.
+[33m[1m21:40:18[22m [WARN] [router][39m A collision will result in a hard error in following versions of Astro.
+[vite] connected.
+[2m21:40:58[22m [34m[types][39m Generated [2m113ms[22m
+[42m[1m astro [22m[49m [32mv6.1.10[39m [2mready in[22m 49129 [2mms[22m
+[2m┃[22m Local    [36mhttp://localhost:4321/[39m
+[2m┃[22m Network  [2muse --host to expose[22m
+[2m21:41:02[22m [32mwatching for file changes...[39m
+[2m21:47:05[22m Configuration file updated. Restarting...
+[vite] connected.
+[33m[1m21:49:36[22m [WARN] [router][39m getStaticPaths() ignored in dynamic page [1m/node_modules/@sanity/astro/dist/studio/studio-route.astro[22m. Add `export const prerender = true;` to prerender the page as static HTML during the build process.
+Since you haven't set a value for `useCdn`, we will deliver content using our global, edge-cached API-CDN. If you wish to have content delivered faster, set `useCdn: false` to use the Live API. Note: You may incur higher costs using the live API.
+[31m[1m21:51:18[22m [ERROR] [vite][39m transport invoke timed out after 60000ms (data: {"type":"custom","event":"vite:invoke","data":{"name":"fetchModule","id":"send:uXse0N1nPxHSgVFJ5joQE","data":["/node_modules/astro/dist/core/module-loader/runner.js","C:/NUEVA WEB/node_modules/astro/dist/core/module-loader/index.js",{"cached":false,"startOffset":2}]}})
+[31m[1m21:51:18[22m [ERROR] [vite][39m server restart failed
+[2m21:51:19[22m [34m[200][39m /admin-colegio [2m378ms[22m
+X [ERROR] Missing "./compiler-runtime" specifier in "react" package [plugin vite:dep-pre-bundle]
+
+    node_modules/sanity/lib/structure.js:4:18:
+      4 │ import { c } from "react/compiler-runtime";
+        ╵                   ~~~~~~~~~~~~~~~~~~~~~~~~
+
+X [ERROR] Missing "./compiler-runtime" specifier in "react" package [plugin vite:dep-pre-bundle]
+
+    node_modules/sanity/lib/index.js:3:18:
+      3 │ import { c } from "react/compiler-runtime";
+        ╵                   ~~~~~~~~~~~~~~~~~~~~~~~~
+
+X [ERROR] Missing "./compiler-runtime" specifier in "react" package [plugin vite:dep-pre-bundle]
+
+    node_modules/sanity/lib/_chunks-es/StructureToolProvider.js:2:18:
+      2 │ import { c } from "react/compiler-runtime";
+        ╵                   ~~~~~~~~~~~~~~~~~~~~~~~~
+
+X [ERROR] Missing "./compiler-runtime" specifier in "react" package [plugin vite:dep-pre-bundle]
+
+    node_modules/sanity/lib/_chunks-es/index.js:2:18:
+      2 │ import { c } from "react/compiler-runtime";
+        ╵                   ~~~~~~~~~~~~~~~~~~~~~~~~
+
+X [ERROR] Missing "./compiler-runtime" specifier in "react" package [plugin vite:dep-pre-bundle]
+
+    node_modules/sanity/lib/router.js:2:18:
+      2 │ import { c } from "react/compiler-runtime";
+        ╵                   ~~~~~~~~~~~~~~~~~~~~~~~~
+
+X [ERROR] Missing "./compiler-runtime" specifier in "react" package [plugin vite:dep-pre-bundle]
+
+    node_modules/sanity/lib/_chunks-es/structureTool.js:2:18:
+      2 │ import { c } from "react/compiler-runtime";
+        ╵                   ~~~~~~~~~~~~~~~~~~~~~~~~
+
+X [ERROR] Missing "./compiler-runtime" specifier in "react" package [plugin vite:dep-pre-bundle]
+
+    node_modules/sanity/lib/_singletons.js:4:18:
+      4 │ import { c } from "react/compiler-runtime";
+        ╵                   ~~~~~~~~~~~~~~~~~~~~~~~~
+
+[31m[1m21:52:39[22m [ERROR] [vite][39m [31mInternal server error: Missing "./compiler-runtime" specifier in "react" package[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mC:/NUEVA WEB/node_modules/sanity/lib/index.js?v=fd844cdb[39m:3:19
+[33m  1  |  import "./bundle.css";
+  2  |  import { jsx, jsxs, Fragment as Fragment$1 } from "react/jsx-runtime";
+  3  |  import { c } from "react/compiler-runtime";
+     |                     ^
+  4  |  import { Badge, Grid, Box, Stack, rem, Text as Text$1, Layer, Card, Spinner, Flex, Dialog, useTheme, Button as Button...
+  5  |  import * as PathUtils from "@sanity/util/paths";[39m
+      at e (file:///C:/NUEVA%20WEB/node_modules/vite/dist/node/chunks/config.js:6651:8)
+      at n (file:///C:/NUEVA%20WEB/node_modules/vite/dist/node/chunks/config.js:6663:14)
+      at o (file:///C:/NUEVA%20WEB/node_modules/vite/dist/node/chunks/config.js:6691:10)
+      at resolveExportsOrImports (file:///C:/NUEVA%20WEB/node_modules/vite/dist/node/chunks/config.js:32831:45)
+      at resolveDeepImport (file:///C:/NUEVA%20WEB/node_modules/vite/dist/node/chunks/config.js:32845:22)
+      at tryNodeResolve (file:///C:/NUEVA%20WEB/node_modules/vite/dist/node/chunks/config.js:32720:70)
+      at ResolveIdContext.handler (file:///C:/NUEVA%20WEB/node_modules/vite/dist/node/chunks/config.js:32559:16)
+      at async EnvironmentPluginContainer.resolveId (file:///C:/NUEVA%20WEB/node_modules/vite/dist/node/chunks/config.js:28721:19)
+      at async ResolveIdContext.resolve (file:///C:/NUEVA%20WEB/node_modules/vite/dist/node/chunks/config.js:28933:13)
+      at async EnvironmentPluginContainer.resolveId (file:///C:/NUEVA%20WEB/node_modules/vite/dist/node/chunks/config.js:28721:19)
+X [ERROR] Missing "./compiler-runtime" specifier in "react" package [plugin vite:dep-pre-bundle]
+
+    node_modules/sanity/lib/_chunks-es/MenuGroup.js:2:18:
+      2 │ import { c } from "react/compiler-runtime";
+        ╵                   ~~~~~~~~~~~~~~~~~~~~~~~~
+
+X [ERROR] Missing "./compiler-runtime" specifier in "react" package [plugin vite:dep-pre-bundle]
+
+    node_modules/sanity/lib/_chunks-es/index2.js:2:18:
+      2 │ import { c } from "react/compiler-runtime";
+        ╵                   ~~~~~~~~~~~~~~~~~~~~~~~~
+
+X [ERROR] Missing "./compiler-runtime" specifier in "react" package [plugin vite:dep-pre-bundle]
+
+    node_modules/sanity/lib/_chunks-es/index3.js:2:18:
+      2 │ import { c } from "react/compiler-runtime";
+        ╵                   ~~~~~~~~~~~~~~~~~~~~~~~~
+
+X [ERROR] Missing "./compiler-runtime" specifier in "react" package [plugin vite:dep-pre-bundle]
+
+    node_modules/sanity/lib/_chunks-es/index4.js:2:18:
+      2 │ import { c } from "react/compiler-runtime";
+        ╵                   ~~~~~~~~~~~~~~~~~~~~~~~~
+
+X [ERROR] Missing "./compiler-runtime" specifier in "react" package [plugin vite:dep-pre-bundle]
+
+    node_modules/@portabletext/plugin-one-line/dist/index.js:1:18:
+      1 │ import { c } from "react/compiler-runtime";
+        ╵                   ~~~~~~~~~~~~~~~~~~~~~~~~
+
+X [ERROR] Missing "./compiler-runtime" specifier in "react" package [plugin vite:dep-pre-bundle]
+
+    node_modules/@portabletext/editor/lib/plugins/index.js:1:18:
+      1 │ import { c } from "react/compiler-runtime";
+        ╵                   ~~~~~~~~~~~~~~~~~~~~~~~~
+
+X [ERROR] Missing "./compiler-runtime" specifier in "react" package [plugin vite:dep-pre-bundle]
+
+    node_modules/@portabletext/plugin-paste-link/dist/index.js:1:18:
+      1 │ import { c } from "react/compiler-runtime";
+        ╵                   ~~~~~~~~~~~~~~~~~~~~~~~~
+
+X [ERROR] Missing "./compiler-runtime" specifier in "react" package [plugin vite:dep-pre-bundle]
+
+    node_modules/sanity/lib/_chunks-es/resources.js:2:7:
+      2 │ import "react/compiler-runtime";
+        ╵        ~~~~~~~~~~~~~~~~~~~~~~~~
+
+X [ERROR] Missing "./compiler-runtime" specifier in "react" package [plugin vite:dep-pre-bundle]
+
+    node_modules/@portabletext/plugin-markdown-shortcuts/dist/index.js:2:18:
+      2 │ import { c } from "react/compiler-runtime";
+        ╵                   ~~~~~~~~~~~~~~~~~~~~~~~~
+
+X [ERROR] Missing "./compiler-runtime" specifier in "react" package [plugin vite:dep-pre-bundle]
+
+    node_modules/@portabletext/editor/lib/index.js:2:18:
+      2 │ import { c } from "react/compiler-runtime";
+        ╵                   ~~~~~~~~~~~~~~~~~~~~~~~~
+
+X [ERROR] Missing "./compiler-runtime" specifier in "react" package [plugin vite:dep-pre-bundle]
+
+    node_modules/sanity/lib/_chunks-es/ViteDevServerStopped.js:2:18:
+      2 │ import { c } from "react/compiler-runtime";
+        ╵                   ~~~~~~~~~~~~~~~~~~~~~~~~
+
+X [ERROR] Missing "./compiler-runtime" specifier in "react" package [plugin vite:dep-pre-bundle]
+
+    node_modules/sanity/lib/_chunks-es/resources4.js:2:7:
+      2 │ import "react/compiler-runtime";
+        ╵        ~~~~~~~~~~~~~~~~~~~~~~~~
+
+X [ERROR] Missing "./compiler-runtime" specifier in "react" package [plugin vite:dep-pre-bundle]
+
+    node_modules/sanity/lib/_chunks-es/resources5.js:2:7:
+      2 │ import "react/compiler-runtime";
+        ╵        ~~~~~~~~~~~~~~~~~~~~~~~~
+
+X [ERROR] Missing "./compiler-runtime" specifier in "react" package [plugin vite:dep-pre-bundle]
+
+    node_modules/sanity/lib/_chunks-es/resources3.js:2:7:
+      2 │ import "react/compiler-runtime";
+        ╵        ~~~~~~~~~~~~~~~~~~~~~~~~
+
+X [ERROR] Missing "./compiler-runtime" specifier in "react" package [plugin vite:dep-pre-bundle]
+
+    node_modules/sanity/lib/_chunks-es/VideoPlayer.js:2:18:
+      2 │ import { c } from "react/compiler-runtime";
+        ╵                   ~~~~~~~~~~~~~~~~~~~~~~~~
+
+X [ERROR] Missing "./compiler-runtime" specifier in "react" package [plugin vite:dep-pre-bundle]
+
+    node_modules/@sanity/insert-menu/dist/index.js:2:18:
+      2 │ import { c } from "react/compiler-runtime";
+        ╵                   ~~~~~~~~~~~~~~~~~~~~~~~~
+
+X [ERROR] Missing "./compiler-runtime" specifier in "react" package [plugin vite:dep-pre-bundle]
+
+    node_modules/@portabletext/plugin-typography/dist/index.js:4:18:
+      4 │ import { c } from "react/compiler-runtime";
+        ╵                   ~~~~~~~~~~~~~~~~~~~~~~~~
+
+X [ERROR] Missing "./compiler-runtime" specifier in "react" package [plugin vite:dep-pre-bundle]
+
+    node_modules/@portabletext/plugin-input-rule/dist/index.js:1:18:
+      1 │ import { c } from "react/compiler-runtime";
+        ╵                   ~~~~~~~~~~~~~~~~~~~~~~~~
+
+X [ERROR] Missing "./compiler-runtime" specifier in "react" package [plugin vite:dep-pre-bundle]
+
+    node_modules/@portabletext/plugin-character-pair-decorator/dist/index.js:1:18:
+      1 │ import { c } from "react/compiler-runtime";
+        ╵                   ~~~~~~~~~~~~~~~~~~~~~~~~
+
+[33m[1m22:00:08[22m [WARN] [vite][39m Sourcemap for "C:/NUEVA WEB/node_modules/markdown-it/node_modules/entities/lib/esm/index.js" points to missing source files
+[33m[1m22:00:33[22m [WARN] [vite][39m Sourcemap for "C:/NUEVA WEB/node_modules/markdown-it/node_modules/entities/lib/esm/decode.js" points to missing source files
+[33m[1m22:00:33[22m [WARN] [vite][39m Sourcemap for "C:/NUEVA WEB/node_modules/markdown-it/node_modules/entities/lib/esm/encode.js" points to missing source files
+[33m[1m22:00:33[22m [WARN] [vite][39m Sourcemap for "C:/NUEVA WEB/node_modules/markdown-it/node_modules/entities/lib/esm/escape.js" points to missing source files
+[33m[1m22:00:42[22m [WARN] [vite][39m Sourcemap for "C:/NUEVA WEB/node_modules/markdown-it/node_modules/entities/lib/esm/generated/decode-data-xml.js" points to missing source files
+[33m[1m22:00:42[22m [WARN] [vite][39m Sourcemap for "C:/NUEVA WEB/node_modules/markdown-it/node_modules/entities/lib/esm/generated/decode-data-html.js" points to missing source files
+[33m[1m22:00:42[22m [WARN] [vite][39m Sourcemap for "C:/NUEVA WEB/node_modules/markdown-it/node_modules/entities/lib/esm/decode_codepoint.js" points to missing source files
+[33m[1m22:00:48[22m [WARN] [vite][39m Sourcemap for "C:/NUEVA WEB/node_modules/markdown-it/node_modules/entities/lib/esm/generated/encode-html.js" points to missing source files
+[31m[1m22:01:47[22m [ERROR] [vite][39m [31merror while updating dependencies:
+Error: [31mError during dependency optimization:
+
+[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mMissing "./compiler-runtime" specifier in "react" package[0m [1m[35m[plugin vite:dep-pre-bundle][0m
+
+    node_modules/sanity/lib/index.js:3:18:
+[37m      3 │ import { c } from [32m"react/compiler-runtime"[37m;
+        ╵                   [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mMissing "./compiler-runtime" specifier in "react" package[0m [1m[35m[plugin vite:dep-pre-bundle][0m
+
+    node_modules/sanity/lib/structure.js:4:18:
+[37m      4 │ import { c } from [32m"react/compiler-runtime"[37m;
+        ╵                   [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mMissing "./compiler-runtime" specifier in "react" package[0m [1m[35m[plugin vite:dep-pre-bundle][0m
+
+    node_modules/@portabletext/editor/lib/index.js:2:18:
+[37m      2 │ import { c } from [32m"react/compiler-runtime"[37m;
+        ╵                   [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mMissing "./compiler-runtime" specifier in "react" package[0m [1m[35m[plugin vite:dep-pre-bundle][0m
+
+    node_modules/@portabletext/editor/lib/plugins/index.js:1:18:
+[37m      1 │ import { c } from [32m"react/compiler-runtime"[37m;
+        ╵                   [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mMissing "./compiler-runtime" specifier in "react" package[0m [1m[35m[plugin vite:dep-pre-bundle][0m
+
+    node_modules/@portabletext/plugin-character-pair-decorator/dist/index.js:1:18:
+[37m      1 │ import { c } from [32m"react/compiler-runtime"[37m;
+        ╵                   [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mMissing "./compiler-runtime" specifier in "react" package[0m [1m[35m[plugin vite:dep-pre-bundle][0m
+
+    node_modules/@portabletext/plugin-input-rule/dist/index.js:1:18:
+[37m      1 │ import { c } from [32m"react/compiler-runtime"[37m;
+        ╵                   [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mMissing "./compiler-runtime" specifier in "react" package[0m [1m[35m[plugin vite:dep-pre-bundle][0m
+
+    node_modules/@portabletext/plugin-markdown-shortcuts/dist/index.js:2:18:
+[37m      2 │ import { c } from [32m"react/compiler-runtime"[37m;
+        ╵                   [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mMissing "./compiler-runtime" specifier in "react" package[0m [1m[35m[plugin vite:dep-pre-bundle][0m
+
+    node_modules/@portabletext/plugin-one-line/dist/index.js:1:18:
+[37m      1 │ import { c } from [32m"react/compiler-runtime"[37m;
+        ╵                   [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mMissing "./compiler-runtime" specifier in "react" package[0m [1m[35m[plugin vite:dep-pre-bundle][0m
+
+    node_modules/@portabletext/plugin-paste-link/dist/index.js:1:18:
+[37m      1 │ import { c } from [32m"react/compiler-runtime"[37m;
+        ╵                   [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mMissing "./compiler-runtime" specifier in "react" package[0m [1m[35m[plugin vite:dep-pre-bundle][0m
+
+    node_modules/@portabletext/plugin-typography/dist/index.js:4:18:
+[37m      4 │ import { c } from [32m"react/compiler-runtime"[37m;
+        ╵                   [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mMissing "./compiler-runtime" specifier in "react" package[0m [1m[35m[plugin vite:dep-pre-bundle][0m
+
+    node_modules/@sanity/insert-menu/dist/index.js:2:18:
+[37m      2 │ import { c } from [32m"react/compiler-runtime"[37m;
+        ╵                   [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mMissing "./compiler-runtime" specifier in "react" package[0m [1m[35m[plugin vite:dep-pre-bundle][0m
+
+    node_modules/sanity/lib/_chunks-es/MenuGroup.js:2:18:
+[37m      2 │ import { c } from [32m"react/compiler-runtime"[37m;
+        ╵                   [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mMissing "./compiler-runtime" specifier in "react" package[0m [1m[35m[plugin vite:dep-pre-bundle][0m
+
+    node_modules/sanity/lib/_chunks-es/StructureToolProvider.js:2:18:
+[37m      2 │ import { c } from [32m"react/compiler-runtime"[37m;
+        ╵                   [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mMissing "./compiler-runtime" specifier in "react" package[0m [1m[35m[plugin vite:dep-pre-bundle][0m
+
+    node_modules/sanity/lib/_chunks-es/VideoPlayer.js:2:18:
+[37m      2 │ import { c } from [32m"react/compiler-runtime"[37m;
+        ╵                   [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mMissing "./compiler-runtime" specifier in "react" package[0m [1m[35m[plugin vite:dep-pre-bundle][0m
+
+    node_modules/sanity/lib/_chunks-es/ViteDevServerStopped.js:2:18:
+[37m      2 │ import { c } from [32m"react/compiler-runtime"[37m;
+        ╵                   [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mMissing "./compiler-runtime" specifier in "react" package[0m [1m[35m[plugin vite:dep-pre-bundle][0m
+
+    node_modules/sanity/lib/_chunks-es/index.js:2:18:
+[37m      2 │ import { c } from [32m"react/compiler-runtime"[37m;
+        ╵                   [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mMissing "./compiler-runtime" specifier in "react" package[0m [1m[35m[plugin vite:dep-pre-bundle][0m
+
+    node_modules/sanity/lib/_chunks-es/index2.js:2:18:
+[37m      2 │ import { c } from [32m"react/compiler-runtime"[37m;
+        ╵                   [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mMissing "./compiler-runtime" specifier in "react" package[0m [1m[35m[plugin vite:dep-pre-bundle][0m
+
+    node_modules/sanity/lib/_chunks-es/index3.js:2:18:
+[37m      2 │ import { c } from [32m"react/compiler-runtime"[37m;
+        ╵                   [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mMissing "./compiler-runtime" specifier in "react" package[0m [1m[35m[plugin vite:dep-pre-bundle][0m
+
+    node_modules/sanity/lib/_chunks-es/index4.js:2:18:
+[37m      2 │ import { c } from [32m"react/compiler-runtime"[37m;
+        ╵                   [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mMissing "./compiler-runtime" specifier in "react" package[0m [1m[35m[plugin vite:dep-pre-bundle][0m
+
+    node_modules/sanity/lib/_chunks-es/resources.js:2:7:
+[37m      2 │ import [32m"react/compiler-runtime"[37m;
+        ╵        [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mMissing "./compiler-runtime" specifier in "react" package[0m [1m[35m[plugin vite:dep-pre-bundle][0m
+
+    node_modules/sanity/lib/_chunks-es/resources3.js:2:7:
+[37m      2 │ import [32m"react/compiler-runtime"[37m;
+        ╵        [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mMissing "./compiler-runtime" specifier in "react" package[0m [1m[35m[plugin vite:dep-pre-bundle][0m
+
+    node_modules/sanity/lib/_chunks-es/resources4.js:2:7:
+[37m      2 │ import [32m"react/compiler-runtime"[37m;
+        ╵        [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mMissing "./compiler-runtime" specifier in "react" package[0m [1m[35m[plugin vite:dep-pre-bundle][0m
+
+    node_modules/sanity/lib/_chunks-es/resources5.js:2:7:
+[37m      2 │ import [32m"react/compiler-runtime"[37m;
+        ╵        [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mMissing "./compiler-runtime" specifier in "react" package[0m [1m[35m[plugin vite:dep-pre-bundle][0m
+
+    node_modules/sanity/lib/_chunks-es/structureTool.js:2:18:
+[37m      2 │ import { c } from [32m"react/compiler-runtime"[37m;
+        ╵                   [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mMissing "./compiler-runtime" specifier in "react" package[0m [1m[35m[plugin vite:dep-pre-bundle][0m
+
+    node_modules/sanity/lib/_singletons.js:4:18:
+[37m      4 │ import { c } from [32m"react/compiler-runtime"[37m;
+        ╵                   [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mMissing "./compiler-runtime" specifier in "react" package[0m [1m[35m[plugin vite:dep-pre-bundle][0m
+
+    node_modules/sanity/lib/router.js:2:18:
+[37m      2 │ import { c } from [32m"react/compiler-runtime"[37m;
+        ╵                   [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+    at failureErrorWithLog (C:\NUEVA WEB\node_modules\esbuild\lib\main.js:1748:15)
+    at C:\NUEVA WEB\node_modules\esbuild\lib\main.js:1207:25
+    at C:\NUEVA WEB\node_modules\esbuild\lib\main.js:1626:9
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)[39m

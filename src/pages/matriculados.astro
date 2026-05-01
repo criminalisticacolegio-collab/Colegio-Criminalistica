@@ -1,0 +1,207 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+---
+
+<MainLayout title="Matriculados" showBack={true}>
+	<div class="container page-content">
+		<header class="section-header">
+			<span class="sub-title">Gestión Profesional</span>
+			<h1>Área de Matriculados</h1>
+			<p>Portal exclusivo para la gestión de legajos, administración de pagos y servicios para el profesional colegiado.</p>
+		</header>
+
+		<div class="single-layout">
+			<!-- Nuevos Profesionales -->
+			<section class="portal-section">
+				<div class="portal-card new-pro glass">
+					<div class="card-tag primary">Legajo Virtual</div>
+					<h2>Aspirantes a la Matrícula</h2>
+					<p>Complete su solicitud de registro digital. Este es el primer paso para su colegiación oficial en la Provincia de Catamarca.</p>
+					
+					<div id="registration-form-container">
+						<form class="styled-form" id="enrollment-form">
+							<div class="form-row">
+								<div class="form-group">
+									<label>Nombre y Apellido Completo</label>
+									<input type="text" required placeholder="Ej: Juan Carlos Pérez" name="fullname" />
+								</div>
+							</div>
+							<div class="form-row split">
+								<div class="form-group">
+									<label>DNI</label>
+									<input type="text" required placeholder="XXXXXXXX" name="dni" />
+								</div>
+								<div class="form-group">
+									<label>Teléfono de Contacto</label>
+									<input type="tel" required placeholder="+54 383 XXXXXXX" name="phone" />
+								</div>
+							</div>
+							<div class="form-row split">
+								<div class="form-group">
+									<label>CUIL/CUIT</label>
+									<input type="text" required placeholder="20-XXXXXXXX-X" name="cuil" />
+								</div>
+								<div class="form-group">
+									<label>Jurisdicción de Ejercicio</label>
+									<select name="jurisdiction" required>
+										<option value="" disabled selected>Seleccione Jurisdicción</option>
+										<option>1° Circunscripción (Capital)</option>
+										<option>2° Circunscripción (Recreo)</option>
+										<option>3° Circunscripción (Belén)</option>
+										<option>4° Circunscripción (Santa María)</option>
+										<option>5° Circunscripción (Tinogasta)</option>
+										<option>6° Circunscripción (Andalgalá)</option>
+									</select>
+								</div>
+							</div>
+							<div class="form-row">
+								<div class="form-group">
+									<label>Título Profesional Principal</label>
+									<select name="degree" required>
+										<option value="" disabled selected>Seleccione su especialidad</option>
+										<option>Lic. en Criminalística</option>
+										<option>Perito Papiloscópico</option>
+										<option>Perito Balístico</option>
+										<option>Calígrafo Público</option>
+										<option>Otros</option>
+									</select>
+								</div>
+							</div>
+							
+							<div class="file-upload-section">
+								<h3>Documentación Requerida (Digital)</h3>
+								<div class="file-grid">
+									<div class="file-input-wrapper">
+										<label>Título Profesional (Fronte/Dorso)</label>
+										<input type="file" accept=".pdf,image/*" required />
+									</div>
+									<div class="file-input-wrapper">
+										<label>DNI (Ambos Lados)</label>
+										<input type="file" accept=".pdf,image/*" required />
+									</div>
+									<div class="file-input-wrapper">
+										<label>Certificado de Antecedentes</label>
+										<input type="file" accept=".pdf,image/*" required />
+									</div>
+								</div>
+							</div>
+
+							<div class="form-row">
+								<div class="form-group">
+									<label>Correo Electrónico de Contacto</label>
+									<input type="email" required placeholder="ejemplo@correo.com" name="email" />
+								</div>
+							</div>
+							<button type="submit" class="btn-primary">Iniciar Registro y Pago de Matrícula</button>
+							<span class="form-helper">Al iniciar, recibirá un cupón de pago para el Derecho de Inscripción.</span>
+						</form>
+
+						<div id="success-message" style="display: none;" class="success-card glass">
+							<div class="success-icon">✅</div>
+							<h3>¡Registro Iniciado con Éxito!</h3>
+							<p>La solicitud ha sido recibida correctamente. La solicitud concluirá con la <strong>certificación física</strong> de la documentación adjuntada en nuestra sede central.</p>
+							<button onclick="location.reload()" class="btn-outline">Volver</button>
+						</div>
+					</div>
+
+					<script>
+						const form = document.querySelector('#enrollment-form');
+						const successMsg = document.querySelector('#success-message');
+						
+						if (form) {
+							form.addEventListener('submit', (e) => {
+								e.preventDefault();
+								form.style.display = 'none';
+								successMsg.style.display = 'flex';
+								
+								console.log('Registro enviado a Supabase Motor (Placeholder)');
+							});
+						}
+					</script>
+				</div>
+			</section>
+
+			<aside class="info-sidebar">
+				<div class="info-card glass">
+					<h4>¿Ya eres matriculado?</h4>
+					<p>Si ya posees matrícula activa, accede a las nuevas secciones dedicadas:</p>
+					<div class="link-grid">
+						<a href="/pagos" class="link-item">
+							<span class="l-icon">💳</span>
+							<strong>Pagos y Deuda</strong>
+						</a>
+						<a href="/tramites" class="link-item">
+							<span class="l-icon">📜</span>
+							<strong>Trámites y Certificados</strong>
+						</a>
+					</div>
+				</div>
+			</aside>
+		</div>
+	</div>
+
+	<style>
+		.page-content { padding: 5rem 0; }
+		
+		.section-header { text-align: center; margin-bottom: 5rem; }
+		.sub-title { color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.9rem; display: block; margin-bottom: 1rem; }
+		.section-header h1 { font-size: clamp(2.5rem, 5vw, 3.5rem); margin-bottom: 1.5rem; color: var(--accent); }
+		.section-header p { font-size: 1.25rem; color: var(--text-light); max-width: 800px; margin: 0 auto; }
+
+		.single-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 3rem; align-items: start; }
+		
+		.portal-card { padding: 3rem; border-radius: var(--radius-lg); position: relative; border: 1px solid var(--gray-200); background: var(--white); }
+		
+		.card-tag { display: inline-block; padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 1.5rem; background: var(--gray-100); color: var(--text-light); }
+		.card-tag.primary { background: var(--primary); color: white; }
+
+		.portal-card h2 { font-size: 2rem; margin-bottom: 1rem; }
+		.portal-card p { font-size: 1.1rem; color: var(--text-light); margin-bottom: 2.5rem; line-height: 1.6; }
+
+		/* Form */
+		.styled-form { display: flex; flex-direction: column; gap: 1.5rem; }
+		.form-row.split { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+		.form-group { display: flex; flex-direction: column; gap: 0.5rem; flex: 1; }
+		.form-group label { font-size: 0.9rem; font-weight: 600; color: var(--accent); }
+		.form-group input, .form-group select { padding: 0.8rem 1rem; border: 1px solid var(--gray-300); border-radius: var(--radius-md); font-family: inherit; font-size: 1rem; transition: var(--transition); }
+		.form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+		
+		.btn-primary { background: var(--primary); color: white; border: none; padding: 1.1rem; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; transition: var(--transition); font-size: 1rem; }
+		.btn-primary:hover { background: var(--primary-hover); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+		.form-helper { font-size: 0.8rem; color: var(--text-light); text-align: center; margin-top: 0.5rem; }
+
+		/* File Upload Styles */
+		.file-upload-section { margin: 1rem 0; padding: 2rem; background: var(--gray-50); border-radius: var(--radius-md); border: 1px dashed var(--gray-300); }
+		.file-upload-section h3 { font-size: 1rem; margin-bottom: 1.5rem; color: var(--accent); }
+		.file-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; }
+		.file-input-wrapper { display: flex; flex-direction: column; gap: 0.5rem; }
+		.file-input-wrapper label { font-size: 0.85rem; font-weight: 600; color: var(--text-light); }
+		.file-input-wrapper input[type="file"] { font-size: 0.8rem; }
+
+		/* Success Card */
+		.success-card { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 4rem 2rem; animation: fadeIn 0.5s ease-out; }
+		.success-icon { font-size: 4rem; margin-bottom: 1.5rem; }
+		.success-card h3 { font-size: 2rem; color: var(--accent); margin-bottom: 1rem; }
+		.success-card p { font-size: 1.1rem; line-height: 1.6; margin-bottom: 2rem; max-width: 500px; }
+		
+		.btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); padding: 0.8rem 2rem; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; transition: var(--transition); }
+		.btn-outline:hover { background: var(--primary); color: white; }
+
+		@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+		/* Sidebar */
+		.info-card { padding: 2.5rem; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); }
+		.info-card h4 { font-size: 1.25rem; margin-bottom: 1rem; }
+		.info-card p { font-size: 0.95rem; color: var(--text-light); margin-bottom: 2rem; line-height: 1.5; }
+		
+		.link-grid { display: flex; flex-direction: column; gap: 1rem; }
+		.link-item { display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--white); border: 1px solid var(--gray-200); border-radius: 12px; text-decoration: none; color: var(--text-main); transition: var(--transition); }
+		.link-item:hover { border-color: var(--primary); transform: translateX(5px); }
+		.l-icon { font-size: 1.25rem; }
+		.link-item strong { font-size: 0.95rem; }
+
+		@media (max-width: 1024px) {
+			.single-layout { grid-template-columns: 1fr; }
+		}
+	</style>
+</MainLayout>

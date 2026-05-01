@@ -1,0 +1,326 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+
+const results = [
+	{ id: 'MP-1024', name: 'Lic. Juan Carlos Pérez', specialty: 'Balística Forense', jurisdiction: 'Capital', status: 'Activo' },
+	{ id: 'MP-1150', name: 'Lic. María Elena García', specialty: 'Documentoscopia', jurisdiction: 'Valle Viejo', status: 'Activo' },
+	{ id: 'MP-0982', name: 'Lic. Carlos Roberto Gómez', specialty: 'Papiloscopía', jurisdiction: 'Fray M. Esquiú', status: 'Activo' },
+	{ id: 'MP-1210', name: 'Lic. Ana Silvia Martínez', specialty: 'Criminalística Digital', jurisdiction: 'Capital', status: 'Activo' },
+    { id: 'MP-0850', name: 'Lic. Sergio Daniel Torres', specialty: 'Accidentología Vial', jurisdiction: 'Andalgalá', status: 'Activo' },
+];
+---
+
+<MainLayout title="Padrón" showBack={true}>
+		<div class="hero-image-container">
+			<img src="/header-padron.png" alt="Padrón de Matriculados CPC CTM" class="hero-img glass" />
+		</div>
+
+		<section class="districts-map-section">
+			<div class="map-container glass">
+				<div class="map-header">
+					<h2>Circunscripciones Judiciales</h2>
+					<p>Catamarca se divide en 6 jurisdicciones. Encuentre peritos habilitados por zona.</p>
+				</div>
+				<div class="map-visual-container">
+					<div class="svg-map">
+						<svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid meet">
+							<!-- Simplified schematic paths for Catamarca jurisdictions -->
+							<path class="map-region" id="reg-1" d="M180,180 L220,180 L240,220 L200,260 L160,220 Z" data-name="Capital" />
+							<path class="map-region" id="reg-2" d="M220,180 L300,160 L320,240 L240,220 Z" data-name="Recreo" />
+							<path class="map-region" id="reg-3" d="M100,100 L180,80 L200,180 L120,200 Z" data-name="Belén" />
+							<path class="map-region" id="reg-4" d="M80,40 L160,20 L180,80 L60,80 Z" data-name="Santa María" />
+							<path class="map-region" id="reg-5" d="M40,100 L120,100 L140,220 L60,240 Z" data-name="Tinogasta" />
+							<path class="map-region" id="reg-6" d="M140,220 L200,260 L180,340 L100,320 Z" data-name="Andalgalá" />
+							
+							<!-- Labels -->
+							<text x="190" y="225" class="map-label">1</text>
+							<text x="265" y="205" class="map-label">2</text>
+							<text x="145" y="150" class="map-label">3</text>
+							<text x="115" y="60" class="map-label">4</text>
+							<text x="90" y="170" class="map-label">5</text>
+							<text x="145" y="295" class="map-label">6</text>
+						</svg>
+					</div>
+					<div class="map-legend">
+						<div class="legend-item" onmouseover="document.getElementById('reg-1').classList.add('active')" onmouseout="document.getElementById('reg-1').classList.remove('active')">
+							<span class="l-num">1</span> Capital
+						</div>
+						<div class="legend-item" onmouseover="document.getElementById('reg-2').classList.add('active')" onmouseout="document.getElementById('reg-2').classList.remove('active')">
+							<span class="l-num">2</span> Recreo
+						</div>
+						<div class="legend-item" onmouseover="document.getElementById('reg-3').classList.add('active')" onmouseout="document.getElementById('reg-3').classList.remove('active')">
+							<span class="l-num">3</span> Belén
+						</div>
+						<div class="legend-item" onmouseover="document.getElementById('reg-4').classList.add('active')" onmouseout="document.getElementById('reg-4').classList.remove('active')">
+							<span class="l-num">4</span> Santa María
+						</div>
+						<div class="legend-item" onmouseover="document.getElementById('reg-5').classList.add('active')" onmouseout="document.getElementById('reg-5').classList.remove('active')">
+							<span class="l-num">5</span> Tinogasta
+						</div>
+						<div class="legend-item" onmouseover="document.getElementById('reg-6').classList.add('active')" onmouseout="document.getElementById('reg-6').classList.remove('active')">
+							<span class="l-num">6</span> Andalgalá
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<header class="section-header">
+			<span class="sub-title">Transparencia Pública</span>
+			<h1>Padrón de Matriculados</h1>
+			<p>Sistema oficial de consulta para la validación de profesionales habilitados en toda la provincia.</p>
+		</header>
+
+		<div class="search-panel glass">
+			<div class="search-main">
+				<div class="input-group">
+					<span class="search-icon">🔍</span>
+					<input type="text" placeholder="Buscar por Nombre, DNI o Número de Matrícula..." />
+				</div>
+				<button class="btn-primary">Buscar Profesional</button>
+			</div>
+			
+			<div class="search-filters">
+				<div class="filter-group">
+					<label>Jurisdicción</label>
+					<select>
+						<option value="">Todas las jurisdicciones</option>
+						<option>Capital</option>
+						<option>Valle Viejo</option>
+						<option>Fray Mamerto Esquiú</option>
+						<option>Interior</option>
+					</select>
+				</div>
+				<div class="filter-group">
+					<label>Especialidad</label>
+					<select>
+						<option value="">Todas las especialidades</option>
+						<option>Balística</option>
+						<option>Documentoscopia</option>
+						<option>Papiloscopía</option>
+						<option>Digital</option>
+					</select>
+				</div>
+				<div class="filter-group">
+					<label>Estado</label>
+					<select>
+						<option>Solo Activos</option>
+						<option>Todos</option>
+					</select>
+				</div>
+				<button class="btn-download">
+					<span class="d-icon">📥</span>
+					Descargar PDF Oficial
+				</button>
+			</div>
+		</div>
+
+		<section class="results-table-container glass">
+			<div class="table-responsive">
+				<table>
+					<thead>
+						<tr>
+							<th>Matrícula</th>
+							<th>Profesional</th>
+							<th>Especialidad</th>
+							<th>Jurisdicción</th>
+							<th>Estado</th>
+						</tr>
+					</thead>
+					<tbody>
+						{results.map(row => (
+							<tr>
+								<td class="mat-id"><strong>{row.id}</strong></td>
+								<td>
+									<div class="prof-name">
+										<span>{row.name}</span>
+									</div>
+								</td>
+								<td>{row.specialty}</td>
+								<td>{row.jurisdiction}</td>
+								<td><span class="status-pill">{row.status}</span></td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
+
+			<div class="table-footer">
+				<div class="results-info">
+					Mostrando <strong>5</strong> de 142 profesionales habilitados.
+				</div>
+				<div class="pagination">
+					<button class="p-btn prev" disabled>Anterior</button>
+					<div class="p-pages">
+						<button class="active">1</button>
+						<button>2</button>
+						<button>3</button>
+						<span>...</span>
+						<button>15</button>
+					</div>
+					<button class="p-btn next">Siguiente</button>
+				</div>
+			</div>
+		</section>
+
+		<div class="legal-notice">
+			<p>⚠️ <strong>Aviso Legal:</strong> La información contenida en este padrón es de carácter público y se actualiza mensualmente. Ningún profesional puede ejercer sin matrícula vigente expedida por este Colegio.</p>
+		</div>
+	</div>
+
+	<style>
+		.page-content { padding: 5rem 0; }
+		
+		.hero-image-container {
+			margin: -2rem auto 4rem;
+			max-width: 1100px;
+			padding: 0 1.5rem;
+		}
+
+		.hero-img {
+			width: 100%;
+			height: 300px;
+			object-fit: cover;
+			border-radius: var(--radius-lg);
+			box-shadow: var(--shadow-lg);
+		}
+
+		/* Districts Map Redesign */
+		.districts-map-section { margin-bottom: 4rem; }
+		.map-container { padding: 3rem; text-align: center; border: 1px solid var(--gray-200); border-radius: var(--radius-lg); background: var(--white); }
+		.map-header { margin-bottom: 3rem; }
+		.map-header h2 { font-size: 1.8rem; font-weight: 800; color: var(--accent); }
+		
+		.map-visual-container {
+			display: grid;
+			grid-template-columns: 1.2fr 1fr;
+			gap: 4rem;
+			align-items: center;
+			max-width: 900px;
+			margin: 0 auto;
+		}
+
+		.svg-map {
+			background: var(--gray-50);
+			padding: 2rem;
+			border-radius: 20px;
+			border: 1px solid var(--gray-100);
+		}
+
+		.map-region {
+			fill: var(--white);
+			stroke: var(--primary);
+			stroke-width: 2;
+			transition: all 0.3s ease;
+			cursor: pointer;
+		}
+
+		.map-region:hover, .map-region.active {
+			fill: var(--primary-soft);
+			stroke-width: 3;
+			transform: scale(1.02);
+			filter: drop-shadow(0 5px 15px rgba(0,0,0,0.1));
+		}
+
+		.map-label {
+			fill: var(--accent);
+			font-size: 14px;
+			font-weight: 800;
+			pointer-events: none;
+			text-anchor: middle;
+		}
+
+		.map-legend {
+			display: grid;
+			grid-template-columns: 1fr;
+			gap: 1rem;
+		}
+
+		.legend-item {
+			display: flex;
+			align-items: center;
+			gap: 1rem;
+			padding: 1rem 1.5rem;
+			background: var(--white);
+			border: 1px solid var(--gray-200);
+			border-radius: 12px;
+			font-weight: 700;
+			color: var(--accent);
+			transition: var(--transition);
+			cursor: pointer;
+		}
+
+		.legend-item:hover {
+			border-color: var(--primary);
+			background: var(--primary-soft);
+			transform: translateX(10px);
+		}
+
+		.l-num {
+			width: 28px;
+			height: 28px;
+			background: var(--primary);
+			color: white;
+			border-radius: 6px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 0.8rem;
+		}
+
+		.section-header { text-align: center; margin-bottom: 5rem; }
+		.sub-title { color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.9rem; display: block; margin-bottom: 1rem; }
+		.section-header h1 { font-size: clamp(2.5rem, 5vw, 3.5rem); margin-bottom: 1.5rem; color: var(--accent); }
+		.section-header p { font-size: 1.25rem; color: var(--text-light); max-width: 800px; margin: 0 auto; }
+
+		.search-panel { padding: 3rem; border-radius: var(--radius-lg); border: 1px solid var(--gray-300); margin-bottom: 4rem; }
+		
+		.search-main { display: flex; gap: 1.5rem; margin-bottom: 2.5rem; }
+		.input-group { flex: 1; position: relative; }
+		.search-icon { position: absolute; left: 1.25rem; top: 50%; transform: translateY(-50%); color: var(--text-light); }
+		.input-group input { width: 100%; padding: 1.1rem 1.1rem 1.1rem 3.5rem; border: 1px solid var(--gray-300); border-radius: var(--radius-md); font-size: 1.1rem; font-family: inherit; transition: var(--transition); }
+		.input-group input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+
+		.btn-primary { background: var(--primary); color: white; border: none; padding: 0 2.5rem; border-radius: var(--radius-md); font-weight: 700; font-size: 1rem; cursor: pointer; transition: var(--transition); }
+		.btn-primary:hover { background: var(--primary-hover); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
+		.search-filters { display: flex; gap: 1.5rem; align-items: flex-end; flex-wrap: wrap; }
+		.filter-group { display: flex; flex-direction: column; gap: 0.5rem; flex: 1; min-width: 200px; }
+		.filter-group label { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--accent); }
+		.filter-group select { padding: 0.8rem 1rem; border: 1px solid var(--gray-200); border-radius: 8px; font-family: inherit; background: var(--white); font-weight: 600; font-size: 0.95rem; }
+
+		.btn-download { background: var(--white); border: 2px solid var(--primary); color: var(--primary); padding: 0.7rem 1.5rem; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 0.75rem; transition: var(--transition); height: 3.25rem; }
+		.btn-download:hover { background: var(--primary); color: white; }
+
+		.results-table-container { border-radius: var(--radius-lg); border: 1px solid var(--gray-200); overflow: hidden; }
+		.table-responsive { width: 100%; overflow-x: auto; }
+		
+		table { width: 100%; border-collapse: collapse; text-align: left; min-width: 800px; }
+		th { background: var(--gray-100); padding: 1.25rem 1.5rem; font-size: 0.8rem; font-weight: 800; text-transform: uppercase; color: var(--primary); letter-spacing: 0.05em; border-bottom: 2px solid var(--gray-200); }
+		td { padding: 1.5rem; border-bottom: 1px solid var(--gray-100); font-size: 1rem; color: var(--text-main); }
+		tr:last-child td { border-bottom: none; }
+		tr:hover { background: var(--primary-soft); }
+
+		.mat-id { color: var(--primary); font-family: monospace; font-size: 1.1rem; }
+		.status-pill { background: #dcfce7; color: #166534; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 800; border: 1px solid #bbf7d0; }
+
+		.table-footer { padding: 2rem; border-top: 1px solid var(--gray-100); display: flex; justify-content: space-between; align-items: center; background: var(--gray-50); }
+		.results-info { font-size: 0.9rem; color: var(--text-light); }
+		
+		.pagination { display: flex; gap: 1.5rem; align-items: center; }
+		.p-btn { background: var(--white); border: 1px solid var(--gray-300); padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
+		.p-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+		.p-pages { display: flex; gap: 0.5rem; align-items: center; }
+		.p-pages button { width: 35px; height: 35px; border-radius: 8px; border: 1px solid transparent; background: transparent; cursor: pointer; font-weight: 700; transition: var(--transition); }
+		.p-pages button.active { background: var(--primary); color: white; }
+		.p-pages button:hover:not(.active) { background: var(--gray-200); }
+
+		.legal-notice { margin-top: 3rem; background: #fffbeb; border: 1px solid #fde68a; padding: 1.5rem; border-radius: 12px; color: #92400e; font-size: 0.95rem; }
+
+		@media (max-width: 1024px) {
+			.search-main { flex-direction: column; }
+			.search-filters { flex-direction: column; align-items: stretch; }
+			.btn-download { width: 100%; justify-content: center; }
+		}
+	</style>
+</MainLayout>

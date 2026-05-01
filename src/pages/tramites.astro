@@ -1,0 +1,184 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+---
+
+<MainLayout title="Trámites y Servicios" showBack={true}>
+	<div class="container page-content">
+		<header class="section-header">
+			<span class="sub-title">Gestión Digital</span>
+			<h1>Trámites y Servicios</h1>
+			<p>Acceda a su documentación profesional, postúlese a peritajes oficiales y presente sus propuestas.</p>
+		</header>
+
+		<div class="tramites-grid">
+			<!-- Certificados -->
+			<section class="tramite-card glass">
+				<div class="t-icon-box">📜</div>
+				<div class="t-content">
+					<h3>Certificados Digitales</h3>
+					<p>Descarga inmediata de certificados de ética, vigencia de matrícula y cumplimiento institucional con firma digital.</p>
+					<div class="cert-list">
+						<button class="cert-btn">Certificado de Ética <span class="download-icon">⬇️</span></button>
+						<button class="cert-btn">Vigencia de Matrícula <span class="download-icon">⬇️</span></button>
+					</div>
+				</div>
+			</section>
+
+			<!-- Bolsa de Trabajo -->
+			<section class="tramite-card glass">
+				<div class="t-icon-box">💼</div>
+				<div class="t-content">
+					<h3>Bolsa de Trabajo Pericial</h3>
+					<p>Inscripción en listas oficiales para peritajes judiciales y convocatorias de organismos públicos o privados.</p>
+					<div class="offers-list">
+						<div class="offer-item">
+							<strong>Poder Judicial Catamarca</strong>
+							<span>Inscripción Ciclo 2026 Abierta</span>
+						</div>
+						<button class="btn-action">Ver Convocatorias</button>
+					</div>
+				</div>
+			</section>
+
+			<!-- Presentación de Proyectos -->
+			<section class="tramite-card glass full-row">
+				<div class="t-icon-box project-icon">🚀</div>
+				<div class="t-content">
+					<div class="t-badge">Nuevo</div>
+					<h3>Presentación de Proyectos y Propuestas</h3>
+					<p>Suma tu iniciativa al Colegio. Envía tus propuestas para capacitaciones, reformas institucionales o proyectos de investigación científica.</p>
+					
+					<form class="project-form" onsubmit="event.preventDefault()">
+						<div class="form-row">
+							<div class="form-group">
+								<label>Título de la Propuesta</label>
+								<input type="text" placeholder="Ej: Programa de Capacitación en Balística Forense" />
+							</div>
+						</div>
+						<div class="form-row">
+							<div class="form-group">
+								<label>Resumen Ejecutivo / Objetivos</label>
+								<textarea placeholder="Describa brevemente el alcance y impacto de su propuesta..." rows="4"></textarea>
+							</div>
+						</div>
+						<div class="form-footer">
+							<div class="file-upload">
+								<label for="pdf-upload" class="upload-label">
+									<span>📎 Adjuntar PDF Detallado</span>
+									<input type="file" id="pdf-upload" hidden />
+								</label>
+							</div>
+							<button class="btn-submit">Enviar Propuesta</button>
+						</div>
+					</form>
+				</div>
+			</section>
+		</div>
+	</div>
+
+	<style>
+		.page-content { padding: 5rem 0; }
+		.section-header { text-align: center; margin-bottom: 5rem; }
+		.sub-title { color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.9rem; display: block; margin-bottom: 1rem; }
+		.section-header h1 { font-size: clamp(2.5rem, 5vw, 3.5rem); margin-bottom: 1.5rem; color: var(--accent); }
+		.section-header p { font-size: 1.25rem; color: var(--text-light); max-width: 800px; margin: 0 auto; }
+
+		.tramites-grid {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 2.5rem;
+		}
+
+		.full-row { grid-column: 1 / -1; }
+
+		.tramite-card {
+			display: flex;
+			gap: 2rem;
+			padding: 3rem;
+			border-radius: var(--radius-lg);
+			border: 1px solid var(--gray-200);
+			background: var(--white);
+			transition: var(--transition);
+		}
+
+		.tramite-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-md); border-color: var(--primary); }
+
+		.t-icon-box {
+			width: 70px;
+			height: 70px;
+			background: var(--gray-100);
+			border-radius: 16px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 2rem;
+			flex-shrink: 0;
+		}
+
+		.project-icon { background: var(--primary-light); color: var(--primary); }
+
+		.t-content { flex: 1; position: relative; }
+		.t-badge { position: absolute; top: -10px; right: 0; background: var(--primary); color: white; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; }
+
+		.t-content h3 { font-size: 1.5rem; margin-bottom: 1rem; }
+		.t-content p { color: var(--text-light); font-size: 1rem; line-height: 1.5; margin-bottom: 2rem; }
+
+		/* Certificados */
+		.cert-list { display: flex; flex-direction: column; gap: 0.75rem; }
+		.cert-btn {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 1rem 1.5rem;
+			background: var(--gray-50);
+			border: 1px solid var(--gray-200);
+			border-radius: 10px;
+			font-weight: 600;
+			cursor: pointer;
+			transition: var(--transition);
+		}
+		.cert-btn:hover { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+
+		/* Bolsa */
+		.offer-item {
+			background: var(--primary-soft);
+			padding: 1.25rem;
+			border-radius: 10px;
+			border-left: 4px solid var(--primary);
+			margin-bottom: 1.5rem;
+		}
+		.offer-item strong { display: block; font-size: 1rem; color: var(--primary); }
+		.offer-item span { font-size: 0.85rem; color: var(--text-light); }
+
+		.btn-action {
+			background: var(--primary);
+			color: white;
+			border: none;
+			padding: 0.75rem 1.5rem;
+			border-radius: 8px;
+			font-weight: 700;
+			cursor: pointer;
+		}
+
+		/* Form */
+		.project-form {
+			background: var(--gray-50);
+			padding: 2rem;
+			border-radius: 16px;
+			border: 1px solid var(--gray-200);
+		}
+		.form-group { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem; }
+		.form-group label { font-size: 0.9rem; font-weight: 600; color: var(--accent); }
+		.form-group input, .form-group textarea { padding: 0.8rem 1rem; border: 1px solid var(--gray-300); border-radius: 10px; font-family: inherit; font-size: 1rem; }
+		
+		.form-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; }
+		.upload-label { cursor: pointer; color: var(--primary); font-weight: 600; font-size: 0.9rem; }
+		.btn-submit { background: var(--primary); color: white; border: none; padding: 1rem 2rem; border-radius: 10px; font-weight: 700; cursor: pointer; }
+
+		@media (max-width: 1024px) {
+			.tramites-grid { grid-template-columns: 1fr; }
+			.tramite-card { flex-direction: column; padding: 2rem; }
+			.t-icon-box { margin-bottom: 1rem; }
+		}
+	</style>
+</MainLayout>

@@ -1,0 +1,19 @@
+---
+export const prerender = false;
+// Esta página monta el Sanity Studio en la ruta /admin-colegio
+// Se usa client:only="react" para asegurar que solo se renderice en el cliente
+import { Studio } from 'sanity';
+import config from '../../../sanity.config.js';
+---
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - Colegio de Profesionales</title>
+</head>
+<body style="margin: 0;">
+    <Studio config={config} client:only="react" />
+</body>
+</html>

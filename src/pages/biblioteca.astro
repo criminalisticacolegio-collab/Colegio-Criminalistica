@@ -1,0 +1,229 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+---
+
+<MainLayout title="Biblioteca Digital" showBack={true}>
+	<div class="container page-content">
+		<header class="section-header">
+			<span class="sub-title">Recursos Legales</span>
+			<h1>Biblioteca Digital y Consultas IA</h1>
+			<p>Acceda a toda la normativa vigente y resuelva sus dudas legales con nuestro asistente inteligente.</p>
+		</header>
+
+		<div class="biblioteca-layout">
+			<!-- Biblioteca de Normas -->
+			<section class="tool-card library-tool glass">
+				<div class="tool-header">
+					<div class="icon-box">📚</div>
+					<h3>Biblioteca de Normas y Leyes</h3>
+					<p>Repositorio oficial de leyes, decretos y estatutos que rigen la profesión en Catamarca.</p>
+				</div>
+				<div class="doc-grid">
+					<a href="#" class="doc-card">
+						<div class="d-icon">⚖️</div>
+						<div class="d-info">
+							<strong>Ley N° 5832</strong>
+							<span>Ley de Colegiación Provincial</span>
+						</div>
+					</a>
+					<a href="#" class="doc-card">
+						<div class="d-icon">📜</div>
+						<div class="d-info">
+							<strong>Código de Ética</strong>
+							<span>Normativa de conducta profesional</span>
+						</div>
+					</a>
+					<a href="#" class="doc-card">
+						<div class="d-icon">📋</div>
+						<div class="d-info">
+							<strong>Estatuto CPC CTM</strong>
+							<span>Estructura orgánica institucional</span>
+						</div>
+					</a>
+					<a href="#" class="doc-card">
+						<div class="d-icon">📂</div>
+						<div class="d-info">
+							<strong>Anexo Aranceles</strong>
+							<span>Valores referenciales vigentes</span>
+						</div>
+					</a>
+				</div>
+			</section>
+
+			<!-- Chatbot IA -->
+			<section class="tool-card chatbot-tool glass">
+				<div class="tool-header">
+					<span class="tag-ai">Smart Chat</span>
+					<h3>Consultor Inteligente (LegalBot)</h3>
+					<p>Asistente virtual entrenado para responder consultas sobre el marco regulatorio.</p>
+				</div>
+				<div class="chat-container">
+					<div class="chat-mock">
+						<div class="chat-msg bot">¡Hola! Soy LegalBot. ¿En qué puedo ayudarte hoy con respecto a la normativa o trámites?</div>
+						<div class="chat-msg user">¿Cuáles son los requisitos de la Ley 5832 para nuevos peritos?</div>
+						<div class="chat-msg bot">Para matricularse bajo la Ley 5832, debe presentar título habilitante legalizado, certificado de antecedentes penales y completar el legajo digital...</div>
+					</div>
+					<div class="chat-input-area">
+						<input type="text" placeholder="Escribe tu consulta legal aquí..." />
+						<button class="btn-send">Enviar</button>
+					</div>
+				</div>
+			</section>
+		</div>
+	</div>
+
+	<style>
+		.page-content { padding: 5rem 0; }
+		.section-header { text-align: center; margin-bottom: 5rem; }
+		.sub-title { color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.9rem; display: block; margin-bottom: 1rem; }
+		.section-header h1 { font-size: clamp(2.5rem, 5vw, 3.5rem); margin-bottom: 1.5rem; color: var(--accent); }
+		.section-header p { font-size: 1.25rem; color: var(--text-light); max-width: 800px; margin: 0 auto; }
+
+		.biblioteca-layout {
+			display: grid;
+			grid-template-columns: 1fr;
+			gap: 3rem;
+		}
+
+		.tool-card {
+			padding: 3rem;
+			border-radius: var(--radius-lg);
+			border: 1px solid var(--gray-200);
+		}
+
+		.tool-header {
+			margin-bottom: 2.5rem;
+			text-align: center;
+		}
+
+		.icon-box {
+			background: var(--primary);
+			color: white;
+			width: 60px;
+			height: 60px;
+			border-radius: 12px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 1.75rem;
+			margin: 0 auto 1.5rem;
+		}
+
+		.tool-header h3 { font-size: 1.8rem; margin-bottom: 0.75rem; }
+		.tool-header p { color: var(--text-light); font-size: 1.1rem; }
+
+		/* Doc Grid */
+		.doc-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+			gap: 1.5rem;
+		}
+
+		.doc-card {
+			display: flex;
+			align-items: center;
+			gap: 1.25rem;
+			padding: 1.5rem;
+			background: var(--white);
+			border: 1px solid var(--gray-200);
+			border-radius: 16px;
+			text-decoration: none;
+			color: var(--text-main);
+			transition: var(--transition);
+		}
+
+		.doc-card:hover {
+			border-color: var(--primary);
+			transform: translateY(-5px);
+			box-shadow: var(--shadow-md);
+		}
+
+		.d-icon { font-size: 2rem; }
+		.d-info strong { display: block; font-size: 1.1rem; margin-bottom: 0.25rem; }
+		.d-info span { font-size: 0.9rem; color: var(--text-light); }
+
+		/* Chatbot Section */
+		.tag-ai {
+			background: var(--primary-light);
+			color: var(--primary);
+			padding: 0.4rem 1rem;
+			border-radius: 20px;
+			font-size: 0.8rem;
+			font-weight: 800;
+			text-transform: uppercase;
+			margin-bottom: 1rem;
+			display: inline-block;
+		}
+
+		.chat-container {
+			background: var(--gray-900);
+			border-radius: 20px;
+			overflow: hidden;
+			max-width: 900px;
+			margin: 0 auto;
+		}
+
+		.chat-mock {
+			padding: 2rem;
+			display: flex;
+			flex-direction: column;
+			gap: 1.5rem;
+			height: 350px;
+			overflow-y: auto;
+		}
+
+		.chat-msg {
+			padding: 1rem 1.5rem;
+			border-radius: 15px;
+			font-size: 0.95rem;
+			line-height: 1.5;
+			max-width: 80%;
+		}
+
+		.chat-msg.bot {
+			background: rgba(255,255,255,0.1);
+			color: white;
+			align-self: flex-start;
+			border-bottom-left-radius: 2px;
+		}
+
+		.chat-msg.user {
+			background: var(--primary);
+			color: white;
+			align-self: flex-end;
+			border-bottom-right-radius: 2px;
+		}
+
+		.chat-input-area {
+			padding: 1.5rem;
+			background: rgba(0,0,0,0.2);
+			display: flex;
+			gap: 1rem;
+		}
+
+		.chat-input-area input {
+			flex: 1;
+			background: rgba(255,255,255,0.05);
+			border: 1px solid rgba(255,255,255,0.1);
+			padding: 1rem;
+			border-radius: 10px;
+			color: white;
+			font-family: inherit;
+		}
+
+		.btn-send {
+			background: var(--primary);
+			color: white;
+			border: none;
+			padding: 0 1.5rem;
+			border-radius: 10px;
+			font-weight: 700;
+			cursor: pointer;
+		}
+
+		@media (max-width: 768px) {
+			.tool-card { padding: 1.5rem; }
+			.doc-grid { grid-template-columns: 1fr; }
+		}
+	</style>
+</MainLayout>

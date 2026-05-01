@@ -1,0 +1,161 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+
+const gridItems = [
+	{ title: 'INSTITUCIONAL', image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=800', desc: 'Misión, visión y autoridades.', link: '/institucional' },
+	{ title: 'MATRICULADOS', image: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=800', desc: 'Legajos, pagos y certificados.', link: '/matriculados' },
+	{ title: 'PADRÓN OFICIAL', image: 'https://images.unsplash.com/photo-1589829085413-56de8ae18c73?auto=format&fit=crop&q=80&w=800', desc: 'Buscador oficial dinámico.', link: '/padron' },
+	{ title: 'CAPACITACIÓN', image: 'https://images.unsplash.com/photo-1524178232363-1fb28f74b0cd?auto=format&fit=crop&q=80&w=800', desc: 'LMS, videos y material.', link: '/capacitacion' },
+	{ title: 'TRIBUNAL DE DISCIPLINA', image: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&q=80&w=800', desc: 'Tribunal y jurisprudencia IA.', link: '/disciplina' },
+	{ title: 'GESTIÓN', image: 'https://images.unsplash.com/photo-1454165833767-027508496b4c?auto=format&fit=crop&q=80&w=800', desc: 'Balances y transparencia IA.', link: '/gestion' },
+	{ title: 'NOTICIAS', image: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=800', desc: 'Novedades y actualidad.', link: '/noticias' },
+	{ title: 'BIBLIOTECA LEGAL', image: 'https://images.unsplash.com/photo-1507733108722-2272f8664ec5?auto=format&fit=crop&q=80&w=800', desc: 'Leyes y normativas vigentes.', link: '/biblioteca' },
+	{ title: 'TRÁMITES', image: 'https://images.unsplash.com/photo-1586762524888-3075276d1e5d?auto=format&fit=crop&q=80&w=800', desc: 'Formularios y guías.', link: '/tramites' },
+];
+---
+
+<MainLayout title="Panel Principal">
+	<section class="hero">
+		<div class="container hero-content">
+			<h1>Colegio de Profesionales en Ciencias Criminalísticas</h1>
+			<p>Provincia de Catamarca. Innovación y transparencia al servicio de la verdad y la justicia.</p>
+		</div>
+	</section>
+
+	<section class="grid-section">
+		<div class="container">
+			<div class="main-grid">
+				{gridItems.map(item => (
+					<a href={item.link} class="grid-item">
+						<div class="image-wrapper">
+							<img src={item.image} alt={item.title} loading="lazy" />
+							<div class="overlay"></div>
+						</div>
+						<div class="content">
+							<h3>{item.title}</h3>
+							<p>{item.desc}</p>
+							<span class="action">Ingresar →</span>
+						</div>
+					</a>
+				))}
+			</div>
+		</div>
+	</section>
+
+	<style>
+		.hero {
+			padding: 5rem 0;
+			background-color: var(--gray-light);
+			text-align: center;
+			border-bottom: 1px solid var(--gray-medium);
+		}
+
+		.hero-content h1 {
+			font-size: 2.75rem;
+			margin-bottom: 1rem;
+			max-width: 900px;
+			margin-left: auto;
+			margin-right: auto;
+			line-height: 1.2;
+		}
+
+		.hero-content p {
+			font-size: 1.2rem;
+			color: var(--text-light);
+			max-width: 700px;
+			margin: 0 auto;
+		}
+
+		/* Grid Section */
+		.grid-section {
+			padding: 4rem 0;
+		}
+
+		.main-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+			gap: 2.5rem;
+		}
+
+		.grid-item {
+			background: var(--white);
+			border-radius: 12px;
+			text-decoration: none;
+			overflow: hidden;
+			border: 1px solid var(--gray-medium);
+			transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+			display: flex;
+			flex-direction: column;
+		}
+
+		.grid-item:hover {
+			transform: translateY(-8px);
+			box-shadow: var(--shadow-lg);
+			border-color: var(--primary);
+		}
+
+		.image-wrapper {
+			position: relative;
+			height: 180px;
+			overflow: hidden;
+		}
+
+		.image-wrapper img {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+			transition: transform 0.5s;
+		}
+
+		.grid-item:hover .image-wrapper img {
+			transform: scale(1.1);
+		}
+
+		.overlay {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background: linear-gradient(to bottom, transparent, rgba(0, 100, 0, 0.4));
+		}
+
+		.content {
+			padding: 1.75rem;
+			flex-grow: 1;
+			display: flex;
+			flex-direction: column;
+		}
+
+		.grid-item h3 {
+			margin-bottom: 0.5rem;
+			font-size: 1.3rem;
+			color: var(--primary);
+		}
+
+		.grid-item p {
+			color: var(--text-light);
+			font-size: 0.95rem;
+			line-height: 1.5;
+			margin-bottom: 1.5rem;
+		}
+
+		.action {
+			margin-top: auto;
+			font-weight: 700;
+			color: var(--primary);
+			font-size: 0.9rem;
+			text-transform: uppercase;
+			letter-spacing: 0.05em;
+		}
+
+		@media (max-width: 640px) {
+			.hero-content h1 {
+				font-size: 2rem;
+			}
+			.main-grid {
+				grid-template-columns: 1fr;
+			}
+		}
+	</style>
+</MainLayout>

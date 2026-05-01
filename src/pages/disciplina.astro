@@ -1,0 +1,153 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+---
+
+<MainLayout title="Disciplina y Legal" showBack={true}>
+	<div class="container page-content">
+		<header class="section-header">
+			<span class="sub-title">Tribunal de Ética</span>
+			<h1>Disciplina y Legal</h1>
+			<p>Garantía de integridad y marco normativo para el ejercicio profesional científico en Catamarca.</p>
+		</header>
+
+		<section class="tribunal-section">
+			<div class="tribunal-glass glass">
+				<div class="tribunal-header">
+					<div class="icon-box">⚖️</div>
+					<div class="text-box">
+						<h2>Autoridades del Tribunal</h2>
+						<p>El Tribunal de Disciplina es el órgano encargado de velar por el cumplimiento del Código de Ética Profesional.</p>
+					</div>
+				</div>
+				<div class="tribunal-grid">
+					<div class="t-auth">
+						<span class="t-role">1° Miembro Titular (Presidente)</span>
+						<span class="t-name">Lic. Quevedo Orlando Antonio</span>
+					</div>
+					<div class="t-auth">
+						<span class="t-role">2° Miembro Titular</span>
+						<span class="t-name">Franco Natalia</span>
+					</div>
+					<div class="t-auth">
+						<span class="t-role">3° Miembro Titular</span>
+						<span class="t-name">Pereira Carlos</span>
+					</div>
+					<div class="t-auth">
+						<span class="t-role">4° Miembro Titular</span>
+						<span class="t-name">Sarmiento Enrique</span>
+					</div>
+					<div class="t-auth">
+						<span class="t-role">1° Miembro Suplente</span>
+						<span class="t-name">Bulacios Anahi</span>
+					</div>
+					<div class="t-auth">
+						<span class="t-role">2° Miembro Suplente</span>
+						<span class="t-name">Carrizo Xavier</span>
+					</div>
+					<div class="t-auth">
+						<span class="t-role">3° Miembro Suplente</span>
+						<span class="t-name">Pereira Carlos</span>
+					</div>
+					<div class="t-auth">
+						<span class="t-role">4° Miembro Suplente</span>
+						<span class="t-name">[Pendiente de asignar]</span>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<div class="legal-tools">
+			<!-- Jurisprudencia IA -->
+			<section class="tool-card ai-tool glass full-width">
+				<div class="tool-header">
+					<span class="tag-ai">IA Engine</span>
+					<h3>Analista Inteligente de Jurisprudencia</h3>
+					<p>Buscador avanzado de fallos y resoluciones del tribunal (Casos Anónimos).</p>
+				</div>
+				<div class="search-box-mock">
+					<input type="text" placeholder="Ej: Faltas a la ética pericial, negligencia..." disabled />
+					<button class="btn-search">🔍</button>
+				</div>
+				<div class="case-results">
+					<div class="case-item">
+						<span class="case-tag">Resolución 01/24</span>
+						<p>Fallo sobre incompatibilidad en peritajes privados simultáneos.</p>
+					</div>
+					<div class="case-item">
+						<span class="case-tag">Resolución 15/23</span>
+						<p>Interpretación del Art. 45 del Código de Ética.</p>
+					</div>
+				</div>
+			</section>
+		</div>
+	</div>
+
+	<style>
+		.full-width { grid-column: 1 / -1; }
+		.page-content { padding: 5rem 0; }
+		
+		.section-header { text-align: center; margin-bottom: 5rem; }
+		.sub-title { color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.9rem; display: block; margin-bottom: 1rem; }
+		.section-header h1 { font-size: clamp(2.5rem, 5vw, 3.5rem); margin-bottom: 1.5rem; color: var(--accent); }
+		.section-header p { font-size: 1.25rem; color: var(--text-light); max-width: 800px; margin: 0 auto; }
+
+		.tribunal-section { margin-bottom: 5rem; }
+		.tribunal-glass { padding: 3rem; border-radius: var(--radius-lg); border: 1px solid var(--gray-300); }
+		.tribunal-header { display: flex; align-items: center; gap: 2rem; margin-bottom: 3rem; border-bottom: 1px solid var(--gray-200); padding-bottom: 2rem; }
+		.icon-box { background: var(--primary); color: white; width: 60px; height: 60px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; }
+		.tribunal-header h2 { font-size: 1.75rem; margin-bottom: 0.5rem; }
+		.tribunal-header p { color: var(--text-light); }
+
+		.tribunal-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2rem; }
+		.t-auth { display: flex; flex-direction: column; }
+		.t-role { font-size: 0.8rem; text-transform: uppercase; color: var(--primary); font-weight: 700; margin-bottom: 0.25rem; }
+		.t-name { font-size: 1.1rem; font-weight: 600; color: var(--text-main); }
+
+		.legal-tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 2.5rem; }
+		.tool-card { padding: 2.5rem; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); display: flex; flex-direction: column; }
+		.tag-ai { background: var(--primary-light); color: var(--primary); padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; margin-bottom: 1rem; width: fit-content; }
+		
+		.tool-header h3 { font-size: 1.5rem; margin-bottom: 1rem; }
+		.tool-header p { color: var(--text-light); font-size: 0.95rem; margin-bottom: 2rem; line-height: 1.5; }
+
+		/* Search Mock */
+		.search-box-mock { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
+		.search-box-mock input { flex: 1; padding: 0.75rem 1rem; border: 1px solid var(--gray-300); border-radius: var(--radius-md); background: var(--gray-50); }
+		.btn-search { background: var(--primary); border: none; padding: 0 1rem; border-radius: var(--radius-md); color: white; cursor: pointer; }
+
+		.case-results { display: flex; flex-direction: column; gap: 1rem; }
+		.case-item { padding: 1rem; background: var(--white); border-radius: 12px; border: 1px solid var(--gray-200); }
+		.case-tag { font-size: 0.75rem; font-weight: 700; color: var(--primary); display: block; margin-bottom: 0.25rem; }
+		.case-item p { font-size: 0.85rem; color: var(--text-main); line-height: 1.4; }
+
+		/* Doc Grid */
+		.doc-links { display: flex; flex-direction: column; gap: 1rem; }
+		.doc-card { display: flex; align-items: center; gap: 1rem; padding: 1.25rem; background: var(--white); border: 1px solid var(--gray-200); border-radius: 16px; text-decoration: none; color: var(--text-main); transition: var(--transition); }
+		.doc-card:hover { border-color: var(--primary); transform: translateX(5px); box-shadow: var(--shadow-sm); }
+		.d-icon { font-size: 1.5rem; }
+		.d-info strong { display: block; font-size: 0.95rem; }
+		.d-info span { font-size: 0.8rem; color: var(--text-light); }
+
+		/* Chat Mock */
+		.chat-mock { background: var(--gray-900); padding: 1.5rem; border-radius: 16px; margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+		.chat-msg { padding: 0.75rem 1rem; border-radius: 12px; font-size: 0.85rem; line-height: 1.4; max-width: 85%; }
+		.chat-msg.bot { background: rgba(255,255,255,0.1); color: white; align-self: flex-start; }
+		.chat-msg.user { background: var(--primary); color: white; align-self: flex-end; }
+		.chat-msg.loading { display: flex; gap: 4px; padding: 0.75rem; }
+		.dot { width: 6px; height: 6px; background: white; border-radius: 50%; opacity: 0.6; animation: chatDot 1.4s infinite; }
+		.dot:nth-child(2) { animation-delay: 0.2s; }
+		.dot:nth-child(3) { animation-delay: 0.4s; }
+		
+		@keyframes chatDot {
+			0%, 100% { transform: translateY(0); }
+			50% { transform: translateY(-5px); }
+		}
+
+		.btn-chat-start { background: var(--primary); color: white; border: none; padding: 1rem; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; transition: var(--transition); width: 100%; border: 1px solid var(--primary); }
+		.btn-chat-start:hover { background: transparent; color: var(--primary); }
+
+		@media (max-width: 1024px) {
+			.legal-tools { grid-template-columns: 1fr; }
+		}
+	</style>
+</MainLayout>

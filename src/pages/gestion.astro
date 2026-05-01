@@ -1,0 +1,160 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+---
+
+<MainLayout title="Gestión e IA" showBack={true}>
+	<div class="container page-content">
+		<header class="section-header">
+			<span class="sub-title">Transparencia Institucional</span>
+			<h1>Gestión y Rendición</h1>
+			<p>Acceso público a la administración documental y análisis inteligente de indicadores de gestión.</p>
+		</header>
+
+		<div class="gestion-container">
+			<!-- Document Repository -->
+			<section class="docs-section">
+				<div class="section-title-sm">
+					<h3>Repositorio Documental</h3>
+					<div class="search-bar-sm">
+						<input type="text" placeholder="Buscar documento..." />
+					</div>
+				</div>
+
+				<div class="docs-grid">
+					<div class="folder-card glass">
+						<div class="folder-icon">📂</div>
+						<div class="folder-body">
+							<h4>Balances Anuales</h4>
+							<p>Estados contables y memorias de ejercicio profesional.</p>
+							<div class="file-list">
+								<div class="file-item"><span>📄 Balance 2023.pdf</span> ⬇️</div>
+								<div class="file-item"><span>📄 Memoria 2023.pdf</span> ⬇️</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="folder-card glass">
+						<div class="folder-icon">🤝</div>
+						<div class="folder-body">
+							<h4>Convenios</h4>
+							<p>Acuerdos con universidades y entes gubernamentales.</p>
+							<div class="file-list">
+								<div class="file-item"><span>📄 UNCA - Convenio Marco.pdf</span> ⬇️</div>
+								<div class="file-item"><span>📄 Convenio Poder Judicial.pdf</span> ⬇️</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="folder-card glass">
+						<div class="folder-icon">🏛️</div>
+						<div class="folder-body">
+							<h4>Actas de Asamblea</h4>
+							<p>Registros oficiales de las decisiones del cuerpo colegiado.</p>
+							<div class="file-list">
+								<div class="file-item"><span>📄 Acta Ordinaria Marzo 24.pdf</span> ⬇️</div>
+								<div class="file-item"><span>📄 Acta Extraordinaria 23.pdf</span> ⬇️</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- AI Evaluator Dashboard -->
+			<aside class="ai-dashboard">
+				<div class="dashboard-card glass">
+					<div class="db-header">
+						<div class="ai-orb"></div>
+						<div class="db-title">
+							<h3>Evaluador Inteligente</h3>
+							<span>Powered by CPCAI</span>
+						</div>
+					</div>
+
+					<div class="metrics-grid">
+						<div class="metric-item">
+							<span class="m-label">Transparencia</span>
+							<div class="m-bar"><div class="m-fill" style="width: 98%"></div></div>
+							<span class="m-value">98%</span>
+						</div>
+						<div class="metric-item">
+							<span class="m-label">Eficiencia Operativa</span>
+							<div class="m-bar"><div class="m-fill" style="width: 92%"></div></div>
+							<span class="m-value">92%</span>
+						</div>
+						<div class="metric-item">
+							<span class="m-label">Respuesta al Socio</span>
+							<div class="m-bar"><div class="m-fill" style="width: 95%"></div></div>
+							<span class="m-value">95%</span>
+						</div>
+					</div>
+
+					<div class="ai-insights">
+						<h4>Insights de Gestión</h4>
+						<div class="insight-bubble">
+							"Se observa un cumplimiento excepcional en los estándares de digitalización documental, superando la media regional en un 15%."
+						</div>
+						<div class="insight-bubble">
+							"Los convenios interinstitucionales han incrementado el flujo de capacitación en un 25% respecto al año anterior."
+						</div>
+					</div>
+
+					<button class="btn-report">Generar Informe de Impacto</button>
+				</div>
+			</aside>
+		</div>
+	</div>
+
+	<style>
+		.page-content { padding: 5rem 0; }
+		
+		.section-header { text-align: center; margin-bottom: 5rem; }
+		.sub-title { color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.9rem; display: block; margin-bottom: 1rem; }
+		.section-header h1 { font-size: clamp(2.5rem, 5vw, 3.5rem); margin-bottom: 1.5rem; color: var(--accent); }
+		.section-header p { font-size: 1.25rem; color: var(--text-light); max-width: 800px; margin: 0 auto; }
+
+		.gestion-container { display: grid; grid-template-columns: 1fr 400px; gap: 4rem; }
+
+		.section-title-sm { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; }
+		.search-bar-sm input { padding: 0.6rem 1.2rem; border-radius: 30px; border: 1px solid var(--gray-300); background: var(--white); font-size: 0.9rem; width: 250px; }
+
+		.docs-grid { display: flex; flex-direction: column; gap: 1.5rem; }
+		.folder-card { padding: 2rem; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); display: flex; gap: 2rem; transition: var(--transition); }
+		.folder-card:hover { border-color: var(--primary); transform: translateX(10px); }
+		.folder-icon { font-size: 2.5rem; background: var(--primary-soft); width: 80px; height: 80px; border-radius: 16px; display: flex; align-items: center; justify-content: center; }
+		
+		.folder-body { flex: 1; }
+		.folder-body h4 { font-size: 1.25rem; margin-bottom: 0.5rem; }
+		.folder-body p { font-size: 0.95rem; color: var(--text-light); margin-bottom: 1.5rem; }
+
+		.file-list { display: flex; flex-direction: column; gap: 0.75rem; }
+		.file-item { display: flex; justify-content: space-between; padding: 0.75rem 1rem; background: var(--gray-100); border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: 0.2s; }
+		.file-item:hover { background: var(--primary-light); color: var(--primary); }
+
+		/* AI Dashboard */
+		.dashboard-card { background: var(--gray-900); color: white; padding: 2.5rem; border-radius: var(--radius-lg); border: 1px solid rgba(255,255,255,0.1); position: sticky; top: 120px; }
+		.db-header { display: flex; align-items: center; gap: 1.25rem; margin-bottom: 3rem; }
+		.ai-orb { width: 40px; height: 40px; background: conic-gradient(from 180deg at 50% 50%, var(--primary) 0deg, #50C878 360deg); border-radius: 50%; animation: spin 4s linear infinite; box-shadow: 0 0 15px var(--primary); }
+		@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+		
+		.db-title h3 { color: white; font-size: 1.25rem; margin: 0; }
+		.db-title span { font-size: 0.7rem; text-transform: uppercase; color: var(--primary); font-weight: 800; }
+
+		.metrics-grid { display: flex; flex-direction: column; gap: 1.5rem; margin-bottom: 3rem; }
+		.metric-item { display: flex; flex-direction: column; gap: 0.5rem; }
+		.m-label { font-size: 0.8rem; color: rgba(255,255,255,0.6); }
+		.m-bar { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
+		.m-fill { height: 100%; background: var(--primary); border-radius: 3px; }
+		.m-value { font-size: 1.25rem; font-weight: 700; color: white; align-self: flex-end; margin-top: -10px; }
+
+		.ai-insights h4 { font-size: 1rem; color: white; margin-bottom: 1.5rem; }
+		.insight-bubble { background: rgba(255,255,255,0.05); padding: 1.25rem; border-radius: 12px; font-size: 0.85rem; line-height: 1.5; font-style: italic; color: rgba(255,255,255,0.8); border-left: 3px solid var(--primary); margin-bottom: 1rem; }
+
+		.btn-report { background: var(--primary); color: white; border: none; padding: 1rem; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; transition: var(--transition); width: 100%; margin-top: 2rem; }
+		.btn-report:hover { background: var(--primary-hover); transform: translateY(-2px); }
+
+		@media (max-width: 1024px) {
+			.gestion-container { grid-template-columns: 1fr; }
+			.dashboard-card { position: static; }
+		}
+	</style>
+</MainLayout>

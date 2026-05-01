@@ -1,0 +1,198 @@
+---
+---
+<div id="contact-drawer" class="drawer">
+    <div class="drawer-overlay" id="drawer-overlay"></div>
+    <div class="drawer-content glass">
+        <div class="drawer-header">
+            <div class="header-title">
+                <span class="sub">Atención Personalizada</span>
+                <h2>Contacto</h2>
+            </div>
+            <button id="close-drawer" class="close-btn">&times;</button>
+        </div>
+        <div class="drawer-body">
+            <p class="intro">Comuníquese con nosotros a través de nuestros canales oficiales de atención al matriculado y al público en general.</p>
+            
+            <div class="contact-links-grid">
+                <a href="https://wa.me/543834000000" target="_blank" class="contact-card whatsapp">
+                    <div class="card-icon">💬</div>
+                    <div class="card-text">
+                        <strong>WhatsApp Business</strong>
+                        <span>Atención inmediata vía chat</span>
+                    </div>
+                    <span class="arrow">→</span>
+                </a>
+                
+                <a href="tel:+543834000000" class="contact-card phone">
+                    <div class="card-icon">📞</div>
+                    <div class="card-text">
+                        <strong>Línea Telefónica</strong>
+                        <span>+54 383 400-0000</span>
+                    </div>
+                    <span class="arrow">→</span>
+                </a>
+                
+                <a href="mailto:institucional@cpccatamarca.org" class="contact-card email">
+                    <div class="card-icon">📧</div>
+                    <div class="card-text">
+                        <strong>Correo Institucional</strong>
+                        <span>institucional@cpccatamarca.org</span>
+                    </div>
+                    <span class="arrow">→</span>
+                </a>
+            </div>
+
+            <div class="social-section">
+                <h3>Siganos en Redes</h3>
+                <div class="social-pills">
+                    <a href="#" class="social-pill ig">Instagram</a>
+                    <a href="#" class="social-pill fb">Facebook</a>
+                    <a href="#" class="social-pill ln">LinkedIn</a>
+                </div>
+            </div>
+
+            <div class="location-card">
+                <div class="loc-header">
+                    <span class="loc-icon">📍</span>
+                    <strong>Sede Central</strong>
+                </div>
+                <p>Calle Ficticia 123, San Fernando del Valle de Catamarca, Catamarca, Argentina.</p>
+                <span class="hours">Lunes a Viernes: 08:00 - 13:00 hs</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .drawer {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 2000;
+        visibility: hidden;
+        transition: visibility 0.3s;
+    }
+
+    .drawer.open {
+        visibility: visible;
+    }
+
+    .drawer-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(4px);
+        opacity: 0;
+        transition: opacity 0.4s ease;
+    }
+
+    .drawer.open .drawer-overlay {
+        opacity: 1;
+    }
+
+    .drawer-content {
+        position: absolute;
+        top: 0;
+        right: -450px;
+        width: 100%;
+        max-width: 450px;
+        height: 100%;
+        background: var(--white);
+        box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
+        transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        flex-direction: column;
+        border-left: 1px solid var(--gray-200);
+    }
+
+    .drawer.open .drawer-content {
+        right: 0;
+    }
+
+    .drawer-header {
+        padding: 2.5rem 2rem;
+        background: var(--gray-50);
+        border-bottom: 1px solid var(--gray-200);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .header-title .sub { font-size: 0.75rem; text-transform: uppercase; color: var(--primary); font-weight: 800; letter-spacing: 0.05em; margin-bottom: 0.25rem; display: block; }
+    .header-title h2 { margin: 0; color: var(--accent); font-size: 1.75rem; }
+
+    .close-btn {
+        background: var(--white);
+        border: 1px solid var(--gray-300);
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--text-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: var(--transition);
+    }
+    .close-btn:hover { background: var(--gray-100); border-color: var(--primary); color: var(--primary); }
+
+    .drawer-body {
+        padding: 2.5rem 2rem;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    .intro { color: var(--text-light); font-size: 1rem; line-height: 1.6; margin-bottom: 2.5rem; }
+
+    .contact-links-grid { display: flex; flex-direction: column; gap: 1.25rem; margin-bottom: 3.5rem; }
+    
+    .contact-card { display: flex; align-items: center; gap: 1.25rem; padding: 1.5rem; border: 1px solid var(--gray-200); border-radius: var(--radius-lg); text-decoration: none; color: var(--text-main); transition: var(--transition); position: relative; }
+    .contact-card:hover { border-color: var(--primary); background: var(--primary-soft); transform: translateX(-5px); }
+    
+    .card-icon { width: 50px; height: 50px; background: var(--gray-50); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; transition: var(--transition); }
+    .contact-card:hover .card-icon { background: var(--primary); color: white; }
+    
+    .card-text { flex: 1; }
+    .card-text strong { display: block; font-size: 1.05rem; margin-bottom: 0.25rem; }
+    .card-text span { font-size: 0.85rem; color: var(--text-light); }
+    
+    .arrow { color: var(--gray-300); font-weight: 700; transition: var(--transition); }
+    .contact-card:hover .arrow { color: var(--primary); transform: translateX(5px); }
+
+    .social-section h3 { font-size: 1.1rem; margin-bottom: 1.25rem; color: var(--accent); }
+    .social-pills { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 3.5rem; }
+    .social-pill { padding: 0.6rem 1.25rem; background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 30px; text-decoration: none; color: var(--text-main); font-weight: 700; font-size: 0.85rem; transition: var(--transition); }
+    .social-pill:hover { background: var(--primary); color: white; border-color: var(--primary); transform: translateY(-3px); }
+
+    .location-card { background: var(--gray-50); padding: 2rem; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); }
+    .loc-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; color: var(--primary); }
+    .location-card p { font-size: 0.9rem; line-height: 1.6; color: var(--text-main); margin-bottom: 1rem; }
+    .hours { font-size: 0.8rem; font-weight: 700; color: var(--text-light); text-transform: uppercase; }
+
+    @media (max-width: 480px) {
+        .drawer-content { max-width: 100%; right: -100%; }
+    }
+</style>
+
+<script>
+    const drawer = document.getElementById('contact-drawer');
+    const overlay = document.getElementById('drawer-overlay');
+    const closeBtn = document.getElementById('close-drawer');
+
+    function toggleDrawer() {
+        drawer.classList.toggle('open');
+        document.body.style.overflow = drawer.classList.contains('open') ? 'hidden' : '';
+    }
+
+    closeBtn.addEventListener('click', toggleDrawer);
+    overlay.addEventListener('click', toggleDrawer);
+
+    // Expose toggle function to global scope
+    window.toggleContactDrawer = toggleDrawer;
+</script>

@@ -1,0 +1,166 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+---
+
+<MainLayout title="Institucional" showBack={true}>
+	<div class="container page-content">
+		<header class="section-header">
+			<span class="sub-title">Nuestra Institución</span>
+			<h1>Excelencia en Ciencias Criminalísticas</h1>
+			<p>Conozca la historia, misión y las autoridades que rigen el Colegio de Profesionales de Catamarca.</p>
+		</header>
+
+		<section class="info-grid">
+			<div class="info-card glass">
+				<div class="card-icon">🎯</div>
+				<h2>Misión</h2>
+				<p>Promover la excelencia profesional, la ética e integridad de los especialistas en ciencias criminalísticas, garantizando un servicio de calidad a la justicia y la sociedad catamarqueña.</p>
+			</div>
+			<div class="info-card glass">
+				<div class="card-icon">👁️‍🗨️</div>
+				<h2>Visión</h2>
+				<p>Ser el organismo rector y referente regional en innovación forense, transparencia institucional y vanguardia tecnológica en la investigación científica del delito.</p>
+			</div>
+		</section>
+
+		<section class="authorities-section">
+			<div class="section-title">
+				<h2>Nuestras Autoridades</h2>
+				<div class="title-line"></div>
+			</div>
+
+			<div class="main-authorities">
+				<div class="auth-card">
+					<div class="auth-image">
+						<img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=600" alt="Presidente" />
+						<div class="auth-badge">Presidente</div>
+					</div>
+					<div class="auth-info">
+						<h3>Diego Tapia</h3>
+						<p>Gestión 2026-2028</p>
+					</div>
+				</div>
+				<div class="auth-card">
+					<div class="auth-image">
+						<img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600" alt="Vicepresidente" />
+						<div class="auth-badge">Vicepresidente</div>
+					</div>
+					<div class="auth-info">
+						<h3>Bayon Nelson Dario</h3>
+						<p>Gestión 2026-2028</p>
+					</div>
+				</div>
+			</div>
+
+			<div class="list-brand-banner">
+				<span class="banner-tag">Gestión Actual</span>
+				<h2>Lista "Renovación y Transparencia Profesional"</h2>
+				<div class="banner-line"></div>
+			</div>
+
+			<div class="secondary-authorities glass">
+				<div class="board-header">
+					<h3>Comisión Directiva</h3>
+					<span class="period">Periodo 2026-2028</span>
+				</div>
+				<div class="auth-list-grid">
+					<div class="auth-item">
+						<span class="label">Secretaria</span>
+						<span class="name">Maria Soledad Salles</span>
+					</div>
+					<div class="auth-item">
+						<span class="label">Prosecretaria</span>
+						<span class="name">Gabriela Del Valle Ivañez</span>
+					</div>
+					<div class="auth-item">
+						<span class="label">Tesorera</span>
+						<span class="name">Ivana Del Valle Barrionuevo</span>
+					</div>
+					<div class="auth-item">
+						<span class="label">Protesorera</span>
+						<span class="name">Maribel Villacorta</span>
+					</div>
+					<div class="auth-item">
+						<span class="label">Vocal Titular 1°</span>
+						<span class="name">Omar Carpio</span>
+					</div>
+					<div class="auth-item">
+						<span class="label">Vocal Titular 2°</span>
+						<span class="name">Natalia Gomez</span>
+					</div>
+					<div class="auth-item">
+						<span class="label">Vocal Titular 3°</span>
+						<span class="name">Cinthia Balderrama</span>
+					</div>
+					<div class="auth-item">
+						<span class="label">Vocal Suplente 1°</span>
+						<span class="name">Janet Morales</span>
+					</div>
+					<div class="auth-item">
+						<span class="label">Vocal Suplente 2°</span>
+						<span class="name">Ariel Caseres</span>
+					</div>
+					<div class="auth-item">
+						<span class="label">Vocal Suplente 3°</span>
+						<span class="name">Lia Ledesma</span>
+					</div>
+					<div class="auth-item">
+						<span class="label">Vocal Suplente 4°</span>
+						<span class="name">Angie Santana</span>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+
+	<style>
+		.page-content { padding: 5rem 0; }
+		
+		.section-header { text-align: center; margin-bottom: 5rem; }
+		.sub-title { color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.9rem; display: block; margin-bottom: 1rem; }
+		.section-header h1 { font-size: clamp(2.5rem, 5vw, 3.5rem); margin-bottom: 1.5rem; color: var(--accent); }
+		.section-header p { font-size: 1.25rem; color: var(--text-light); max-width: 800px; margin: 0 auto; }
+
+		.info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 2.5rem; margin-bottom: 7rem; }
+		.info-card { padding: 3rem; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); transition: var(--transition); position: relative; overflow: hidden; }
+		.info-card:hover { transform: translateY(-10px); border-color: var(--primary); box-shadow: var(--shadow-lg); }
+		.card-icon { font-size: 2.5rem; margin-bottom: 1.5rem; }
+		.info-card h2 { font-size: 1.75rem; margin-bottom: 1rem; }
+		.info-card p { line-height: 1.7; color: var(--text-light); }
+
+		.section-title { text-align: center; margin-bottom: 4rem; }
+		.section-title h2 { font-size: 2.25rem; margin-bottom: 1rem; }
+		.title-line { height: 4px; width: 60px; background: var(--primary); margin: 0 auto; border-radius: 2px; }
+
+		.main-authorities { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 3rem; max-width: 900px; margin: 0 auto 5rem; }
+		.auth-card { background: var(--white); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-md); transition: var(--transition); }
+		.auth-card:hover { transform: scale(1.02); box-shadow: var(--shadow-lg); }
+		.auth-image { position: relative; height: 350px; }
+		.auth-image img { width: 100%; height: 100%; object-fit: cover; }
+		.auth-badge { position: absolute; bottom: 1.5rem; left: 1.5rem; background: var(--primary); color: white; padding: 0.5rem 1.25rem; border-radius: 30px; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; }
+		.auth-info { padding: 2rem; text-align: center; }
+		.auth-info h3 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+		.auth-info p { color: var(--text-light); font-weight: 500; }
+
+		.secondary-authorities { padding: 4rem; border-radius: var(--radius-lg); border: 1px solid var(--gray-300); }
+		
+		/* New Banner Styles */
+		.list-brand-banner { text-align: center; margin: 4rem 0 3rem; background: var(--accent); color: white; padding: 4rem 2rem; border-radius: var(--radius-lg); position: relative; overflow: hidden; box-shadow: var(--shadow-lg); }
+		.list-brand-banner h2 { font-family: 'Outfit', sans-serif; font-size: 2.75rem; font-weight: 800; margin: 1.5rem 0; letter-spacing: -0.01em; text-transform: uppercase; color: #f5f5f5; }
+		.banner-tag { background: var(--primary); color: white; padding: 0.5rem 1.5rem; border-radius: 50px; font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.2em; }
+		.banner-line { height: 6px; width: 120px; background: var(--primary); margin: 0 auto; border-radius: 3px; }
+		
+		.board-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 3rem; border-bottom: 2px solid var(--gray-100); padding-bottom: 1.5rem; }
+		.board-header h3 { margin-bottom: 0; font-size: 1.75rem; color: var(--accent); }
+		.period { font-weight: 700; color: var(--primary); font-size: 1.1rem; }
+
+		.auth-list-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; }
+		.auth-item { display: flex; flex-direction: column; padding-bottom: 1rem; border-bottom: 1px solid var(--gray-200); }
+		.auth-item .label { font-size: 0.8rem; text-transform: uppercase; color: var(--primary); font-weight: 700; margin-bottom: 0.25rem; }
+		.auth-item .name { font-size: 1.1rem; font-weight: 600; color: var(--text-main); }
+
+		@media (max-width: 768px) {
+			.secondary-authorities { padding: 2rem; }
+		}
+	</style>
+</MainLayout>
