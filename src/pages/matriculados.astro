@@ -19,11 +19,15 @@ import MainLayout from '../layouts/MainLayout.astro';
 					<p>Complete su solicitud de registro digital. Este es el primer paso para su colegiación oficial en la Provincia de Catamarca.</p>
 					
 					<div id="registration-form-container">
-						<form class="styled-form" id="enrollment-form">
-							<div class="form-row">
+						<form class="styled-form" id="enrollment-form" enctype="multipart/form-data">
+							<div class="form-row split">
 								<div class="form-group">
-									<label>Nombre y Apellido Completo</label>
-									<input type="text" required placeholder="Ej: Juan Carlos Pérez" name="fullname" />
+									<label>Nombre</label>
+									<input type="text" required placeholder="Ej: Juan Carlos" name="nombre" />
+								</div>
+								<div class="form-group">
+									<label>Apellido</label>
+									<input type="text" required placeholder="Ej: Pérez" name="apellido" />
 								</div>
 							</div>
 							<div class="form-row split">
@@ -73,15 +77,15 @@ import MainLayout from '../layouts/MainLayout.astro';
 								<div class="file-grid">
 									<div class="file-input-wrapper">
 										<label>Título Profesional (Fronte/Dorso)</label>
-										<input type="file" accept=".pdf,image/*" required />
+										<input type="file" name="titulo_file" accept=".pdf,image/*" required />
 									</div>
 									<div class="file-input-wrapper">
 										<label>DNI (Ambos Lados)</label>
-										<input type="file" accept=".pdf,image/*" required />
+										<input type="file" name="dni_file" accept=".pdf,image/*" required />
 									</div>
 									<div class="file-input-wrapper">
 										<label>Certificado de Antecedentes</label>
-										<input type="file" accept=".pdf,image/*" required />
+										<input type="file" name="certificado_file" accept=".pdf,image/*" required />
 									</div>
 								</div>
 							</div>
@@ -107,14 +111,46 @@ import MainLayout from '../layouts/MainLayout.astro';
 					<script>
 						const form = document.querySelector('#enrollment-form');
 						const successMsg = document.querySelector('#success-message');
+						const submitBtn = form?.querySelector('button[type="submit"]');
 						
 						if (form) {
-							form.addEventListener('submit', (e) => {
+							form.addEventListener('submit', async (e) => {
 								e.preventDefault();
-								form.style.display = 'none';
-								successMsg.style.display = 'flex';
 								
-								console.log('Registro enviado a Supabase Motor (Placeholder)');
+								// Evitar múltiples envíos
+								if (submitBtn) {
+									submitBtn.disabled = true;
+									submitBtn.textContent = 'Procesando...';
+								}
+
+								const formData = new FormData(form);
+
+								try {
+									const response = await fetch('/api/aspirantes', {
+										method: 'POST',
+										body: formData,
+									});
+
+									const result = await response.json();
+
+									if (response.ok) {
+										form.style.display = 'none';
+										successMsg.style.display = 'flex';
+									} else {
+										alert('Error: ' + (result.message || 'Error al procesar la solicitud.'));
+										if (submitBtn) {
+											submitBtn.disabled = false;
+											submitBtn.textContent = 'Iniciar Registro y Pago de Matrícula';
+										}
+									}
+								} catch (error) {
+									console.error('Error:', error);
+									alert('Error de conexión.');
+									if (submitBtn) {
+										submitBtn.disabled = false;
+										submitBtn.textContent = 'Iniciar Registro y Pago de Matrícula';
+									}
+								}
 							});
 						}
 					</script>
