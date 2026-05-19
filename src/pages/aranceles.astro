@@ -1,0 +1,902 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+import { sanityClient } from 'sanity:client';
+
+// Valor JUS desde configuracionCobros; fallback hardcodeado
+const cobrosConfig = await sanityClient.fetch(
+  `*[_type == "configuracionCobros"][0]{ valorJUS }`
+).catch(() => null);
+const VALOR_JUS: number = cobrosConfig?.valorJUS || 88392.43;
+
+// Vigencia desde arancelesConfig (opcional, para el PDF)
+const arancelesConf = await sanityClient.fetch(
+  `*[_type == "arancelesConfig"][0]{ vigenciaDesde }`
+).catch(() => null);
+const vigenciaDesde: string | null = arancelesConf?.vigenciaDesde || null;
+
+// Items desde schema legacy arancelProfesional
+const aranceles: any[] = await sanityClient.fetch(
+  `*[_type == "arancelProfesional"] | order(servicio asc) { _id, servicio, unidadesCP }`
+).catch(() => []);
+
+// Primeros 16 = Cobertura de Gastos | resto = Honorarios Periciales
+const cobertura  = aranceles.slice(0, 16);
+const honorarios = aranceles.slice(16);
+
+function formatARS(valor: number) {
+  return new Intl.NumberFormat('es-AR', {
+    style: 'currency', currency: 'ARS',
+    minimumFractionDigits: 2, maximumFractionDigits: 2,
+  }).format(valor);
+}
+
+// Payload para el script cliente (misma estructura que espera el JS)
+const items = aranceles.map((a: any) => ({ servicio: a.servicio, unidadesCP: a.unidadesCP }));
+const configPayload = JSON.stringify({ valorJUS: VALOR_JUS, vigenciaDesde, items });
+---
+
+<MainLayout title="Aranceles y Honorarios" showBack={true}>
+  <div class="container page-content">
+
+    <header class="section-header">
+      <span class="sub-title">Honorarios Periciales</span>
+      <h1>Aranceles y Honorarios</h1>
+      <p>Tabla de aranceles sugeridos y calculadora de honorarios del CPC CTM.</p>
+    </header>
+
+    {aranceles.length === 0 ? (
+      <div class="no-config glass">
+        <div class="no-icon">📊</div>
+        <h3>Tabla de aranceles en configuración</h3>
+        <p>El administrador debe cargar los aranceles desde el panel de Sanity → Aranceles Profesionales.</p>
+      </div>
+    ) : (
+      <div class="two-col-layout">
+
+        <!-- ══ COLUMNA IZQUIERDA: CALCULADORA ══ -->
+        <section class="col-calc">
+
+          <!-- Datos del Presupuesto (colapsable) -->
+          <div class="datos-toggle-wrap">
+            <button class="datos-toggle-btn" id="btn-datos-toggle" aria-expanded="false" type="button">
+              <svg class="toggle-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><path d="M9 18l6-6-6-6"/></svg>
+              Datos del Presupuesto
+              <span class="datos-toggle-hint">· Perito y causa</span>
+            </button>
+            <div id="datos-form" class="datos-form" aria-hidden="true">
+              <div class="datos-grid">
+                <div class="datos-col">
+                  <h4 class="datos-section-title">Datos del Perito</h4>
+                  <div class="form-field">
+                    <label for="perito-nombre">Nombre y Apellido</label>
+                    <input type="text" id="perito-nombre" placeholder="Ej: Juan Pérez" autocomplete="name" />
+                  </div>
+                  <div class="form-field">
+                    <label for="perito-matricula">N° de Matrícula</label>
+                    <input type="text" id="perito-matricula" placeholder="Ej: 00123" />
+                  </div>
+                  <div class="form-field">
+                    <label for="perito-especialidad">Especialidad</label>
+                    <input type="text" id="perito-especialidad" placeholder="Ej: Criminalística" />
+                  </div>
+                  <div class="form-field">
+                    <label for="perito-contacto">Email / Teléfono</label>
+                    <input type="text" id="perito-contacto" placeholder="Ej: perito@mail.com · 383 123456" />
+                  </div>
+                </div>
+                <div class="datos-col">
+                  <h4 class="datos-section-title">Datos de la Causa</h4>
+                  <div class="form-field">
+                    <label for="causa-input">N° de Causa / Cliente</label>
+                    <input type="text" id="causa-input" placeholder="Ej: Causa 1234/2025 — García" />
+                  </div>
+                  <div class="form-field">
+                    <label for="causa-juzgado">Juzgado / Tribunal</label>
+                    <input type="text" id="causa-juzgado" placeholder="Ej: Juzgado Civil N° 1" />
+                  </div>
+                  <div class="form-field">
+                    <label for="causa-caratula">Carátula del expediente</label>
+                    <input type="text" id="causa-caratula" placeholder="Ej: García c/ Díaz s/ Daños" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Calculadora -->
+          <div class="calc-card glass">
+            <h2 class="col-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="11" y2="17"/></svg>
+              Calculadora de Honorarios
+            </h2>
+
+            <!-- Cabecera de columnas -->
+            <div class="calc-header-row">
+              <span></span>
+              <span>Concepto</span>
+              <span>Cant.</span>
+              <span>Subtotal JUS</span>
+              <span>Subtotal $</span>
+            </div>
+
+            <!-- Filas dinámicas -->
+            <div id="rows-container" class="rows-container"></div>
+
+            <button id="btn-add-row" class="btn-add-row" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Agregar concepto
+            </button>
+
+            <div class="calc-total-box">
+              <div class="total-row">
+                <span>Subtotal en JUS:</span>
+                <strong id="total-jus">0,00 JUS</strong>
+              </div>
+              <div class="total-row highlight">
+                <span>TOTAL en Pesos:</span>
+                <strong id="total-pesos">{formatARS(0)}</strong>
+              </div>
+              <p class="jus-note">1 JUS = {formatARS(VALOR_JUS)}</p>
+            </div>
+
+            <button id="btn-presupuesto" class="btn-calc" disabled type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Generar Presupuesto PDF
+            </button>
+          </div>
+        </section>
+
+        <!-- ══ COLUMNA DERECHA: TABLA ══ -->
+        <section class="col-tabla">
+          <div class="tabla-header-box glass">
+            <div class="jus-value-badge">
+              <span class="jus-label">Valor JUS</span>
+              <span class="jus-num">{formatARS(VALOR_JUS)}</span>
+            </div>
+            <p class="nota-text">Los honorarios son sugeridos. El profesional puede fijar un monto mayor según la complejidad de la tarea.</p>
+            <button id="btn-dl-tabla" class="btn-dl-tabla" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Descargar tabla PDF
+            </button>
+          </div>
+
+          {cobertura.length > 0 && (
+            <>
+              <h3 class="tabla-subtitle" id="toggle-cobertura">Cobertura de Gastos</h3>
+              <div class="tabla-ref" id="tabla-cobertura" style="display:none">
+                <div class="tabla-head">
+                  <span>N°</span><span>Concepto</span><span>JUS</span><span>Pesos</span>
+                </div>
+                {cobertura.map((item: any, i: number) => (
+                  <div class="tabla-row">
+                    <span class="cell-num">{i + 1}</span>
+                    <span class="cell-concepto">{item.servicio}</span>
+                    <span class="cell-jus">{(item.unidadesCP ?? 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</span>
+                    <span class="cell-pesos">{formatARS((item.unidadesCP ?? 0) * VALOR_JUS)}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {honorarios.length > 0 && (
+            <>
+              <h3 class="tabla-subtitle" id="toggle-honorarios">Honorarios Periciales</h3>
+              <div class="tabla-ref" id="tabla-honorarios" style="display:none">
+                <div class="tabla-head">
+                  <span>N°</span><span>Concepto</span><span>JUS</span><span>Pesos</span>
+                </div>
+                {honorarios.map((item: any, i: number) => (
+                  <div class="tabla-row">
+                    <span class="cell-num">{cobertura.length + i + 1}</span>
+                    <span class="cell-concepto">{item.servicio}</span>
+                    <span class="cell-jus">{(item.unidadesCP ?? 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</span>
+                    <span class="cell-pesos">{formatARS((item.unidadesCP ?? 0) * VALOR_JUS)}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </section>
+      </div>
+    )}
+  </div>
+</MainLayout>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<script define:vars={{ configPayload }}>
+  var cfg = {};
+  try { cfg = JSON.parse(configPayload); } catch (e) {}
+
+  var valorJUS  = cfg.valorJUS       || 88392.43;
+  var vigencia  = cfg.vigenciaDesde  || null;
+  var items     = cfg.items          || [];
+
+  var cobertura  = items.slice(0, 16);
+  var honorarios = items.slice(16);
+
+  // ── Formateo ────────────────────────────────────────────────
+  function fmtPesos(v) {
+    return new Intl.NumberFormat('es-AR', {
+      style: 'currency', currency: 'ARS',
+      minimumFractionDigits: 2, maximumFractionDigits: 2,
+    }).format(v);
+  }
+  function fmtJUS(v) {
+    return v.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+  }
+  function pad2(n) { return String(n).padStart(2, '0'); }
+
+  // ── Número en letras (pesos ARS) ────────────────────────────
+  function pesosALetras(monto) {
+    var entero   = Math.floor(monto);
+    var centavos = Math.round((monto - entero) * 100);
+    var UND = ['','UN','DOS','TRES','CUATRO','CINCO','SEIS','SIETE','OCHO','NUEVE',
+      'DIEZ','ONCE','DOCE','TRECE','CATORCE','QUINCE',
+      'DIECISÉIS','DIECISIETE','DIECIOCHO','DIECINUEVE','VEINTE'];
+    var DEC = ['','DIEZ','VEINTE','TREINTA','CUARENTA','CINCUENTA','SESENTA','SETENTA','OCHENTA','NOVENTA'];
+    var CEN = ['','CIENTO','DOSCIENTOS','TRESCIENTOS','CUATROCIENTOS','QUINIENTOS',
+      'SEISCIENTOS','SETECIENTOS','OCHOCIENTOS','NOVECIENTOS'];
+
+    function m1000(n) {
+      if (n === 0) return '';
+      if (n <= 20) return UND[n];
+      if (n < 30) return n === 21 ? 'VEINTIÚN' : 'VEINTI' + UND[n - 20];
+      var c = Math.floor(n / 100), r = n % 100;
+      var s = '';
+      if (c > 0) { s = (c === 1 && r === 0) ? 'CIEN' : CEN[c]; if (r > 0) s += ' '; }
+      if (r > 0 && r <= 20) { s += UND[r]; }
+      else if (r > 20) {
+        var d = Math.floor(r / 10), u = r % 10;
+        s += (d === 2 && u > 0) ? 'VEINTI' + UND[u] : DEC[d] + (u > 0 ? ' Y ' + UND[u] : '');
+      }
+      return s;
+    }
+
+    if (entero === 0) return 'SON PESOS: CERO CON ' + pad2(centavos) + '/100';
+    var mill  = Math.floor(entero / 1000000);
+    var miles = Math.floor((entero % 1000000) / 1000);
+    var resto = entero % 1000;
+    var r = '';
+    if (mill  > 0) r += (mill  === 1 ? 'UN MILLÓN' : m1000(mill)  + ' MILLONES') + (miles > 0 || resto > 0 ? ' ' : '');
+    if (miles > 0) r += (miles === 1 ? 'MIL'       : m1000(miles) + ' MIL')       + (resto > 0 ? ' ' : '');
+    if (resto > 0) r += m1000(resto);
+    return 'SON PESOS: ' + r.trim() + ' CON ' + pad2(centavos) + '/100';
+  }
+
+  // ── Opciones del select ──────────────────────────────────────
+  function buildOptionsHTML() {
+    var html = '<option value="" disabled selected>— Seleccioná un concepto —</option>';
+    function group(arr, label, startNum) {
+      if (!arr.length) return '';
+      var g = '<optgroup label="' + label + '">';
+      arr.forEach(function(it, idx) {
+        var jus = it.unidadesCP || 0;
+        var lbl = (startNum + idx) + '. ' + it.servicio + ' — ' + fmtJUS(jus) + ' JUS';
+        g += '<option value="' + it.servicio.replace(/"/g, '&quot;') +
+             '" data-jus="' + jus + '">' + lbl + '</option>';
+      });
+      return g + '</optgroup>';
+    }
+    html += group(cobertura,  'Cobertura de Gastos',   1);
+    html += group(honorarios, 'Honorarios Periciales', cobertura.length + 1);
+    return html;
+  }
+  var optHTML = buildOptionsHTML();
+
+  // ── DOM refs ─────────────────────────────────────────────────
+  var rowsCont   = document.getElementById('rows-container');
+  var totalJusEl = document.getElementById('total-jus');
+  var totalPesEl = document.getElementById('total-pesos');
+  var btnPdf     = document.getElementById('btn-presupuesto');
+
+  // ── Calcular totales ─────────────────────────────────────────
+  function calcularTotal() {
+    var totalJus = 0;
+    var haySeleccion = false;
+    rowsCont.querySelectorAll('.calc-row-dyn').forEach(function(fila) {
+      var sel = fila.querySelector('.row-select');
+      var qty = fila.querySelector('.row-qty');
+      var opt = sel.options[sel.selectedIndex];
+      if (opt && opt.dataset && opt.dataset.jus) {
+        var jus  = parseFloat(opt.dataset.jus) || 0;
+        var cant = parseFloat(qty.value)        || 1;
+        totalJus += jus * cant;
+        haySeleccion = true;
+      }
+    });
+    if (totalJusEl) totalJusEl.textContent = fmtJUS(totalJus) + ' JUS';
+    if (totalPesEl) totalPesEl.textContent  = fmtPesos(totalJus * valorJUS);
+    if (btnPdf)     btnPdf.disabled         = !haySeleccion;
+    return { totalJus: totalJus, totalPesos: totalJus * valorJUS };
+  }
+
+  // ── Crear fila dinámica ──────────────────────────────────────
+  function crearFila() {
+    var fila = document.createElement('div');
+    fila.className = 'calc-row-dyn';
+    fila.innerHTML =
+      '<button class="row-remove" type="button" title="Quitar fila" aria-label="Eliminar fila">✕</button>' +
+      '<select class="row-select">' + optHTML + '</select>' +
+      '<input type="number" class="row-qty" value="1" min="0.01" step="any" placeholder="Cant.">' +
+      '<div class="row-subtotals">' +
+        '<span class="row-sub-jus">—</span>' +
+        '<span class="row-sub-pesos">—</span>' +
+      '</div>';
+
+    var sel  = fila.querySelector('.row-select');
+    var qty  = fila.querySelector('.row-qty');
+    var rmv  = fila.querySelector('.row-remove');
+
+    function actualizarFila() {
+      var opt  = sel.options[sel.selectedIndex];
+      var jus  = (opt && opt.dataset && opt.dataset.jus) ? parseFloat(opt.dataset.jus) : 0;
+      var cant = parseFloat(qty.value) || 1;
+      var sj   = jus * cant;
+      fila.querySelector('.row-sub-jus').textContent   = jus > 0 ? fmtJUS(sj)           + ' JUS' : '—';
+      fila.querySelector('.row-sub-pesos').textContent = jus > 0 ? fmtPesos(sj * valorJUS)       : '—';
+      calcularTotal();
+    }
+
+    sel.addEventListener('change', actualizarFila);
+    qty.addEventListener('input',  actualizarFila);
+    rmv.addEventListener('click',  function() {
+      if (rowsCont.querySelectorAll('.calc-row-dyn').length > 1) {
+        fila.remove();
+        calcularTotal();
+      }
+    });
+
+    return fila;
+  }
+
+  // Inicializar con una fila
+  if (rowsCont) rowsCont.appendChild(crearFila());
+
+  document.getElementById('btn-add-row')?.addEventListener('click', function() {
+    rowsCont.appendChild(crearFila());
+  });
+
+  // ── Colapsable "Datos del Presupuesto" ───────────────────────
+  var btnDatos  = document.getElementById('btn-datos-toggle');
+  var datosForm = document.getElementById('datos-form');
+  var arrow     = btnDatos ? btnDatos.querySelector('.toggle-arrow') : null;
+
+  if (btnDatos && datosForm) {
+    btnDatos.addEventListener('click', function() {
+      var open = btnDatos.getAttribute('aria-expanded') === 'true';
+      btnDatos.setAttribute('aria-expanded', String(!open));
+      datosForm.classList.toggle('is-open', !open);
+      if (arrow) arrow.style.transform = open ? 'rotate(0deg)' : 'rotate(90deg)';
+    });
+  }
+
+  // ── Acordeón panel derecho ───────────────────────────────────
+  ['cobertura', 'honorarios'].forEach(function(key) {
+    var btn   = document.getElementById('toggle-' + key);
+    var panel = document.getElementById('tabla-'  + key);
+    if (!btn || !panel) return;
+    btn.style.cursor = 'pointer';
+    btn.setAttribute('role', 'button');
+    btn.setAttribute('tabindex', '0');
+    btn.addEventListener('click', function() {
+      var open = panel.style.display !== 'none';
+      panel.style.display = open ? 'none' : '';
+    });
+    btn.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); btn.click(); }
+    });
+  });
+
+  // ── Generar Presupuesto PDF ──────────────────────────────────
+  btnPdf && btnPdf.addEventListener('click', async function() {
+    var totals = calcularTotal();
+    var seleccionados = [];
+    var idx = 0;
+    rowsCont.querySelectorAll('.calc-row-dyn').forEach(function(fila) {
+      var sel = fila.querySelector('.row-select');
+      var qty = fila.querySelector('.row-qty');
+      var opt = sel.options[sel.selectedIndex];
+      if (opt && opt.dataset && opt.dataset.jus) {
+        idx++;
+        var jus  = parseFloat(opt.dataset.jus) || 0;
+        var cant = parseFloat(qty.value)        || 1;
+        seleccionados.push({
+          num:         idx,
+          concepto:    opt.textContent.split(' — ')[0].trim(),
+          cant:        cant,
+          jus:         jus,
+          subtotalJus: jus * cant,
+          subtotalPes: jus * cant * valorJUS,
+        });
+      }
+    });
+    if (!seleccionados.length) return;
+
+    var perito = {
+      nombre:       (document.getElementById('perito-nombre')?.value    || '').trim(),
+      matricula:    (document.getElementById('perito-matricula')?.value  || '').trim(),
+      especialidad: (document.getElementById('perito-especialidad')?.value || '').trim(),
+      contacto:     (document.getElementById('perito-contacto')?.value   || '').trim(),
+    };
+    var causa = {
+      numero:   (document.getElementById('causa-input')?.value    || '').trim(),
+      juzgado:  (document.getElementById('causa-juzgado')?.value  || '').trim(),
+      caratula: (document.getElementById('causa-caratula')?.value || '').trim(),
+    };
+
+    var mod   = await import('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm');
+    var jsPDF = mod.jsPDF || mod.default;
+    var doc   = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+    var hoy = new Date();
+    var fmtD = function(d) { return pad2(d.getDate()) + '/' + pad2(d.getMonth()+1) + '/' + d.getFullYear(); };
+    var preNum = 'PRE-' + hoy.getFullYear() + pad2(hoy.getMonth()+1) + pad2(hoy.getDate()) +
+                 '-' + pad2(hoy.getHours()) + pad2(hoy.getMinutes()) + pad2(hoy.getSeconds());
+
+    // Vigencia formateada
+    var vigStr = '';
+    if (vigencia) {
+      var vp = vigencia.split('-');
+      vigStr = pad2(parseInt(vp[2])) + '/' + pad2(parseInt(vp[1])) + '/' + vp[0];
+    }
+
+    // Logo
+    var logoB64 = null;
+    try {
+      var lr   = await fetch('/LOGO-CENTRAL.jpg');
+      var lbuf = await lr.arrayBuffer();
+      var lbytes = new Uint8Array(lbuf);
+      var lbin = '';
+      for (var li = 0; li < lbytes.length; li += 8192)
+        lbin += String.fromCharCode.apply(null, lbytes.subarray(li, li + 8192));
+      logoB64 = btoa(lbin);
+    } catch(e) {}
+
+    var y = 0;
+
+    // ── ENCABEZADO verde ──
+    doc.setFillColor(27, 94, 32);
+    doc.rect(0, 0, 210, 40, 'F');
+    if (logoB64) doc.addImage(logoB64, 'JPEG', 14, 7, 26, 26);
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11.5);
+    doc.text('COLEGIO DE PROFESIONALES EN CIENCIAS CRIMINALÍSTICAS', 105, 14, { align: 'center' });
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
+    doc.text('Provincia de Catamarca · Ley Provincial N° 5.595/19', 105, 22, { align: 'center' });
+
+    // ── TÍTULO ──
+    doc.setTextColor(27, 94, 32);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(13.5);
+    doc.text('PRESUPUESTO DE HONORARIOS PERICIALES', 105, 50, { align: 'center' });
+    doc.setDrawColor(27, 94, 32); doc.setLineWidth(0.7); doc.line(15, 54, 195, 54);
+
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(90, 90, 90);
+    doc.text('N° ' + preNum, 15, 60);
+    doc.text('Fecha de emisión: ' + fmtD(hoy), 195, 60, { align: 'right' });
+
+    y = 68;
+
+    // ── DATOS PERITO + CAUSA ──
+    var hayDatos = perito.nombre || perito.matricula || perito.especialidad || perito.contacto ||
+                   causa.numero  || causa.juzgado    || causa.caratula;
+    if (hayDatos) {
+      doc.setFillColor(245, 248, 245);
+      doc.roundedRect(15, y - 2, 84, 40, 2, 2, 'F');
+      doc.roundedRect(103, y - 2, 92, 40, 2, 2, 'F');
+
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(27, 94, 32);
+      doc.text('DATOS DEL PERITO', 20, y + 4);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(40, 40, 40);
+      if (perito.nombre)       { doc.setFont('helvetica','bold'); doc.text(perito.nombre, 20, y + 11); doc.setFont('helvetica','normal'); }
+      if (perito.matricula)    doc.text('Matrícula N° ' + perito.matricula, 20, y + 18);
+      if (perito.especialidad) doc.text(perito.especialidad, 20, y + 25);
+      if (perito.contacto)     { doc.setFontSize(7.5); doc.text(perito.contacto, 20, y + 32); }
+
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(27, 94, 32);
+      doc.text('DATOS DE LA CAUSA', 108, y + 4);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(40, 40, 40);
+      if (causa.numero)   doc.text(causa.numero,  108, y + 11);
+      if (causa.juzgado)  doc.text(causa.juzgado, 108, y + 18);
+      if (causa.caratula) {
+        var cl = doc.splitTextToSize(causa.caratula, 84);
+        doc.text(cl, 108, y + 25);
+      }
+      y += 46;
+    }
+
+    // ── TABLA DE CONCEPTOS ──
+    // Cabecera
+    doc.setFillColor(27, 94, 32); doc.rect(15, y, 180, 8, 'F');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(255, 255, 255);
+    doc.text('N°',          18, y + 5.5);
+    doc.text('Concepto',    28, y + 5.5);
+    doc.text('Cant.',      124, y + 5.5, { align: 'right' });
+    doc.text('JUS Unit.',  146, y + 5.5, { align: 'right' });
+    doc.text('Sub JUS',    168, y + 5.5, { align: 'right' });
+    doc.text('Sub $',      195, y + 5.5, { align: 'right' });
+    y += 9;
+
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(40, 40, 40);
+    seleccionados.forEach(function(s, si) {
+      if (y > 242) { doc.addPage(); y = 20; }
+      var bg = si % 2 === 0 ? [255, 255, 255] : [245, 249, 245];
+      var lines = doc.splitTextToSize(s.concepto, 88);
+      var rowH  = Math.max(lines.length * 5, 8);
+      doc.setFillColor(bg[0], bg[1], bg[2]); doc.rect(15, y, 180, rowH, 'F');
+      doc.text(String(s.num),  18, y + 5.5);
+      doc.text(lines,          28, y + (lines.length > 1 ? 4 : 5.5));
+      doc.text(s.cant.toLocaleString('es-AR'),   124, y + 5.5, { align: 'right' });
+      doc.text(fmtJUS(s.jus),                    146, y + 5.5, { align: 'right' });
+      doc.text(fmtJUS(s.subtotalJus),            168, y + 5.5, { align: 'right' });
+      doc.text(fmtPesos(s.subtotalPes),          195, y + 5.5, { align: 'right' });
+      doc.setDrawColor(200, 220, 200); doc.setLineWidth(0.15);
+      y += rowH;
+      doc.line(15, y, 195, y);
+    });
+    y += 6;
+
+    // ── TOTALES ──
+    // Subtotal JUS
+    doc.setFillColor(235, 246, 235); doc.rect(15, y, 180, 8, 'F');
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(60, 60, 60);
+    doc.text('Subtotal en JUS:', 100, y + 5.5);
+    doc.setFont('helvetica', 'bold');
+    doc.text(fmtJUS(totals.totalJus) + ' JUS', 195, y + 5.5, { align: 'right' });
+    y += 9;
+
+    // Valor JUS
+    doc.setFillColor(255, 255, 255); doc.rect(15, y, 180, 8, 'F');
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(110, 110, 110);
+    doc.text('Valor 1 JUS vigente' + (vigStr ? ' al ' + vigStr : '') + ':', 100, y + 5.5);
+    doc.setFont('helvetica', 'bold'); doc.setTextColor(40, 40, 40);
+    doc.text(fmtPesos(valorJUS), 195, y + 5.5, { align: 'right' });
+    y += 10;
+
+    // TOTAL (barra verde)
+    if (y > 250) { doc.addPage(); y = 20; }
+    doc.setFillColor(27, 94, 32); doc.rect(15, y, 180, 12, 'F');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(255, 255, 255);
+    doc.text('TOTAL A COBRAR:', 100, y + 8);
+    doc.setFontSize(11);
+    doc.text(fmtPesos(totals.totalPesos), 195, y + 8, { align: 'right' });
+    y += 15;
+
+    // En letras
+    doc.setFont('helvetica', 'italic'); doc.setFontSize(8); doc.setTextColor(60, 60, 60);
+    var letrasLines = doc.splitTextToSize(pesosALetras(totals.totalPesos), 174);
+    doc.text(letrasLines, 15, y + 4);
+    y += letrasLines.length * 5 + 10;
+
+    // ── NOTA LEGAL ──
+    if (y > 235) { doc.addPage(); y = 20; }
+    doc.setDrawColor(27, 94, 32); doc.setLineWidth(0.4); doc.line(15, y, 195, y);
+    y += 5;
+    var notaLegal = 'Los honorarios consignados son sugeridos conforme la tabla de aranceles del Colegio de Profesionales en Ciencias Criminalísticas de la Provincia de Catamarca' +
+      (vigStr ? ', vigente desde el ' + vigStr : '') +
+      '. El profesional puede fijar un monto mayor según la complejidad de la tarea. Valor del JUS sujeto a actualización por resolución de la Comisión Directiva.';
+    doc.setFont('helvetica', 'italic'); doc.setFontSize(7.5); doc.setTextColor(130, 130, 130);
+    var notaLines = doc.splitTextToSize(notaLegal, 180);
+    doc.text(notaLines, 15, y);
+    y += notaLines.length * 4 + 8;
+
+    // ── FIRMA ──
+    var sigY = Math.max(y + 15, 228);
+    doc.setDrawColor(80, 80, 80); doc.setLineWidth(0.4);
+    doc.line(112, sigY, 193, sigY);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(90, 90, 90);
+    doc.text('Firma y sello del profesional', 152, sigY + 5, { align: 'center' });
+    if (perito.nombre) { doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.text(perito.nombre, 152, sigY + 11, { align: 'center' }); }
+    if (perito.matricula) { doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.text('Mat. N° ' + perito.matricula, 152, sigY + 17, { align: 'center' }); }
+
+    // ── PIE DE PÁGINA ──
+    doc.setFillColor(27, 94, 32); doc.rect(0, 274, 210, 23, 'F');
+    doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5);
+    doc.text('Avenida América Latina 1672 — San Fernando del Valle de Catamarca', 105, 281, { align: 'center' });
+    doc.text('criminalísticacolegio@gmail.com  ·  Ley Provincial N° 5.595/19', 105, 288, { align: 'center' });
+    doc.setFontSize(6.5); doc.setTextColor(190, 225, 190);
+    doc.text('Emitido el ' + fmtD(hoy) + ' · ' + preNum, 105, 294, { align: 'center' });
+
+    doc.save('presupuesto-' + preNum + '.pdf');
+  });
+
+  // ── Descargar tabla completa PDF ─────────────────────────────
+  document.getElementById('btn-dl-tabla')?.addEventListener('click', async function() {
+    var mod   = await import('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm');
+    var jsPDF = mod.jsPDF || mod.default;
+    var doc   = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    var hoy   = new Date();
+    var fmtD  = function(d) { return pad2(d.getDate()) + '/' + pad2(d.getMonth()+1) + '/' + d.getFullYear(); };
+
+    // Logo
+    var logoB64 = null;
+    try {
+      var lr = await fetch('/LOGO-CENTRAL.jpg');
+      var lb = await lr.arrayBuffer();
+      var lby = new Uint8Array(lb);
+      var lbin = '';
+      for (var li = 0; li < lby.length; li += 8192)
+        lbin += String.fromCharCode.apply(null, lby.subarray(li, li + 8192));
+      logoB64 = btoa(lbin);
+    } catch(e) {}
+
+    // Header
+    doc.setFillColor(27, 94, 32); doc.rect(0, 0, 210, 40, 'F');
+    if (logoB64) doc.addImage(logoB64, 'JPEG', 14, 7, 26, 26);
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
+    doc.text('TABLA DE ARANCELES PERICIALES', 105, 14, { align: 'center' });
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
+    doc.text('CPC CTM · Catamarca · 1 JUS = ' + fmtPesos(valorJUS), 105, 22, { align: 'center' });
+
+    var y = 48;
+
+    function seccion(titulo) {
+      if (y > 260) { doc.addPage(); y = 20; }
+      doc.setFillColor(235, 246, 235); doc.rect(15, y - 4, 180, 10, 'F');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(27, 94, 32);
+      doc.text(titulo, 18, y + 2);
+      doc.setTextColor(100, 100, 100); doc.setFontSize(7.5);
+      doc.text('N°',       18, y + 7);
+      doc.text('Concepto', 30, y + 7);
+      doc.text('JUS',     162, y + 7, { align: 'right' });
+      doc.text('Pesos ($)', 192, y + 7, { align: 'right' });
+      y += 13;
+    }
+
+    function fila(item, i, startNum) {
+      if (y > 268) { doc.addPage(); y = 20; }
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(40, 40, 40);
+      var num   = String((startNum || 1) + i);
+      var texto = item.servicio || '';
+      var lines = doc.splitTextToSize(texto, 122);
+      var rowH  = Math.max(lines.length * 4.5, 7);
+      doc.text(num,   18, y + 5);
+      doc.text(lines, 30, y + (lines.length > 1 ? 3 : 5));
+      doc.text(fmtJUS(item.unidadesCP || 0),                     162, y + 5, { align: 'right' });
+      doc.text(fmtPesos((item.unidadesCP || 0) * valorJUS),      192, y + 5, { align: 'right' });
+      doc.setDrawColor(220, 235, 220); doc.setLineWidth(0.2); doc.line(15, y + rowH, 195, y + rowH);
+      y += rowH + 1;
+    }
+
+    if (cobertura.length) {
+      seccion('COBERTURA DE GASTOS');
+      cobertura.forEach(function(it, i) { fila(it, i, 1); });
+      y += 5;
+    }
+    if (honorarios.length) {
+      seccion('HONORARIOS PERICIALES');
+      honorarios.forEach(function(it, i) { fila(it, i, cobertura.length + 1); });
+    }
+
+    doc.setFillColor(27, 94, 32); doc.rect(0, 274, 210, 23, 'F');
+    doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5);
+    doc.text('Avenida América Latina 1672 — San Fernando del Valle de Catamarca', 105, 281, { align: 'center' });
+    doc.text('criminalísticacolegio@gmail.com  ·  Ley Provincial N° 5.595/19', 105, 288, { align: 'center' });
+    doc.setFontSize(6.5); doc.setTextColor(190, 225, 190);
+    doc.text('Emitida el ' + fmtD(hoy), 105, 294, { align: 'center' });
+
+    doc.save('tabla-aranceles-cpc-ctm.pdf');
+  });
+</script>
+
+<style>
+  .page-content { padding: 5rem 0; display: flex; flex-direction: column; gap: 3rem; }
+  .section-header { text-align: center; }
+  .sub-title { color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.9rem; display: block; margin-bottom: 1rem; }
+  .section-header h1 { font-size: clamp(2rem, 5vw, 2.8rem); margin-bottom: 1rem; color: var(--accent); }
+  .section-header p { font-size: 1.05rem; color: var(--text-light); max-width: 600px; margin: 0 auto; }
+
+  .no-config { text-align: center; padding: 4rem 2rem; border-radius: var(--radius-lg); border: 1px dashed var(--gray-300); }
+  .no-icon { font-size: 3rem; margin-bottom: 1.5rem; }
+  .no-config h3 { font-size: 1.4rem; margin-bottom: 1rem; color: var(--accent); }
+  .no-config p { color: var(--text-light); }
+
+  .two-col-layout { display: grid; grid-template-columns: 1.1fr 1fr; gap: 2.5rem; align-items: start; }
+
+  /* ── Colapsable Datos del Presupuesto ── */
+  .datos-toggle-wrap { margin-bottom: 1rem; }
+
+  .datos-toggle-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: var(--white);
+    border: 1.5px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--accent);
+    cursor: pointer;
+    transition: var(--transition);
+    text-align: left;
+  }
+  .datos-toggle-btn:hover { border-color: var(--primary); background: var(--primary-soft); }
+  .datos-toggle-btn[aria-expanded="true"] { border-color: var(--primary); border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+  .toggle-arrow { flex-shrink: 0; transition: transform 0.2s ease; color: var(--primary); }
+  .datos-toggle-hint { font-size: 0.78rem; font-weight: 400; color: var(--text-light); margin-left: auto; }
+
+  .datos-form {
+    display: none;
+    padding: 1.5rem;
+    background: var(--white);
+    border: 1.5px solid var(--primary);
+    border-top: none;
+    border-bottom-left-radius: var(--radius-md);
+    border-bottom-right-radius: var(--radius-md);
+  }
+  .datos-form.is-open { display: block; }
+
+  .datos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  .datos-section-title { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em; color: var(--primary); margin: 0 0 0.75rem; }
+  .datos-col { display: flex; flex-direction: column; gap: 0.65rem; }
+  .form-field { display: flex; flex-direction: column; gap: 0.3rem; }
+  .form-field label { font-size: 0.75rem; font-weight: 600; color: var(--text-light); }
+  .form-field input {
+    padding: 0.55rem 0.8rem;
+    border: 1px solid var(--gray-300);
+    border-radius: 7px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    color: var(--text-main);
+    transition: border-color 0.15s;
+  }
+  .form-field input:focus { outline: none; border-color: var(--primary); }
+
+  /* ── Calculadora ── */
+  .calc-card { padding: 1.75rem; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); background: var(--white); display: flex; flex-direction: column; gap: 1.1rem; }
+  .col-title { display: flex; align-items: center; gap: 0.6rem; font-size: 1.1rem; color: var(--accent); margin: 0; }
+
+  .calc-header-row {
+    display: grid;
+    grid-template-columns: 28px 1fr 60px 90px 90px;
+    gap: 0.5rem;
+    padding: 0 0.5rem 0.25rem;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-light);
+  }
+  .calc-header-row span:nth-child(n+3) { text-align: right; }
+
+  .rows-container { display: flex; flex-direction: column; gap: 0.5rem; }
+
+  .calc-row-dyn {
+    display: grid;
+    grid-template-columns: 28px 1fr 60px auto;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.5rem 0.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--gray-100);
+    background: var(--gray-50);
+  }
+
+  .row-remove {
+    width: 24px; height: 24px;
+    background: none;
+    border: 1px solid var(--gray-300);
+    border-radius: 50%;
+    font-size: 0.7rem;
+    color: var(--text-light);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: var(--transition);
+    flex-shrink: 0;
+  }
+  .row-remove:hover { background: #fee2e2; border-color: #ef4444; color: #dc2626; }
+
+  .row-select {
+    padding: 0.45rem 0.6rem;
+    border: 1px solid var(--gray-300);
+    border-radius: 7px;
+    font-family: inherit;
+    font-size: 0.82rem;
+    color: var(--text-main);
+    background: var(--white);
+    cursor: pointer;
+    transition: border-color 0.15s;
+    min-width: 0;
+  }
+  .row-select:focus { outline: none; border-color: var(--primary); }
+
+  .row-qty {
+    width: 100%;
+    padding: 0.45rem 0.5rem;
+    border: 1px solid var(--gray-300);
+    border-radius: 7px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    text-align: center;
+    transition: border-color 0.15s;
+  }
+  .row-qty:focus { outline: none; border-color: var(--primary); }
+
+  .row-subtotals { display: flex; flex-direction: column; align-items: flex-end; gap: 0.15rem; min-width: 90px; }
+  .row-sub-jus { font-size: 0.72rem; color: var(--text-light); white-space: nowrap; }
+  .row-sub-pesos { font-size: 0.82rem; font-weight: 700; color: var(--primary); white-space: nowrap; }
+
+  .btn-add-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 1rem;
+    background: var(--white);
+    border: 1.5px dashed var(--primary);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--primary);
+    cursor: pointer;
+    transition: var(--transition);
+    align-self: flex-start;
+  }
+  .btn-add-row:hover { background: var(--primary-soft); }
+
+  .calc-total-box { background: var(--gray-50); border-radius: var(--radius-md); padding: 1.1rem 1.4rem; border: 1px solid var(--gray-200); display: flex; flex-direction: column; gap: 0.65rem; }
+  .total-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.88rem; color: var(--text-light); }
+  .total-row.highlight { font-size: 1rem; color: var(--text-main); padding-top: 0.5rem; border-top: 1px solid var(--gray-300); }
+  .total-row strong { font-size: 1.1rem; color: var(--primary); }
+  .total-row.highlight strong { font-size: 1.45rem; }
+  .jus-note { font-size: 0.73rem; color: var(--text-light); text-align: right; margin: 0; }
+
+  .btn-calc {
+    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    padding: 0.9rem; background: var(--primary); color: white;
+    border: none; border-radius: var(--radius-md); font-weight: 700; font-size: 0.92rem;
+    cursor: pointer; transition: var(--transition); font-family: inherit;
+  }
+  .btn-calc:hover:not(:disabled) { background: var(--primary-hover); transform: translateY(-2px); }
+  .btn-calc:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── Tabla referencia ── */
+  .col-tabla { display: flex; flex-direction: column; gap: 1.25rem; }
+  .tabla-header-box { padding: 1.5rem; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); background: var(--white); display: flex; flex-direction: column; gap: 0.65rem; }
+  .jus-value-badge { display: flex; align-items: baseline; gap: 0.5rem; }
+  .jus-label { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--text-light); }
+  .jus-num { font-size: 1.9rem; font-weight: 800; color: var(--primary); }
+  .vigencia-text { font-size: 0.8rem; color: var(--text-light); margin: 0; }
+  .nota-text { font-size: 0.82rem; color: var(--text-light); line-height: 1.5; font-style: italic; margin: 0; }
+  .btn-dl-tabla {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.6rem 1.1rem; background: var(--gray-50); border: 1px solid var(--primary);
+    border-radius: 8px; color: var(--primary); font-size: 0.82rem; font-weight: 700;
+    cursor: pointer; transition: var(--transition); font-family: inherit; width: fit-content;
+  }
+  .btn-dl-tabla:hover { background: var(--primary); color: white; }
+
+  .tabla-subtitle { font-size: 0.82rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--primary); padding-bottom: 0.35rem; border-bottom: 1px solid var(--primary-soft); margin: 0; }
+
+  .tabla-ref { border: 1px solid var(--gray-200); border-radius: var(--radius-md); overflow: hidden; }
+  .tabla-head {
+    display: grid; grid-template-columns: 28px 1fr 50px 72px;
+    padding: 0.55rem 0.9rem; background: var(--gray-50);
+    font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: var(--text-light);
+  }
+  .tabla-row {
+    display: grid; grid-template-columns: 28px 1fr 50px 72px;
+    padding: 0.6rem 0.9rem; border-top: 1px solid var(--gray-100);
+    font-size: 0.81rem;
+  }
+  .tabla-row:hover { background: var(--primary-soft); }
+  .cell-num { color: var(--text-light); font-weight: 600; }
+  .cell-concepto { color: var(--text-main); line-height: 1.4; }
+  .cell-concepto small { display: block; color: var(--text-light); font-size: 0.7rem; }
+  .cell-jus { text-align: right; font-weight: 700; color: var(--primary); }
+  .cell-pesos { text-align: right; font-weight: 600; color: var(--text-main); }
+
+  @media (max-width: 1100px) {
+    .two-col-layout { grid-template-columns: 1fr; }
+    .datos-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 640px) {
+    .calc-header-row { display: none; }
+    .calc-row-dyn { grid-template-columns: 28px 1fr 55px; }
+    .row-subtotals { display: none; }
+  }
+</style>

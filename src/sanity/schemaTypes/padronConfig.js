@@ -4,7 +4,6 @@ export default defineType({
     name: 'padronConfig',
     title: 'Configuración del Padrón',
     type: 'document',
-    __experimental_actions: ['update', 'publish'],
     fields: [
         defineField({
             name: 'tituloBuscador',

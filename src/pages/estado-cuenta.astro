@@ -1,0 +1,746 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+import { sanityClient } from 'sanity:client';
+
+const config = await sanityClient.fetch(`*[_type == "configuracionCobros"][0]`);
+const valorCuota = config?.valorCuotaMensual || 0;
+const valorAnual = config?.valorMatriculaAnual || 0;
+const promoActiva = config?.promocionAnualActiva || false;
+---
+
+<MainLayout title="Estado de Cuenta">
+  <div
+    id="config-data"
+    data-cuota={valorCuota}
+    data-anual={valorAnual}
+    data-promo={promoActiva ? 'true' : 'false'}
+    class="hidden"
+  ></div>
+
+  <!-- Loading -->
+  <div id="loading-state" class="loading-overlay">
+    <div class="spinner-ring"></div>
+    <p>Verificando credenciales...</p>
+  </div>
+
+  <!-- Contenido principal (oculto hasta auth) -->
+  <div id="account-content" class="account-container container hidden">
+    <header class="account-header">
+      <div class="header-info">
+        <span class="section-label">Área Privada</span>
+        <h1>Estado de Cuenta</h1>
+        <p>Bienvenido/a, <strong id="user-name">--</strong> &middot; Mat. <span id="user-mat">--</span></p>
+      </div>
+      <button id="logout-btn" class="btn-logout">Cerrar Sesión</button>
+    </header>
+
+    <div class="status-grid">
+      <!-- Card izquierda: resumen de deuda -->
+      <div class="status-card glass">
+        <div class="mat-status-row">
+          <span class="mat-label">Estado de Matrícula</span>
+          <span id="mat-estado" class="estado-pill">--</span>
+        </div>
+        <div class="debt-info">
+          <span class="months" id="months-display">Calculando...</span>
+          <span class="amount" id="amount-display">$--</span>
+        </div>
+        <p class="last-payment" id="last-payment-display">Último pago registrado: --</p>
+      </div>
+
+      <!-- Card derecha: acciones -->
+      <div class="actions-card glass">
+        <h3>Acciones Disponibles</h3>
+
+        <div id="state-loading" class="state-panel">
+          <p class="text-muted">Verificando estado de cuenta...</p>
+        </div>
+
+        <div id="state-moroso" class="state-panel hidden alert-moroso">
+          <div class="alert-icon">⚠️</div>
+          <p><strong>Deuda superior a 3 meses.</strong></p>
+          <p>Los pagos automáticos han sido bloqueados. Comuníquese con administración para regularizar su situación.</p>
+          <a href="mailto:secretaria@colegiocriminalistica.com" class="btn-contact">Contactar Secretaría</a>
+        </div>
+
+        <div id="state-sano" class="state-panel hidden payment-actions">
+          <p class="action-intro">Tiene una deuda manejable. Regularice ahora:</p>
+          <div class="payment-row">
+            <span id="sano-label" class="pay-label">Meses pendientes:</span>
+            <strong id="sano-amount" class="pay-amount">$--</strong>
+          </div>
+          <button id="pay-btn" class="btn-pay">
+            <span class="btn-icon">💳</span> Pagar con MercadoPago
+          </button>
+        </div>
+
+        <div id="state-al-dia" class="state-panel hidden promo-actions">
+          <div class="al-dia-badge">
+            <span class="check-icon">✅</span>
+            <p><strong>¡Está al día con sus obligaciones!</strong></p>
+          </div>
+          <div id="promo-section" class="promo-box hidden">
+            <h4>Promoción Anual Activa</h4>
+            <p>Aproveche el 20% de descuento pagando el año completo por adelantado.</p>
+            <button id="pay-annual-btn" class="btn-pay promo-btn">
+              <span class="btn-icon">🎉</span> Pagar Matrícula Anual
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Certificado de matrícula -->
+    <div id="cert-section" class="cert-card glass hidden">
+      <div class="cert-info">
+        <span class="cert-icon">📜</span>
+        <div>
+          <h3>Certificado de Matrícula</h3>
+          <p>Descargue su certificado oficial de matrícula vigente en formato PDF.</p>
+        </div>
+      </div>
+      <button id="cert-btn" class="btn-cert">📄 Descargar Certificado</button>
+    </div>
+
+    <!-- Historial de pagos -->
+    <div class="history-card glass">
+      <h3>Historial de Pagos</h3>
+      <div id="no-payments" class="hidden empty-state">
+        <span class="empty-icon">📋</span>
+        <p>Sin pagos registrados en el sistema.</p>
+        <p class="empty-hint">Sus pagos aprobados aparecerán aquí automáticamente.</p>
+      </div>
+      <div class="table-wrapper">
+        <table id="payments-table" class="hidden payments-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Concepto</th>
+              <th>Monto</th>
+              <th>Estado</th>
+              <th>N° Operación</th>
+            </tr>
+          </thead>
+          <tbody id="payments-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</MainLayout>
+
+<script>
+  import { auth, db } from '../lib/firebase';
+  import { onAuthStateChanged, signOut } from 'firebase/auth';
+  import { collection, query, where, getDocs } from 'firebase/firestore';
+  import { createClient } from '@sanity/client';
+
+  const sanity = createClient({
+    projectId: '8q7vz6co',
+    dataset: 'production',
+    useCdn: true,
+    apiVersion: '2023-05-03',
+  });
+
+  const configEl = document.getElementById('config-data') as HTMLElement;
+  const valorCuota = Number(configEl?.dataset.cuota || 0);
+  const valorAnual = Number(configEl?.dataset.anual || 0);
+  const promoActiva = configEl?.dataset.promo === 'true';
+
+  const loadingState = document.getElementById('loading-state');
+  const accountContent = document.getElementById('account-content');
+
+  let currentMatriculado: any = null;
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      window.location.href = '/login';
+      return;
+    }
+
+    const email = user.email!;
+
+    try {
+      // 1. Matriculado desde Sanity
+      const matriculado = await sanity.fetch(
+        `*[_type == "matriculado" && email == $email][0]{ nombreCompleto, numeroMatricula, estado }`,
+        { email }
+      );
+
+      const userNameEl = document.getElementById('user-name');
+      const userMatEl = document.getElementById('user-mat');
+      const matEstadoEl = document.getElementById('mat-estado');
+
+      currentMatriculado = matriculado;
+
+      if (userNameEl) userNameEl.textContent = matriculado?.nombreCompleto || email;
+      if (userMatEl) userMatEl.textContent = matriculado?.numeroMatricula || 'Sin matrícula';
+      if (matEstadoEl) {
+        const estado = matriculado?.estado || 'Desconocido';
+        matEstadoEl.textContent = estado;
+        matEstadoEl.className = `estado-pill ${estado.toLowerCase()}`;
+      }
+
+      // Mostrar sección de certificado solo si está activo (valor en Sanity es "Activo" con A mayúscula)
+      if (matriculado?.estado === 'Activo') {
+        document.getElementById('cert-section')?.classList.remove('hidden');
+      }
+
+      // 2. Historial de pagos desde Firestore
+      const snap = await getDocs(
+        query(collection(db, 'pagos'), where('matriculadoEmail', '==', email))
+      );
+      const pagos = snap.docs
+        .map((d) => d.data())
+        .sort((a, b) => new Date(b.fecha as string).getTime() - new Date(a.fecha as string).getTime());
+
+      // 3. Calcular deuda
+      const hoy = new Date();
+      let mesesDeuda = 0;
+      let lastPaymentLabel = 'Sin pagos registrados';
+
+      if (pagos.length > 0) {
+        const lastPago = pagos[0];
+        const lastDate = new Date(lastPago.fecha as string);
+        lastPaymentLabel = `${lastDate.toLocaleDateString('es-AR')} · ${lastPago.concepto || 'Pago'}`;
+
+        const diffMs = hoy.getTime() - lastDate.getTime();
+        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+        mesesDeuda = Math.floor(diffDays / 30);
+      } else {
+        mesesDeuda = 1;
+      }
+
+      const totalDeuda = Math.max(0, mesesDeuda) * valorCuota;
+
+      // 4. Actualizar display de deuda
+      const monthsDisplay = document.getElementById('months-display');
+      const amountDisplay = document.getElementById('amount-display');
+      const lastPaymentDisplay = document.getElementById('last-payment-display');
+
+      if (monthsDisplay) {
+        monthsDisplay.textContent = mesesDeuda <= 0
+          ? 'Al corriente'
+          : `${mesesDeuda} ${mesesDeuda === 1 ? 'mes pendiente' : 'meses pendientes'}`;
+      }
+      if (amountDisplay) {
+        amountDisplay.textContent = mesesDeuda <= 0 ? '$0' : `$${totalDeuda.toLocaleString('es-AR')}`;
+        if (mesesDeuda > 0) amountDisplay.classList.add('deuda-activa');
+      }
+      if (lastPaymentDisplay) {
+        lastPaymentDisplay.textContent = `Último pago: ${lastPaymentLabel}`;
+      }
+
+      // 5. Mostrar panel de acción correcto
+      document.getElementById('state-loading')?.classList.add('hidden');
+
+      if (mesesDeuda <= 0) {
+        document.getElementById('state-al-dia')?.classList.remove('hidden');
+        if (promoActiva && valorAnual > 0) {
+          document.getElementById('promo-section')?.classList.remove('hidden');
+          document.getElementById('pay-annual-btn')?.addEventListener('click', (e) => {
+            handlePayment(e, valorAnual, 'Matrícula Anual CPC CTM', email);
+          });
+        }
+      } else if (mesesDeuda <= 3) {
+        document.getElementById('state-sano')?.classList.remove('hidden');
+        const sanoLabel = document.getElementById('sano-label');
+        const sanoAmount = document.getElementById('sano-amount');
+        if (sanoLabel) sanoLabel.textContent = `Pagar ${mesesDeuda} ${mesesDeuda === 1 ? 'mes' : 'meses'} pendiente(s):`;
+        if (sanoAmount) sanoAmount.textContent = `$${totalDeuda.toLocaleString('es-AR')}`;
+        document.getElementById('pay-btn')?.addEventListener('click', (e) => {
+          handlePayment(e, totalDeuda, `Cuota Social CPC CTM (${mesesDeuda} mes/es)`, email);
+        });
+      } else {
+        document.getElementById('state-moroso')?.classList.remove('hidden');
+      }
+
+      // 6. Renderizar historial
+      renderPaymentHistory(pagos);
+
+    } catch (err) {
+      console.error('[estado-cuenta] Error cargando datos:', err);
+    } finally {
+      loadingState?.classList.add('hidden');
+      accountContent?.classList.remove('hidden');
+    }
+  });
+
+  function renderPaymentHistory(pagos: any[]) {
+    const tbody = document.getElementById('payments-tbody');
+    const table = document.getElementById('payments-table');
+    const noPagosEl = document.getElementById('no-payments');
+
+    if (!pagos.length) {
+      noPagosEl?.classList.remove('hidden');
+      return;
+    }
+
+    table?.classList.remove('hidden');
+    if (tbody) {
+      tbody.innerHTML = pagos.map((p) => {
+        const fecha = new Date(p.fecha as string).toLocaleDateString('es-AR');
+        const monto = `$${Number(p.monto || 0).toLocaleString('es-AR')}`;
+        const concepto = p.concepto || '--';
+        const estado = p.estado || 'APROBADO';
+        const mpId = p.mpPaymentId ? String(p.mpPaymentId).slice(-8) : '--';
+        return `
+          <tr>
+            <td>${fecha}</td>
+            <td>${concepto}</td>
+            <td class="monto-cell">${monto}</td>
+            <td><span class="status-pill aprobado">${estado}</span></td>
+            <td class="mp-id">···${mpId}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+  }
+
+  async function handlePayment(event: Event, amount: number, title: string, email: string) {
+    const btn = event.currentTarget as HTMLButtonElement;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.textContent = 'Procesando...';
+
+    try {
+      const res = await fetch('/api/create-preference', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, title, email }),
+      });
+      const data = await res.json();
+      if (data.init_point) {
+        window.location.href = data.init_point;
+      } else {
+        throw new Error('No se recibió init_point');
+      }
+    } catch (err) {
+      console.error('[estado-cuenta] Error iniciando pago:', err);
+      alert('Error al iniciar el pago. Por favor reintente.');
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    }
+  }
+
+  document.getElementById('cert-btn')?.addEventListener('click', generateCertificate);
+
+  async function generateCertificate() {
+    const btn = document.getElementById('cert-btn') as HTMLButtonElement;
+    if (!btn || !currentMatriculado) return;
+
+    btn.disabled = true;
+    btn.textContent = 'Generando PDF...';
+
+    try {
+      const { jsPDF } = await import('jspdf');
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a5' });
+
+      const W = doc.internal.pageSize.getWidth();
+      const H = doc.internal.pageSize.getHeight();
+
+      // Obtener logo
+      let logoData = '';
+      try {
+        const res = await fetch('/LOGO-CENTRAL.jpg');
+        const blob = await res.blob();
+        logoData = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve((e.target?.result as string) ?? '');
+          reader.readAsDataURL(blob);
+        });
+      } catch { /* logo unavailable */ }
+
+      // Fondo
+      doc.setFillColor(250, 250, 250);
+      doc.rect(0, 0, W, H, 'F');
+
+      // Banda superior verde
+      doc.setFillColor(27, 94, 32);
+      doc.rect(0, 0, W, 28, 'F');
+
+      // Logo en esquina superior izquierda del encabezado
+      if (logoData) {
+        doc.addImage(logoData, 'JPEG', 5, 3, 22, 22);
+      }
+
+      // Nombre institución en header
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('COLEGIO DE PROFESIONALES EN CIENCIAS CRIMINALÍSTICAS', W / 2, 11, { align: 'center' });
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text('PROVINCIA DE CATAMARCA', W / 2, 20, { align: 'center' });
+
+      // Título del certificado
+      doc.setTextColor(27, 94, 32);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(15);
+      doc.text('CERTIFICADO DE MATRÍCULA PROFESIONAL', W / 2, 44, { align: 'center' });
+
+      // Línea decorativa
+      doc.setDrawColor(27, 94, 32);
+      doc.setLineWidth(0.5);
+      doc.line(20, 49, W - 20, 49);
+
+      // Texto central
+      doc.setTextColor(60, 60, 60);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text('El Colegio de Profesionales en Ciencias Criminalísticas certifica que:', W / 2, 61, { align: 'center' });
+
+      // Nombre del profesional
+      const nombre = currentMatriculado.nombreCompleto || 'Profesional';
+      const matricula = currentMatriculado.numeroMatricula || '---';
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(17);
+      doc.setTextColor(27, 94, 32);
+      doc.text(nombre.toUpperCase(), W / 2, 74, { align: 'center' });
+
+      // Número de matrícula
+      doc.setFontSize(11);
+      doc.setTextColor(60, 60, 60);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`N° de Matrícula: ${matricula}`, W / 2, 83, { align: 'center' });
+
+      // Descripción
+      doc.setFontSize(10);
+      doc.text('se encuentra inscripto/a en el Registro Oficial de Profesionales Habilitados', W / 2, 92, { align: 'center' });
+      doc.text('para el ejercicio profesional en el ámbito de la Provincia de Catamarca.', W / 2, 99, { align: 'center' });
+
+      // Línea divisoria footer
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.3);
+      doc.line(20, 108, W - 20, 108);
+
+      // Pie de página
+      doc.setFontSize(8);
+      doc.setTextColor(140, 140, 140);
+      const hoy = new Date().toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
+      const anio = new Date().getFullYear();
+      doc.text(`Emitido el ${hoy} · Válido durante el ejercicio ${anio}`, W / 2, 115, { align: 'center' });
+      doc.text('Documento generado electrónicamente — verificar vigencia en el portal institucional.', W / 2, 121, { align: 'center' });
+
+      // Banda inferior verde
+      doc.setFillColor(27, 94, 32);
+      doc.rect(0, H - 7, W, 7, 'F');
+
+      doc.save(`certificado-${matricula}.pdf`);
+
+    } catch (err) {
+      console.error('[certificado] Error generando PDF:', err);
+      alert('Error al generar el certificado. Por favor reintente.');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '📄 Descargar Certificado';
+    }
+  }
+
+  document.getElementById('logout-btn')?.addEventListener('click', () => {
+    signOut(auth).then(() => { window.location.href = '/login'; });
+  });
+</script>
+
+<style>
+  .hidden { display: none !important; }
+
+  /* Loading */
+  .loading-overlay {
+    min-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    color: var(--text-light);
+  }
+
+  .spinner-ring {
+    width: 48px;
+    height: 48px;
+    border: 4px solid var(--gray-200);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Layout */
+  .account-container { padding: 4rem 1.5rem; }
+
+  .account-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 3rem;
+    gap: 1rem;
+  }
+
+  .section-label {
+    display: block;
+    color: var(--primary);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .account-header h1 {
+    color: var(--accent);
+    font-size: 2.2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .account-header p { color: var(--text-light); }
+
+  .btn-logout {
+    background: white;
+    border: 1.5px solid var(--gray-300);
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text-light);
+    transition: var(--transition);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .btn-logout:hover { border-color: #ef4444; color: #ef4444; }
+
+  .status-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .status-card, .actions-card {
+    padding: 2.5rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--gray-200);
+  }
+
+  /* Matrícula status row */
+  .mat-status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--gray-100);
+  }
+
+  .mat-label { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: var(--text-light); }
+
+  .estado-pill {
+    padding: 0.3rem 0.9rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    background: var(--gray-100);
+    color: var(--text-light);
+  }
+
+  .estado-pill.activo { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+  .estado-pill.suspendido { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+  .estado-pill.baja { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+
+  /* Debt display */
+  .debt-info { margin: 1.5rem 0; display: flex; flex-direction: column; gap: 0.25rem; }
+  .months { font-size: 1rem; color: var(--text-light); }
+  .amount { font-size: 3rem; font-weight: 800; color: var(--primary); line-height: 1.1; }
+  .amount.deuda-activa { color: #dc2626; }
+  .last-payment { font-size: 0.85rem; color: var(--text-light); }
+
+  /* Actions card */
+  .actions-card h3 { margin-bottom: 1.5rem; font-size: 1.1rem; color: var(--accent); }
+
+  .state-panel { display: flex; flex-direction: column; gap: 1rem; }
+
+  .text-muted { color: var(--text-light); font-style: italic; }
+
+  /* Moroso */
+  .alert-moroso {
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    border-radius: 12px;
+    padding: 1.5rem;
+    color: #991b1b;
+  }
+  .alert-icon { font-size: 2rem; }
+  .btn-contact {
+    display: inline-block;
+    margin-top: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: #991b1b;
+    color: white;
+    border-radius: 8px;
+    font-weight: 700;
+    text-decoration: none;
+    font-size: 0.9rem;
+    text-align: center;
+  }
+
+  /* Sano */
+  .action-intro { color: var(--text-light); font-size: 0.95rem; }
+  .payment-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--gray-50);
+    padding: 1rem 1.25rem;
+    border-radius: 10px;
+    border: 1px solid var(--gray-200);
+  }
+  .pay-label { font-size: 0.9rem; color: var(--text-light); }
+  .pay-amount { font-size: 1.5rem; font-weight: 800; color: var(--primary); }
+
+  .btn-pay {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: var(--transition);
+  }
+  .btn-pay:hover:not(:disabled) { background: var(--primary-hover); transform: translateY(-2px); }
+  .btn-pay:disabled { opacity: 0.6; cursor: not-allowed; }
+  .btn-icon { font-size: 1.1rem; }
+
+  /* Al día */
+  .al-dia-badge {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: #dcfce7;
+    border-radius: 10px;
+    border: 1px solid #bbf7d0;
+  }
+  .check-icon { font-size: 1.5rem; }
+  .al-dia-badge p { margin: 0; color: #166534; }
+
+  .promo-box {
+    background: var(--primary-soft);
+    border: 1px solid var(--primary);
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+  .promo-box h4 { color: var(--primary); margin-bottom: 0.5rem; }
+  .promo-box p { color: var(--text-light); font-size: 0.9rem; margin-bottom: 1rem; }
+  .promo-btn { background: var(--accent); }
+  .promo-btn:hover:not(:disabled) { background: #0f172a; }
+
+  /* Certificado */
+  .cert-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 1.75rem 2.5rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--primary);
+    background: var(--primary-soft);
+  }
+
+  .cert-info {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  .cert-icon { font-size: 2rem; flex-shrink: 0; }
+  .cert-info h3 { color: var(--primary); font-size: 1rem; margin-bottom: 0.25rem; }
+  .cert-info p { color: var(--text-light); font-size: 0.875rem; }
+
+  .btn-cert {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.8rem 1.5rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: var(--transition);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .btn-cert:hover:not(:disabled) { background: var(--primary-hover); transform: translateY(-2px); }
+  .btn-cert:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  @media (max-width: 700px) {
+    .cert-card { flex-direction: column; align-items: flex-start; }
+    .btn-cert { width: 100%; justify-content: center; }
+  }
+
+  /* History card */
+  .history-card {
+    padding: 2.5rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--gray-200);
+  }
+  .history-card h3 { margin-bottom: 1.5rem; font-size: 1.1rem; color: var(--accent); }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-light);
+  }
+  .empty-icon { font-size: 2.5rem; display: block; margin-bottom: 1rem; }
+  .empty-hint { font-size: 0.85rem; margin-top: 0.5rem; opacity: 0.7; }
+
+  .table-wrapper { overflow-x: auto; }
+
+  .payments-table { width: 100%; border-collapse: collapse; }
+  .payments-table th {
+    text-align: left;
+    padding: 0.9rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--primary);
+    border-bottom: 2px solid var(--gray-200);
+    letter-spacing: 0.05em;
+  }
+  .payments-table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--gray-100);
+    font-size: 0.95rem;
+    color: var(--text-main);
+  }
+  .payments-table tr:last-child td { border-bottom: none; }
+  .payments-table tr:hover { background: var(--primary-soft); }
+
+  .monto-cell { font-weight: 700; color: var(--primary); }
+  .mp-id { font-family: monospace; font-size: 0.85rem; color: var(--text-light); }
+
+  .status-pill {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 800;
+  }
+  .status-pill.aprobado { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+
+  @media (max-width: 900px) {
+    .status-grid { grid-template-columns: 1fr; }
+    .account-header { flex-direction: column; align-items: flex-start; }
+    .amount { font-size: 2rem; }
+  }
+</style>

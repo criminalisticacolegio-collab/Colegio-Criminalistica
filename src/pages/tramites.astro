@@ -1,184 +1,271 @@
 ---
 import MainLayout from '../layouts/MainLayout.astro';
+import { sanityClient } from 'sanity:client';
+
+const data = await sanityClient.fetch(`*[_type == "tramitesConfig"][0]{
+  requisitosGenerales,
+  "tramites": tramitesDisponibles[activo == true]{
+    nombre, icono, descripcion, requisitos, arancel, plazo, categoria,
+    "formulario": formulario.asset->url
+  }
+}`);
+
+const tramites = data?.tramites || [];
+
+const categorias = ['Matriculacion', 'Certificados', 'Habilitaciones', 'General'];
+const categoriaLabels: Record<string, string> = {
+  Matriculacion: 'Matriculación',
+  Certificados: 'Certificados',
+  Habilitaciones: 'Habilitaciones',
+  General: 'General',
+};
+
+// Agrupar por categoría
+const porCategoria = categorias
+  .map(cat => ({
+    cat,
+    label: categoriaLabels[cat] || cat,
+    items: tramites.filter((t: any) => (t.categoria || 'General') === cat),
+  }))
+  .filter(g => g.items.length > 0);
 ---
 
 <MainLayout title="Trámites y Servicios" showBack={true}>
-	<div class="container page-content">
-		<header class="section-header">
-			<span class="sub-title">Gestión Digital</span>
-			<h1>Trámites y Servicios</h1>
-			<p>Acceda a su documentación profesional, postúlese a peritajes oficiales y presente sus propuestas.</p>
-		</header>
+  <div class="container page-content">
+    <header class="section-header">
+      <span class="sub-title">Gestión Digital</span>
+      <h1>Trámites y Servicios</h1>
+      <p>Acceda a la información de los trámites disponibles, requisitos y formularios descargables.</p>
+    </header>
 
-		<div class="tramites-grid">
-			<!-- Certificados -->
-			<section class="tramite-card glass">
-				<div class="t-icon-box">📜</div>
-				<div class="t-content">
-					<h3>Certificados Digitales</h3>
-					<p>Descarga inmediata de certificados de ética, vigencia de matrícula y cumplimiento institucional con firma digital.</p>
-					<div class="cert-list">
-						<button class="cert-btn">Certificado de Ética <span class="download-icon">⬇️</span></button>
-						<button class="cert-btn">Vigencia de Matrícula <span class="download-icon">⬇️</span></button>
-					</div>
-				</div>
-			</section>
+    {data?.requisitosGenerales && (
+      <div class="requisitos-generales glass">
+        <div class="rg-icon">📋</div>
+        <div>
+          <h3>Requisitos Generales</h3>
+          <p>{data.requisitosGenerales}</p>
+        </div>
+      </div>
+    )}
 
-			<!-- Bolsa de Trabajo -->
-			<section class="tramite-card glass">
-				<div class="t-icon-box">💼</div>
-				<div class="t-content">
-					<h3>Bolsa de Trabajo Pericial</h3>
-					<p>Inscripción en listas oficiales para peritajes judiciales y convocatorias de organismos públicos o privados.</p>
-					<div class="offers-list">
-						<div class="offer-item">
-							<strong>Poder Judicial Catamarca</strong>
-							<span>Inscripción Ciclo 2026 Abierta</span>
-						</div>
-						<button class="btn-action">Ver Convocatorias</button>
-					</div>
-				</div>
-			</section>
+    {tramites.length > 0 ? (
+      <div class="tramites-sections">
+        {porCategoria.map(({ label, items }) => (
+          <section class="cat-section">
+            <h2 class="cat-title">{label}</h2>
+            <div class="tramites-grid">
+              {items.map((t: any) => (
+                <div class="tramite-card glass">
+                  <div class="t-top">
+                    <div class="t-icon-box">{t.icono || '📋'}</div>
+                    <h3>{t.nombre}</h3>
+                  </div>
 
-			<!-- Presentación de Proyectos -->
-			<section class="tramite-card glass full-row">
-				<div class="t-icon-box project-icon">🚀</div>
-				<div class="t-content">
-					<div class="t-badge">Nuevo</div>
-					<h3>Presentación de Proyectos y Propuestas</h3>
-					<p>Suma tu iniciativa al Colegio. Envía tus propuestas para capacitaciones, reformas institucionales o proyectos de investigación científica.</p>
-					
-					<form class="project-form" onsubmit="event.preventDefault()">
-						<div class="form-row">
-							<div class="form-group">
-								<label>Título de la Propuesta</label>
-								<input type="text" placeholder="Ej: Programa de Capacitación en Balística Forense" />
-							</div>
-						</div>
-						<div class="form-row">
-							<div class="form-group">
-								<label>Resumen Ejecutivo / Objetivos</label>
-								<textarea placeholder="Describa brevemente el alcance y impacto de su propuesta..." rows="4"></textarea>
-							</div>
-						</div>
-						<div class="form-footer">
-							<div class="file-upload">
-								<label for="pdf-upload" class="upload-label">
-									<span>📎 Adjuntar PDF Detallado</span>
-									<input type="file" id="pdf-upload" hidden />
-								</label>
-							</div>
-							<button class="btn-submit">Enviar Propuesta</button>
-						</div>
-					</form>
-				</div>
-			</section>
-		</div>
-	</div>
+                  {t.descripcion && <p class="t-desc">{t.descripcion}</p>}
 
-	<style>
-		.page-content { padding: 5rem 0; }
-		.section-header { text-align: center; margin-bottom: 5rem; }
-		.sub-title { color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.9rem; display: block; margin-bottom: 1rem; }
-		.section-header h1 { font-size: clamp(2.5rem, 5vw, 3.5rem); margin-bottom: 1.5rem; color: var(--accent); }
-		.section-header p { font-size: 1.25rem; color: var(--text-light); max-width: 800px; margin: 0 auto; }
+                  {t.requisitos?.length > 0 && (
+                    <div class="t-requisitos">
+                      <h4>Requisitos</h4>
+                      <ul>
+                        {t.requisitos.map((req: string) => <li>{req}</li>)}
+                      </ul>
+                    </div>
+                  )}
 
-		.tramites-grid {
-			display: grid;
-			grid-template-columns: 1fr 1fr;
-			gap: 2.5rem;
-		}
+                  <div class="t-meta">
+                    {t.arancel && (
+                      <div class="meta-item">
+                        <span class="meta-label">Arancel</span>
+                        <span class="meta-value arancel">{t.arancel}</span>
+                      </div>
+                    )}
+                    {t.plazo && (
+                      <div class="meta-item">
+                        <span class="meta-label">Plazo</span>
+                        <span class="meta-value">{t.plazo}</span>
+                      </div>
+                    )}
+                  </div>
 
-		.full-row { grid-column: 1 / -1; }
+                  {t.formulario && (
+                    <a href={t.formulario} target="_blank" rel="noopener" class="btn-formulario">
+                      📥 Descargar Formulario
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+    ) : (
+      <div class="empty-state glass">
+        <span class="empty-icon">📑</span>
+        <h3>Sin trámites cargados</h3>
+        <p>Los trámites disponibles serán publicados desde el panel de administración.</p>
+      </div>
+    )}
 
-		.tramite-card {
-			display: flex;
-			gap: 2rem;
-			padding: 3rem;
-			border-radius: var(--radius-lg);
-			border: 1px solid var(--gray-200);
-			background: var(--white);
-			transition: var(--transition);
-		}
+    <!-- Presentación de Proyectos (sección fija) -->
+    <section class="propuestas-section glass">
+      <div class="t-icon-box project-icon">🚀</div>
+      <div class="t-content">
+        <div class="t-badge">Abierto</div>
+        <h3>Presentación de Proyectos y Propuestas</h3>
+        <p>Suma tu iniciativa al Colegio. Envía tus propuestas para capacitaciones, reformas institucionales o proyectos de investigación.</p>
+        <form class="project-form" id="proposal-form" enctype="multipart/form-data">
+          <div class="form-group">
+            <label for="prop-titulo">Título de la Propuesta</label>
+            <input type="text" id="prop-titulo" name="titulo" placeholder="Ej: Programa de Capacitación en Balística Forense" required />
+          </div>
+          <div class="form-group">
+            <label for="prop-resumen">Resumen / Objetivos</label>
+            <textarea id="prop-resumen" name="resumen" placeholder="Describa brevemente el alcance y el impacto de su propuesta..." rows="4" required></textarea>
+          </div>
+          <div class="form-footer">
+            <label for="pdf-upload" class="upload-label">📎 Adjuntar PDF
+              <input type="file" id="pdf-upload" name="pdf" accept=".pdf" hidden />
+            </label>
+            <button type="submit" class="btn-submit" id="prop-submit-btn">Enviar Propuesta</button>
+          </div>
+          <p id="proposal-feedback" class="proposal-feedback hidden"></p>
+        </form>
+      </div>
+    </section>
+  </div>
 
-		.tramite-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-md); border-color: var(--primary); }
+  <style>
+    .page-content { padding: 5rem 0; display: flex; flex-direction: column; gap: 4rem; }
 
-		.t-icon-box {
-			width: 70px;
-			height: 70px;
-			background: var(--gray-100);
-			border-radius: 16px;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			font-size: 2rem;
-			flex-shrink: 0;
-		}
+    .section-header { text-align: center; }
+    .sub-title { color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.9rem; display: block; margin-bottom: 1rem; }
+    .section-header h1 { font-size: clamp(2.5rem, 5vw, 3.5rem); margin-bottom: 1.5rem; color: var(--accent); }
+    .section-header p { font-size: 1.25rem; color: var(--text-light); max-width: 800px; margin: 0 auto; }
 
-		.project-icon { background: var(--primary-light); color: var(--primary); }
+    /* Requisitos generales */
+    .requisitos-generales {
+      display: flex; gap: 1.5rem; padding: 2rem 2.5rem;
+      border-radius: var(--radius-lg); border: 1px solid var(--gray-200); align-items: flex-start;
+    }
+    .rg-icon { font-size: 2rem; flex-shrink: 0; }
+    .requisitos-generales h3 { font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--accent); }
+    .requisitos-generales p { color: var(--text-light); line-height: 1.6; white-space: pre-line; }
 
-		.t-content { flex: 1; position: relative; }
-		.t-badge { position: absolute; top: -10px; right: 0; background: var(--primary); color: white; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; }
+    /* Categories */
+    .cat-section { display: flex; flex-direction: column; gap: 1.5rem; }
+    .cat-title { font-size: 1.5rem; color: var(--accent); padding-bottom: 0.75rem; border-bottom: 2px solid var(--primary-soft); }
 
-		.t-content h3 { font-size: 1.5rem; margin-bottom: 1rem; }
-		.t-content p { color: var(--text-light); font-size: 1rem; line-height: 1.5; margin-bottom: 2rem; }
+    .tramites-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 2rem; }
 
-		/* Certificados */
-		.cert-list { display: flex; flex-direction: column; gap: 0.75rem; }
-		.cert-btn {
-			display: flex;
-			justify-content: space-between;
-			align-items: center;
-			padding: 1rem 1.5rem;
-			background: var(--gray-50);
-			border: 1px solid var(--gray-200);
-			border-radius: 10px;
-			font-weight: 600;
-			cursor: pointer;
-			transition: var(--transition);
-		}
-		.cert-btn:hover { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+    .tramite-card {
+      padding: 2rem; border-radius: var(--radius-lg);
+      border: 1px solid var(--gray-200); display: flex; flex-direction: column; gap: 1.25rem;
+      transition: var(--transition);
+    }
+    .tramite-card:hover { border-color: var(--primary); transform: translateY(-4px); box-shadow: var(--shadow-md); }
 
-		/* Bolsa */
-		.offer-item {
-			background: var(--primary-soft);
-			padding: 1.25rem;
-			border-radius: 10px;
-			border-left: 4px solid var(--primary);
-			margin-bottom: 1.5rem;
-		}
-		.offer-item strong { display: block; font-size: 1rem; color: var(--primary); }
-		.offer-item span { font-size: 0.85rem; color: var(--text-light); }
+    .t-top { display: flex; align-items: center; gap: 1rem; }
+    .t-icon-box { width: 50px; height: 50px; background: var(--primary-soft); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0; }
+    .t-top h3 { font-size: 1.15rem; color: var(--accent); line-height: 1.3; }
+    .t-desc { color: var(--text-light); font-size: 0.95rem; line-height: 1.5; }
 
-		.btn-action {
-			background: var(--primary);
-			color: white;
-			border: none;
-			padding: 0.75rem 1.5rem;
-			border-radius: 8px;
-			font-weight: 700;
-			cursor: pointer;
-		}
+    .t-requisitos h4 { font-size: 0.8rem; text-transform: uppercase; color: var(--primary); font-weight: 700; margin-bottom: 0.5rem; }
+    .t-requisitos ul { list-style: none; display: flex; flex-direction: column; gap: 0.4rem; }
+    .t-requisitos li { font-size: 0.9rem; color: var(--text-light); padding-left: 1.25rem; position: relative; }
+    .t-requisitos li::before { content: '›'; position: absolute; left: 0; color: var(--primary); font-weight: 700; }
 
-		/* Form */
-		.project-form {
-			background: var(--gray-50);
-			padding: 2rem;
-			border-radius: 16px;
-			border: 1px solid var(--gray-200);
-		}
-		.form-group { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem; }
-		.form-group label { font-size: 0.9rem; font-weight: 600; color: var(--accent); }
-		.form-group input, .form-group textarea { padding: 0.8rem 1rem; border: 1px solid var(--gray-300); border-radius: 10px; font-family: inherit; font-size: 1rem; }
-		
-		.form-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; }
-		.upload-label { cursor: pointer; color: var(--primary); font-weight: 600; font-size: 0.9rem; }
-		.btn-submit { background: var(--primary); color: white; border: none; padding: 1rem 2rem; border-radius: 10px; font-weight: 700; cursor: pointer; }
+    .t-meta { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+    .meta-item { display: flex; flex-direction: column; }
+    .meta-label { font-size: 0.7rem; text-transform: uppercase; color: var(--text-light); font-weight: 700; }
+    .meta-value { font-size: 1rem; font-weight: 700; color: var(--text-main); }
+    .meta-value.arancel { color: var(--primary); }
 
-		@media (max-width: 1024px) {
-			.tramites-grid { grid-template-columns: 1fr; }
-			.tramite-card { flex-direction: column; padding: 2rem; }
-			.t-icon-box { margin-bottom: 1rem; }
-		}
-	</style>
+    .btn-formulario {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.75rem 1.25rem; background: var(--gray-50); border: 1px solid var(--primary);
+      border-radius: 8px; color: var(--primary); font-weight: 700; font-size: 0.9rem;
+      text-decoration: none; transition: var(--transition); margin-top: auto;
+    }
+    .btn-formulario:hover { background: var(--primary); color: white; }
+
+    /* Propuestas */
+    .propuestas-section {
+      display: flex; gap: 2rem; padding: 3rem;
+      border-radius: var(--radius-lg); border: 1px solid var(--gray-200); align-items: flex-start;
+    }
+    .project-icon { background: var(--primary-light); }
+    .t-content { flex: 1; position: relative; }
+    .t-badge { position: absolute; top: -10px; right: 0; background: var(--primary); color: white; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; }
+    .t-content h3 { font-size: 1.5rem; margin-bottom: 1rem; color: var(--accent); }
+    .t-content > p { color: var(--text-light); margin-bottom: 2rem; }
+
+    .project-form { background: var(--gray-50); padding: 2rem; border-radius: 16px; border: 1px solid var(--gray-200); }
+    .form-group { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem; }
+    .form-group label { font-size: 0.9rem; font-weight: 600; color: var(--accent); }
+    .form-group input, .form-group textarea { padding: 0.8rem 1rem; border: 1px solid var(--gray-300); border-radius: 10px; font-family: inherit; font-size: 1rem; resize: vertical; }
+    .form-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; }
+    .upload-label { cursor: pointer; color: var(--primary); font-weight: 600; font-size: 0.9rem; }
+    .btn-submit { background: var(--primary); color: white; border: none; padding: 1rem 2rem; border-radius: 10px; font-weight: 700; cursor: pointer; transition: var(--transition); }
+    .btn-submit:hover { background: var(--primary-hover); }
+
+    .empty-state { text-align: center; padding: 5rem 2rem; border-radius: var(--radius-lg); border: 1px dashed var(--gray-300); }
+    .empty-icon { font-size: 3rem; display: block; margin-bottom: 1.5rem; }
+    .empty-state h3 { font-size: 1.5rem; margin-bottom: 1rem; color: var(--accent); }
+    .empty-state p { color: var(--text-light); }
+
+    .proposal-feedback { font-size: 0.9rem; font-weight: 600; margin-top: 0.75rem; }
+    .proposal-feedback.success { color: #166534; }
+    .proposal-feedback.error   { color: #991b1b; }
+    .proposal-feedback.hidden  { display: none; }
+
+    @media (max-width: 1024px) {
+      .propuestas-section { flex-direction: column; }
+      .tramites-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+
+  <script>
+    const form     = document.getElementById('proposal-form') as HTMLFormElement;
+    const feedback = document.getElementById('proposal-feedback');
+    const submitBtn = document.getElementById('prop-submit-btn') as HTMLButtonElement;
+    const fileInput = document.getElementById('pdf-upload') as HTMLInputElement;
+    const uploadLabel = document.querySelector('.upload-label') as HTMLLabelElement;
+
+    fileInput?.addEventListener('change', () => {
+      const name = fileInput.files?.[0]?.name;
+      if (name && uploadLabel) uploadLabel.childNodes[0].textContent = `📎 ${name} `;
+    });
+
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!submitBtn) return;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Enviando...';
+      if (feedback) feedback.className = 'proposal-feedback hidden';
+
+      try {
+        const data = new FormData(form);
+        const res = await fetch('/api/propuesta', { method: 'POST', body: data });
+
+        if (res.ok) {
+          if (feedback) {
+            feedback.textContent = '✅ Propuesta enviada. La revisaremos a la brevedad.';
+            feedback.className = 'proposal-feedback success';
+          }
+          form.reset();
+          if (uploadLabel) uploadLabel.childNodes[0].textContent = '📎 Adjuntar PDF ';
+        } else {
+          throw new Error('Error del servidor');
+        }
+      } catch {
+        if (feedback) {
+          feedback.textContent = '❌ Error al enviar. Por favor reintente.';
+          feedback.className = 'proposal-feedback error';
+        }
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Enviar Propuesta';
+      }
+    });
+  </script>
 </MainLayout>

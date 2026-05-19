@@ -1,5 +1,6 @@
 ---
 import ContactDrawer from '../components/ContactDrawer.astro';
+import { sanityClient } from 'sanity:client';
 
 interface Props {
 	title: string;
@@ -7,6 +8,26 @@ interface Props {
 }
 
 const { title, showBack = false } = Astro.props;
+
+const contacto = await sanityClient.fetch(`*[_type == "contactoConfig"][0]{
+  telefonos, correo, direccion, horarios, whatsapp, redesSociales
+}`).catch(() => null);
+
+const ctTelefono  = contacto?.telefonos?.[0] || '+54 383 445-1234';
+const ctEmail     = contacto?.correo    || 'criminalisticacolegio@gmail.com';
+const ctDireccion = contacto?.direccion || 'San Fernando del Valle de Catamarca';
+const ctHorarios  = contacto?.horarios  || 'Lunes a Viernes · 8:00 a 14:00 hs';
+const ctWhatsapp  = contacto?.whatsapp  || '';
+const ctRedes: { plataforma: string; url: string }[] = contacto?.redesSociales || [];
+
+function socialIcon(plataforma: string) {
+  const p = plataforma?.toLowerCase();
+  if (p === 'instagram') return `<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>`;
+  if (p === 'tiktok') return `<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.35 6.35 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.76a4.85 4.85 0 01-1.01-.07z"/></svg>`;
+  if (p === 'facebook') return `<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>`;
+  if (p === 'youtube') return `<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M23.495 6.205a3.007 3.007 0 0 0-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 0 0 .527 6.205a31.247 31.247 0 0 0-.522 5.805 31.247 31.247 0 0 0 .522 5.783 3.007 3.007 0 0 0 2.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 0 0 2.088-2.088 31.247 31.247 0 0 0 .5-5.783 31.247 31.247 0 0 0-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg>`;
+  return `<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>`;
+}
 ---
 
 <!doctype html>
@@ -23,101 +44,115 @@ const { title, showBack = false } = Astro.props;
 		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
 	</head>
 	<body>
-		<header class="main-header">
-			<div class="container header-content">
-				<div class="header-left">
-					{showBack && (
-						<button onclick="history.back()" class="back-btn" title="Volver a la página anterior">
-							<span class="icon">←</span> Volver
-						</button>
-					)}
-					<a href="/" class="logo">
-						<img src="/logo.png" alt="CPC CTM Logo" class="logo-img" />
-						<div class="logo-text">
-							<span class="brand">Colegio de Profesionales en Ciencias Criminalísticas</span>
-							<span class="sub-brand">Ciencia y Justicia</span>
-						</div>
-					</a>
+		<div class="no-print">
+			<header class="main-header no-print">
+				<div class="container header-content">
+					<div class="header-left">
+						{showBack && (
+							<button onclick="history.back()" class="back-btn" title="Volver a la página anterior">
+								<span class="icon">←</span> Volver
+							</button>
+						)}
+						<a href="/" class="logo">
+							<img src="/LOGO-CENTRAL.jpg" alt="CPC CTM Logo" class="logo-img" />
+							<div class="logo-text">
+								<span class="brand">Colegio de Profesionales en Ciencias Criminalísticas</span>
+								<span class="sub-brand">PROVINCIA DE CATAMARCA</span>
+							</div>
+						</a>
+					</div>
+					<nav class="main-nav">
+						<ul>
+							<li><a href="/">Inicio</a></li>
+							<li><a href="/institucional">Institucional</a></li>
+							<li><a href="/padron">Padrón</a></li>
+							<li><a href="/matriculados">Matriculados</a></li>
+							<li><button onclick="window.toggleContactDrawer()" class="contact-trigger">Contacto</button></li>
+						</ul>
+					</nav>
 				</div>
-				<nav class="main-nav">
-					<ul>
-						<li><a href="/">Inicio</a></li>
-						<li><a href="/institucional">Institucional</a></li>
-						<li><a href="/padron">Padrón</a></li>
-						<li><button onclick="window.toggleContactDrawer()" class="contact-trigger">Contacto</button></li>
-					</ul>
-				</nav>
-			</div>
-		</header>
+			</header>
+		</div>
 
 		<main>
 			<slot />
 		</main>
 
-		<footer class="main-footer">
-			<div class="container footer-grid">
-				<div class="footer-brand">
-					<div class="f-logo">
-						<span class="f-icon">⚖️</span>
-						<div class="f-text">
-							<h3>CPC CTM</h3>
-							<span>Catamarca</span>
+		<div class="no-print">
+			<footer class="main-footer no-print">
+				<div class="container footer-grid">
+					<div class="footer-brand">
+						<div class="f-logo">
+							<span class="f-icon">⚖️</span>
+							<div class="f-text">
+								<h3>CPC CTM</h3>
+								<span>Catamarca</span>
+							</div>
+						</div>
+						<p class="f-desc">Colegio de Profesionales en Ciencias Criminalísticas de la Provincia de Catamarca. Comprometidos con la verdad y la excelencia técnica.</p>
+					</div>
+					
+					<div class="footer-contact">
+						<h4>Contacto Institucional</h4>
+						<ul class="contact-list">
+							<li>
+								<span class="c-icon">📍</span>
+								<div class="c-info">
+									<strong>Sede Central</strong>
+									<span>{ctDireccion}</span>
+								</div>
+							</li>
+							<li>
+								<span class="c-icon">📞</span>
+								<div class="c-info">
+									<strong>Teléfono</strong>
+									<span>{ctTelefono}</span>
+								</div>
+							</li>
+							<li>
+								<span class="c-icon">✉️</span>
+								<div class="c-info">
+									<strong>Email</strong>
+									<span>{ctEmail}</span>
+								</div>
+							</li>
+						</ul>
+					</div>
+
+					<div class="footer-map-box">
+						<h4>Ubicación</h4>
+						<div class="map-wrapper glass">
+							<div class="map-marker">📍</div>
+							<p>Capital, Catamarca</p>
+							<div class="map-overlay">
+								<span>Ver Mapa de Google</span>
+							</div>
 						</div>
 					</div>
-					<p class="f-desc">Colegio de Profesionales en Ciencias Criminalísticas de la Provincia de Catamarca. Comprometidos con la verdad y la excelencia técnica.</p>
-				</div>
-				
-				<div class="footer-contact">
-					<h4>Contacto Institucional</h4>
-					<ul class="contact-list">
-						<li>
-							<span class="c-icon">📍</span>
-							<div class="c-info">
-								<strong>Sede Central</strong>
-								<span>San Fernando del Valle de Catamarca</span>
-							</div>
-						</li>
-						<li>
-							<span class="c-icon">📞</span>
-							<div class="c-info">
-								<strong>Teléfono</strong>
-								<span>+54 383 445-1234</span>
-							</div>
-						</li>
-						<li>
-							<span class="c-icon">✉️</span>
-							<div class="c-info">
-								<strong>Email</strong>
-								<span>secretaria@cpccatamarca.org.ar</span>
-							</div>
-						</li>
-					</ul>
-				</div>
 
-				<div class="footer-map-box">
-					<h4>Ubicación</h4>
-					<div class="map-wrapper glass">
-						<div class="map-marker">📍</div>
-						<p>Capital, Catamarca</p>
-						<div class="map-overlay">
-							<span>Ver Mapa de Google</span>
+					<div class="footer-bottom">
+						{ctRedes.length > 0 && (
+							<>
+								<p class="f-redes-label">SEGUINOS EN NUESTRAS REDES</p>
+								<div class="f-social">
+									{ctRedes.map(red => (
+										<a href={red.url} target="_blank" rel="noopener noreferrer" class="social-link" title={red.plataforma} set:html={socialIcon(red.plataforma)} />
+									))}
+								</div>
+							</>
+						)}
+						<div class="f-bottom-content">
+							<p>&copy; {new Date().getFullYear()} CPC CTM. Todos los derechos reservados.</p>
+							<div class="f-legal">
+								<a href="#">Privacidad</a>
+								<a href="#">Términos</a>
+							</div>
 						</div>
 					</div>
 				</div>
-
-				<div class="footer-bottom">
-					<div class="f-bottom-content">
-						<p>&copy; {new Date().getFullYear()} CPC CTM. Todos los derechos reservados.</p>
-						<div class="f-legal">
-							<a href="#">Privacidad</a>
-							<a href="#">Términos</a>
-						</div>
-					</div>
-				</div>
-			</div>
-		</footer>
-
-		<ContactDrawer />
+			</footer>
+			<ContactDrawer telefono={ctTelefono} email={ctEmail} direccion={ctDireccion} horarios={ctHorarios} whatsapp={ctWhatsapp} />
+		</div>
 
 		<style is:global>
 			:root {
@@ -422,6 +457,41 @@ const { title, showBack = false } = Astro.props;
 				margin-top: 4rem;
 				padding-top: 2rem;
 				border-top: 1px solid rgba(255,255,255,0.1);
+			}
+
+			.f-redes-label {
+				font-size: 0.7rem;
+				font-weight: 700;
+				letter-spacing: 0.12em;
+				color: rgba(255,255,255,0.6);
+				text-align: center;
+				margin-bottom: 0.6rem;
+			}
+
+			.f-social {
+				display: flex;
+				gap: 0.75rem;
+				margin-bottom: 1.5rem;
+				justify-content: center;
+			}
+
+			.social-link {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				width: 40px;
+				height: 40px;
+				border-radius: 50%;
+				background: rgba(255,255,255,0.1);
+				color: rgba(255,255,255,0.7);
+				text-decoration: none;
+				transition: var(--transition);
+			}
+
+			.social-link:hover {
+				background: var(--primary-hover);
+				color: white;
+				transform: translateY(-2px);
 			}
 
 			.f-bottom-content {

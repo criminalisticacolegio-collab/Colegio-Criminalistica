@@ -23,6 +23,18 @@ export default defineType({
             type: 'string',
         }),
         defineField({
+            name: 'direccion',
+            title: 'Dirección Física',
+            type: 'string',
+            description: 'Dirección completa de la sede central',
+        }),
+        defineField({
+            name: 'horarios',
+            title: 'Horario de Atención',
+            type: 'string',
+            description: 'Ej: Lunes a Viernes · 8:00 a 14:00 hs',
+        }),
+        defineField({
             name: 'redesSociales',
             title: 'Redes Sociales',
             type: 'array',

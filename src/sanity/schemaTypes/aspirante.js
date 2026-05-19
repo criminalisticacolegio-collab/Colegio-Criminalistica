@@ -68,6 +68,16 @@ export default defineType({
             type: 'file',
             title: 'Documento: Certificado de Antecedentes'
         }),
+        defineField({
+            name: 'archivoAntecedentes',
+            type: 'file',
+            title: 'Documento: Antecedentes Nacionales'
+        }),
+        defineField({
+            name: 'archivoComprobante',
+            type: 'file',
+            title: 'Documento: Comprobante de Pago de Matrícula'
+        }),
     ],
     preview: {
         select: {

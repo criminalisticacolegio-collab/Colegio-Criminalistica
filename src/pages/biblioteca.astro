@@ -1,229 +1,267 @@
 ---
 import MainLayout from '../layouts/MainLayout.astro';
+import { sanityClient } from 'sanity:client';
+
+const data = await sanityClient.fetch(`*[_type == "bibliotecaConfig"][0]{
+  descripcionGeneral,
+  recursos[]{
+    titulo, descripcion, extracto, categoria, icono, linkExterno, destacado,
+    "archivo": archivo.asset->url
+  }
+}`);
+
+const recursos = data?.recursos || [];
+
+const categorias = [
+  { value: 'Legislacion', label: 'Legislación' },
+  { value: 'Protocolos', label: 'Protocolos' },
+  { value: 'Formularios', label: 'Formularios' },
+  { value: 'Guias', label: 'Guías Técnicas' },
+  { value: 'Jurisprudencia', label: 'Jurisprudencia' },
+  { value: 'Bibliografia', label: 'Bibliografía' },
+];
+
+const destacados = recursos.filter((r: any) => r.destacado);
+const porCategoria = categorias
+  .map(cat => ({
+    ...cat,
+    items: recursos.filter((r: any) => r.categoria === cat.value),
+  }))
+  .filter(c => c.items.length > 0);
 ---
 
 <MainLayout title="Biblioteca Digital" showBack={true}>
-	<div class="container page-content">
-		<header class="section-header">
-			<span class="sub-title">Recursos Legales</span>
-			<h1>Biblioteca Digital y Consultas IA</h1>
-			<p>Acceda a toda la normativa vigente y resuelva sus dudas legales con nuestro asistente inteligente.</p>
-		</header>
+  <div class="container page-content">
+    <header class="section-header">
+      <span class="sub-title">Recursos Legales</span>
+      <h1>Biblioteca Digital</h1>
+      <p>{data?.descripcionGeneral || 'Accedé a toda la normativa vigente, protocolos y recursos profesionales del colegio.'}</p>
+    </header>
 
-		<div class="biblioteca-layout">
-			<!-- Biblioteca de Normas -->
-			<section class="tool-card library-tool glass">
-				<div class="tool-header">
-					<div class="icon-box">📚</div>
-					<h3>Biblioteca de Normas y Leyes</h3>
-					<p>Repositorio oficial de leyes, decretos y estatutos que rigen la profesión en Catamarca.</p>
-				</div>
-				<div class="doc-grid">
-					<a href="#" class="doc-card">
-						<div class="d-icon">⚖️</div>
-						<div class="d-info">
-							<strong>Ley N° 5832</strong>
-							<span>Ley de Colegiación Provincial</span>
-						</div>
-					</a>
-					<a href="#" class="doc-card">
-						<div class="d-icon">📜</div>
-						<div class="d-info">
-							<strong>Código de Ética</strong>
-							<span>Normativa de conducta profesional</span>
-						</div>
-					</a>
-					<a href="#" class="doc-card">
-						<div class="d-icon">📋</div>
-						<div class="d-info">
-							<strong>Estatuto CPC CTM</strong>
-							<span>Estructura orgánica institucional</span>
-						</div>
-					</a>
-					<a href="#" class="doc-card">
-						<div class="d-icon">📂</div>
-						<div class="d-info">
-							<strong>Anexo Aranceles</strong>
-							<span>Valores referenciales vigentes</span>
-						</div>
-					</a>
-				</div>
-			</section>
+    {destacados.length > 0 && (
+      <section class="destacados-section">
+        <h2 class="section-title-sm">Recursos Destacados</h2>
+        <div class="destacados-grid">
+          {destacados.map((r: any) => (
+            <a
+              href={r.linkExterno || r.archivo || '#'}
+              target="_blank" rel="noopener"
+              class="destacado-card glass"
+            >
+              <div class="d-icon-big">{r.icono || '📄'}</div>
+              <div class="d-body">
+                <strong>{r.titulo}</strong>
+                {r.descripcion && <span>{r.descripcion}</span>}
+              </div>
+              <span class="d-arrow">→</span>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
 
-			<!-- Chatbot IA -->
-			<section class="tool-card chatbot-tool glass">
-				<div class="tool-header">
-					<span class="tag-ai">Smart Chat</span>
-					<h3>Consultor Inteligente (LegalBot)</h3>
-					<p>Asistente virtual entrenado para responder consultas sobre el marco regulatorio.</p>
-				</div>
-				<div class="chat-container">
-					<div class="chat-mock">
-						<div class="chat-msg bot">¡Hola! Soy LegalBot. ¿En qué puedo ayudarte hoy con respecto a la normativa o trámites?</div>
-						<div class="chat-msg user">¿Cuáles son los requisitos de la Ley 5832 para nuevos peritos?</div>
-						<div class="chat-msg bot">Para matricularse bajo la Ley 5832, debe presentar título habilitante legalizado, certificado de antecedentes penales y completar el legajo digital...</div>
-					</div>
-					<div class="chat-input-area">
-						<input type="text" placeholder="Escribe tu consulta legal aquí..." />
-						<button class="btn-send">Enviar</button>
-					</div>
-				</div>
-			</section>
-		</div>
-	</div>
+    {recursos.length > 0 ? (
+      <div class="biblioteca-sections">
+        {porCategoria.map(({ label, items }) => (
+          <section class="cat-section">
+            <h2 class="cat-title">{label}</h2>
+            <div class="doc-grid">
+              {items.map((r: any) => (
+                <a
+                  href={r.linkExterno || r.archivo || '#'}
+                  target={r.linkExterno || r.archivo ? '_blank' : undefined}
+                  rel="noopener"
+                  class={`doc-card ${r.archivo ? 'doc-card--pdf' : ''} ${r.linkExterno ? 'doc-card--link' : ''} ${!r.linkExterno && !r.archivo ? 'no-link' : ''}`}
+                >
+                  {r.archivo ? (
+                    <div class="d-icon-pdf">
+                      <svg viewBox="0 0 24 24" width="28" height="28" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="#ef4444" opacity=".15" stroke="#ef4444" stroke-width="1.5"/><polyline points="14 2 14 8 20 8" stroke="#ef4444" stroke-width="1.5"/><text x="6" y="19" font-size="6" font-weight="bold" fill="#ef4444" font-family="helvetica">PDF</text></svg>
+                    </div>
+                  ) : r.linkExterno ? (
+                    <div class="d-icon-link">
+                      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                    </div>
+                  ) : (
+                    <div class="d-icon">{r.icono || '📄'}</div>
+                  )}
+                  <div class="d-info">
+                    <strong>{r.titulo}</strong>
+                    {r.descripcion && <span>{r.descripcion}</span>}
+                    {r.archivo && <em class="file-badge">Abrir PDF →</em>}
+                    {r.linkExterno && <em class="link-badge">Ver enlace →</em>}
+                  </div>
+                </a>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+    ) : (
+      <div class="empty-state glass">
+        <span class="empty-icon">📚</span>
+        <h3>Biblioteca en construcción</h3>
+        <p>Los recursos y documentos serán publicados desde el panel de administración.</p>
+      </div>
+    )}
 
-	<style>
-		.page-content { padding: 5rem 0; }
-		.section-header { text-align: center; margin-bottom: 5rem; }
-		.sub-title { color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.9rem; display: block; margin-bottom: 1rem; }
-		.section-header h1 { font-size: clamp(2.5rem, 5vw, 3.5rem); margin-bottom: 1.5rem; color: var(--accent); }
-		.section-header p { font-size: 1.25rem; color: var(--text-light); max-width: 800px; margin: 0 auto; }
+    <!-- Chatbot IA funcional -->
+    <section class="chatbot-section glass">
+      <div class="tool-header">
+        <span class="tag-ai">Asistente IA</span>
+        <h3>LegalBot — Consultor Normativo</h3>
+        <p>Asistente virtual especializado en normativa profesional, ética pericial y trámites del Colegio.</p>
+      </div>
+      <div class="chat-container">
+        <div id="chat-msgs" class="chat-msgs">
+          <div class="chat-msg bot">¡Hola! Soy LegalBot, el asistente del CPC CTM. Puedo ayudarte con consultas sobre normativa profesional, ética pericial, matrícula y recursos de la biblioteca. ¿En qué te puedo ayudar?</div>
+        </div>
+        <div class="chat-input-area">
+          <input type="text" id="chat-input" placeholder="Escribe tu consulta..." autocomplete="off" />
+          <button id="chat-send" class="btn-send">Enviar</button>
+        </div>
+      </div>
+    </section>
+  </div>
 
-		.biblioteca-layout {
-			display: grid;
-			grid-template-columns: 1fr;
-			gap: 3rem;
-		}
+  <style>
+    .page-content { padding: 5rem 0; display: flex; flex-direction: column; gap: 4rem; }
 
-		.tool-card {
-			padding: 3rem;
-			border-radius: var(--radius-lg);
-			border: 1px solid var(--gray-200);
-		}
+    .section-header { text-align: center; }
+    .sub-title { color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.9rem; display: block; margin-bottom: 1rem; }
+    .section-header h1 { font-size: clamp(2.5rem, 5vw, 3.5rem); margin-bottom: 1.5rem; color: var(--accent); }
+    .section-header p { font-size: 1.25rem; color: var(--text-light); max-width: 800px; margin: 0 auto; }
 
-		.tool-header {
-			margin-bottom: 2.5rem;
-			text-align: center;
-		}
+    .section-title-sm { font-size: 1.25rem; color: var(--accent); margin-bottom: 1.5rem; }
 
-		.icon-box {
-			background: var(--primary);
-			color: white;
-			width: 60px;
-			height: 60px;
-			border-radius: 12px;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			font-size: 1.75rem;
-			margin: 0 auto 1.5rem;
-		}
+    /* Destacados */
+    .destacados-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.25rem; }
+    .destacado-card {
+      display: flex; align-items: center; gap: 1.25rem;
+      padding: 1.5rem; border-radius: var(--radius-lg);
+      border: 1px solid var(--primary); text-decoration: none; color: var(--text-main);
+      transition: var(--transition);
+    }
+    .destacado-card:hover { background: var(--primary-soft); transform: translateY(-3px); box-shadow: var(--shadow-md); }
+    .d-icon-big { font-size: 2rem; flex-shrink: 0; }
+    .d-body { flex: 1; }
+    .d-body strong { display: block; font-size: 1rem; color: var(--accent); margin-bottom: 0.25rem; }
+    .d-body span { font-size: 0.85rem; color: var(--text-light); }
+    .d-arrow { font-size: 1.25rem; color: var(--primary); flex-shrink: 0; }
 
-		.tool-header h3 { font-size: 1.8rem; margin-bottom: 0.75rem; }
-		.tool-header p { color: var(--text-light); font-size: 1.1rem; }
+    /* Categories */
+    .cat-section { display: flex; flex-direction: column; gap: 1.25rem; }
+    .cat-title { font-size: 1.4rem; color: var(--accent); padding-bottom: 0.75rem; border-bottom: 2px solid var(--primary-soft); }
 
-		/* Doc Grid */
-		.doc-grid {
-			display: grid;
-			grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-			gap: 1.5rem;
-		}
+    .doc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.25rem; }
+    .doc-card {
+      display: flex; align-items: flex-start; gap: 1rem;
+      padding: 1.25rem 1.5rem; background: var(--white);
+      border: 1px solid var(--gray-200); border-radius: 14px;
+      text-decoration: none; color: var(--text-main); transition: var(--transition);
+    }
+    .doc-card:hover { border-color: var(--primary); transform: translateY(-3px); box-shadow: var(--shadow-sm); }
+    .doc-card.no-link { cursor: default; }
+    .doc-card.no-link:hover { transform: none; box-shadow: none; border-color: var(--gray-200); }
+    .d-icon { font-size: 1.75rem; flex-shrink: 0; }
+    .d-icon-pdf { flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; background: #fee2e2; border-radius: 10px; }
+    .d-icon-link { flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; background: #dbeafe; border-radius: 10px; color: #1e40af; }
+    .doc-card--pdf { border-left: 3px solid #ef4444; }
+    .doc-card--link { border-left: 3px solid #3b82f6; }
+    .d-info strong { display: block; font-size: 0.95rem; margin-bottom: 0.25rem; color: var(--accent); }
+    .d-info span { font-size: 0.82rem; color: var(--text-light); display: block; margin-bottom: 0.5rem; }
+    .file-badge, .link-badge { font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 4px; font-style: normal; }
+    .file-badge { background: #fee2e2; color: #991b1b; }
+    .link-badge { background: #dbeafe; color: #1e40af; }
 
-		.doc-card {
-			display: flex;
-			align-items: center;
-			gap: 1.25rem;
-			padding: 1.5rem;
-			background: var(--white);
-			border: 1px solid var(--gray-200);
-			border-radius: 16px;
-			text-decoration: none;
-			color: var(--text-main);
-			transition: var(--transition);
-		}
+    /* Empty */
+    .empty-state { text-align: center; padding: 5rem 2rem; border-radius: var(--radius-lg); border: 1px dashed var(--gray-300); }
+    .empty-icon { font-size: 3rem; display: block; margin-bottom: 1.5rem; }
+    .empty-state h3 { font-size: 1.5rem; margin-bottom: 1rem; color: var(--accent); }
+    .empty-state p { color: var(--text-light); }
 
-		.doc-card:hover {
-			border-color: var(--primary);
-			transform: translateY(-5px);
-			box-shadow: var(--shadow-md);
-		}
+    /* Chatbot */
+    .chatbot-section { padding: 3rem; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); }
+    .tool-header { text-align: center; margin-bottom: 2.5rem; }
+    .tag-ai { background: var(--primary-light); color: var(--primary); padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.8rem; font-weight: 800; text-transform: uppercase; margin-bottom: 1rem; display: inline-block; }
+    .tool-header h3 { font-size: 1.8rem; margin-bottom: 0.75rem; }
+    .tool-header p { color: var(--text-light); font-size: 1.1rem; }
 
-		.d-icon { font-size: 2rem; }
-		.d-info strong { display: block; font-size: 1.1rem; margin-bottom: 0.25rem; }
-		.d-info span { font-size: 0.9rem; color: var(--text-light); }
+    .chat-container { background: var(--gray-900); border-radius: 20px; overflow: hidden; max-width: 900px; margin: 0 auto; }
+    .chat-msgs { padding: 2rem; display: flex; flex-direction: column; gap: 1.25rem; min-height: 200px; max-height: 400px; overflow-y: auto; }
+    .chat-msg { padding: 1rem 1.5rem; border-radius: 15px; font-size: 0.95rem; line-height: 1.5; max-width: 80%; white-space: pre-wrap; }
+    .chat-msg.bot { background: rgba(255,255,255,0.1); color: white; align-self: flex-start; }
+    .chat-msg.user { background: var(--primary); color: white; align-self: flex-end; }
+    .chat-msg.thinking { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.5); align-self: flex-start; font-style: italic; }
+    .chat-input-area { padding: 1.5rem; background: rgba(0,0,0,0.2); display: flex; gap: 1rem; }
+    .chat-input-area input { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 1rem; border-radius: 10px; color: white; font-family: inherit; }
+    .chat-input-area input:focus { outline: none; border-color: var(--primary); }
+    .btn-send { background: var(--primary); color: white; border: none; padding: 0 1.5rem; border-radius: 10px; font-weight: 700; cursor: pointer; transition: var(--transition); }
+    .btn-send:hover:not(:disabled) { background: var(--primary-hover); }
+    .btn-send:disabled { opacity: 0.5; cursor: not-allowed; }
 
-		/* Chatbot Section */
-		.tag-ai {
-			background: var(--primary-light);
-			color: var(--primary);
-			padding: 0.4rem 1rem;
-			border-radius: 20px;
-			font-size: 0.8rem;
-			font-weight: 800;
-			text-transform: uppercase;
-			margin-bottom: 1rem;
-			display: inline-block;
-		}
+    @media (max-width: 768px) {
+      .chatbot-section { padding: 1.5rem; }
+    }
+  </style>
 
-		.chat-container {
-			background: var(--gray-900);
-			border-radius: 20px;
-			overflow: hidden;
-			max-width: 900px;
-			margin: 0 auto;
-		}
+  <script define:vars={{ recursosPayload: JSON.stringify(recursos) }}>
+    const msgsEl = document.getElementById('chat-msgs');
+    const inputEl = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('chat-send');
 
-		.chat-mock {
-			padding: 2rem;
-			display: flex;
-			flex-direction: column;
-			gap: 1.5rem;
-			height: 350px;
-			overflow-y: auto;
-		}
+    const historial = [];
+    const recursosData = JSON.parse(recursosPayload);
 
-		.chat-msg {
-			padding: 1rem 1.5rem;
-			border-radius: 15px;
-			font-size: 0.95rem;
-			line-height: 1.5;
-			max-width: 80%;
-		}
+    function appendMsg(texto, tipo) {
+      const div = document.createElement('div');
+      div.className = `chat-msg ${tipo}`;
+      div.textContent = texto;
+      msgsEl.appendChild(div);
+      msgsEl.scrollTop = msgsEl.scrollHeight;
+      return div;
+    }
 
-		.chat-msg.bot {
-			background: rgba(255,255,255,0.1);
-			color: white;
-			align-self: flex-start;
-			border-bottom-left-radius: 2px;
-		}
+    async function enviar() {
+      const msg = inputEl.value.trim();
+      if (!msg) return;
+      inputEl.value = '';
+      sendBtn.disabled = true;
 
-		.chat-msg.user {
-			background: var(--primary);
-			color: white;
-			align-self: flex-end;
-			border-bottom-right-radius: 2px;
-		}
+      appendMsg(msg, 'user');
+      historial.push({ role: 'user', content: msg });
 
-		.chat-input-area {
-			padding: 1.5rem;
-			background: rgba(0,0,0,0.2);
-			display: flex;
-			gap: 1rem;
-		}
+      const thinking = appendMsg('LegalBot está redactando...', 'thinking');
 
-		.chat-input-area input {
-			flex: 1;
-			background: rgba(255,255,255,0.05);
-			border: 1px solid rgba(255,255,255,0.1);
-			padding: 1rem;
-			border-radius: 10px;
-			color: white;
-			font-family: inherit;
-		}
+      try {
+        const res = await fetch('/api/biblioteca-chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mensaje: msg, historial: historial.slice(0, -1), recursos: recursosData }),
+        });
+        const data = await res.json();
+        thinking.remove();
+        if (data.error) {
+          const errDiv = appendMsg('Error al conectar con el asistente. ' + data.error, 'bot');
+          errDiv.style.cssText = 'background:rgba(239,68,68,0.18);border:1px solid rgba(239,68,68,0.4);';
+        } else {
+          const respuesta = data.respuesta || 'No se pudo obtener respuesta.';
+          appendMsg(respuesta, 'bot');
+          historial.push({ role: 'assistant', content: respuesta });
+        }
+      } catch {
+        thinking.textContent = 'Error al conectar con el asistente. Intentá de nuevo.';
+      } finally {
+        sendBtn.disabled = false;
+        inputEl.focus();
+      }
+    }
 
-		.btn-send {
-			background: var(--primary);
-			color: white;
-			border: none;
-			padding: 0 1.5rem;
-			border-radius: 10px;
-			font-weight: 700;
-			cursor: pointer;
-		}
-
-		@media (max-width: 768px) {
-			.tool-card { padding: 1.5rem; }
-			.doc-grid { grid-template-columns: 1fr; }
-		}
-	</style>
+    sendBtn.addEventListener('click', enviar);
+    inputEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        enviar();
+      }
+    });
+  </script>
 </MainLayout>

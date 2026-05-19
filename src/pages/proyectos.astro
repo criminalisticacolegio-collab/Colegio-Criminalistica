@@ -1,0 +1,264 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+import { sanityClient } from 'sanity:client';
+
+const aprobados = await sanityClient.fetch(`*[_type == "proyectos" && estado == "Aprobado"] | order(fechaEnvio desc) {
+  titulo, tipo, estado, respuestaAdmin, fechaEnvio
+}`).catch(() => []);
+
+function fmtFecha(s: string) {
+  if (!s) return '';
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+const tipoLabels: Record<string, string> = {
+  institucional: 'Proyecto institucional',
+  sugerencia: 'Sugerencia',
+  mejora: 'Propuesta de mejora',
+  otro: 'Otro',
+};
+---
+
+<MainLayout title="Proyectos y Propuestas" showBack={true}>
+  <div class="container page-content">
+    <header class="section-header">
+      <span class="sub-title">Participación Institucional</span>
+      <h1>Proyectos y Propuestas</h1>
+      <p>El Colegio escucha a sus matriculados. Presentá tu proyecto, sugerencia o propuesta de mejora institucional.</p>
+    </header>
+
+    <div class="two-col">
+      <!-- Formulario -->
+      <div class="form-col">
+        <div class="form-card glass">
+          <h2>Presentar Propuesta</h2>
+          <p class="form-intro">Completá el formulario y tu propuesta será revisada por las autoridades del Colegio. Recibirás un email de confirmación.</p>
+
+          <form id="proyecto-form" class="proyecto-form" enctype="multipart/form-data">
+            <div class="form-group">
+              <label>Título de la propuesta <span class="req">*</span></label>
+              <input type="text" name="titulo" required placeholder="Ej: Programa de capacitación en balística forense" />
+            </div>
+            <div class="form-group">
+              <label>Tipo de propuesta <span class="req">*</span></label>
+              <select name="tipo" required>
+                <option value="" disabled selected>Seleccioná un tipo</option>
+                <option value="institucional">Proyecto institucional</option>
+                <option value="sugerencia">Sugerencia</option>
+                <option value="mejora">Propuesta de mejora</option>
+                <option value="otro">Otro</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Descripción / Objetivos <span class="req">*</span></label>
+              <textarea name="descripcion" required rows="5" placeholder="Describí el alcance, objetivos e impacto esperado de tu propuesta..."></textarea>
+            </div>
+            <div class="form-row split">
+              <div class="form-group">
+                <label>Nombre completo <span class="req">*</span></label>
+                <input type="text" name="nombre" required placeholder="Tu nombre y apellido" />
+              </div>
+              <div class="form-group">
+                <label>Email de contacto <span class="req">*</span></label>
+                <input type="email" name="email" required placeholder="tu@email.com" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>N° Matrícula (si estás matriculado)</label>
+              <input type="text" name="matricula" placeholder="Ej: MP-001" />
+            </div>
+            <div class="form-group">
+              <label>Archivos adjuntos <span class="hint">(opcional — máx. 3 archivos, 10 MB c/u)</span></label>
+              <input type="file" name="adjuntos" multiple accept=".pdf,.doc,.docx,.ppt,.pptx" id="adjuntos-input" />
+              <p class="file-hint">Formatos: PDF, DOC, DOCX, PPT, PPTX</p>
+            </div>
+            <div id="proyecto-feedback" class="feedback hidden"></div>
+            <button type="submit" id="proyecto-btn" class="btn-submit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              Enviar Propuesta
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Info lateral -->
+      <div class="info-col">
+        <div class="process-card glass">
+          <div class="process-icon">🔄</div>
+          <h3>Proceso de revisión</h3>
+          <ol class="process-list">
+            <li><strong>Recibido</strong> — Tu propuesta ingresa al sistema</li>
+            <li><strong>En análisis</strong> — Las autoridades la evalúan</li>
+            <li><strong>Aprobado</strong> — Se publica en este sitio</li>
+            <li><strong>Rechazado</strong> — Se te notifica por email con el motivo</li>
+          </ol>
+        </div>
+
+        <div class="privacy-card glass">
+          <div class="process-icon">🔒</div>
+          <h3>Privacidad</h3>
+          <p>Los proyectos aprobados se publican sin datos personales. Solo se muestra el título, tipo y estado para transparencia institucional.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Proyectos aprobados -->
+    {aprobados.length > 0 && (
+      <section class="aprobados-section">
+        <h2 class="section-subtitle">
+          <span class="badge-aprobado">✓</span>
+          Proyectos Aprobados
+        </h2>
+        <p class="aprobados-intro">El Colegio ha evaluado y aprobado las siguientes iniciativas presentadas por la comunidad profesional.</p>
+        <div class="aprobados-grid">
+          {aprobados.map((p: any) => (
+            <div class="aprobado-card glass">
+              <div class="aprobado-header">
+                <span class="tipo-pill">{tipoLabels[p.tipo] || p.tipo}</span>
+                <span class="estado-pill">✓ Aprobado</span>
+              </div>
+              <h3>{p.titulo}</h3>
+              {p.fechaEnvio && <p class="aprobado-fecha">📅 {fmtFecha(p.fechaEnvio)}</p>}
+              {p.respuestaAdmin && (
+                <div class="respuesta-admin">
+                  <span class="resp-label">Respuesta del Colegio:</span>
+                  <p>{p.respuestaAdmin}</p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
+  </div>
+</MainLayout>
+
+<script>
+  const form = document.getElementById('proyecto-form') as HTMLFormElement;
+  const btn  = document.getElementById('proyecto-btn') as HTMLButtonElement;
+  const fb   = document.getElementById('proyecto-feedback')!;
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+    fb.className = 'feedback hidden';
+
+    const fd = new FormData(form);
+
+    // Validate files
+    const adjuntosInput = document.getElementById('adjuntos-input') as HTMLInputElement;
+    const files = adjuntosInput?.files ? Array.from(adjuntosInput.files) : [];
+    if (files.length > 3) {
+      fb.textContent = '❌ Máximo 3 archivos adjuntos.';
+      fb.className = 'feedback error';
+      btn.disabled = false;
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Enviar Propuesta';
+      return;
+    }
+    if (files.some(f => f.size > 10 * 1024 * 1024)) {
+      fb.textContent = '❌ Cada archivo debe pesar menos de 10 MB.';
+      fb.className = 'feedback error';
+      btn.disabled = false;
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Enviar Propuesta';
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/propuesta-proyecto', {
+        method: 'POST',
+        body: fd,
+      });
+      if (res.ok) {
+        fb.textContent = '✅ Propuesta enviada. Revisaremos tu iniciativa y te responderemos por email.';
+        fb.className = 'feedback success';
+        form.reset();
+      } else {
+        throw new Error();
+      }
+    } catch {
+      fb.textContent = '❌ Error al enviar. Por favor reintente.';
+      fb.className = 'feedback error';
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Enviar Propuesta';
+    }
+  });
+</script>
+
+<style>
+  .page-content { padding: 5rem 0; display: flex; flex-direction: column; gap: 4rem; }
+  .section-header { text-align: center; }
+  .sub-title { color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.9rem; display: block; margin-bottom: 1rem; }
+  .section-header h1 { font-size: clamp(2rem, 5vw, 2.8rem); margin-bottom: 1rem; color: var(--accent); }
+  .section-header p { font-size: 1.05rem; color: var(--text-light); max-width: 650px; margin: 0 auto; }
+
+  .two-col { display: grid; grid-template-columns: 1.6fr 1fr; gap: 2.5rem; align-items: start; }
+
+  .form-card { padding: 2.5rem; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); background: var(--white); }
+  .form-card h2 { font-size: 1.4rem; color: var(--accent); margin-bottom: 0.5rem; }
+  .form-intro { color: var(--text-light); font-size: 0.9rem; line-height: 1.6; margin-bottom: 2rem; }
+
+  .proyecto-form { display: flex; flex-direction: column; gap: 1.25rem; }
+  .form-row.split { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+  .form-group label { font-size: 0.85rem; font-weight: 600; color: var(--accent); }
+  .req { color: var(--primary); }
+  .hint { font-weight: 400; color: var(--text-light); font-size: 0.78rem; }
+  .file-hint { font-size: 0.75rem; color: var(--text-light); margin: 0; }
+  .form-group input, .form-group select, .form-group textarea {
+    padding: 0.75rem 1rem; border: 1px solid var(--gray-300);
+    border-radius: var(--radius-md); font-family: inherit; font-size: 0.95rem;
+    transition: border-color 0.2s; resize: vertical;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft);
+  }
+
+  .feedback { padding: 0.85rem; border-radius: var(--radius-md); font-size: 0.9rem; font-weight: 600; }
+  .feedback.success { background: #dcfce7; color: #166534; }
+  .feedback.error { background: #fee2e2; color: #991b1b; }
+  .feedback.hidden { display: none; }
+
+  .btn-submit {
+    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    padding: 0.9rem; background: var(--primary); color: white;
+    border: none; border-radius: var(--radius-md); font-weight: 700; font-size: 1rem;
+    cursor: pointer; transition: var(--transition); font-family: inherit;
+  }
+  .btn-submit:hover:not(:disabled) { background: var(--primary-hover); transform: translateY(-2px); }
+  .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .info-col { display: flex; flex-direction: column; gap: 1.5rem; }
+  .process-card, .privacy-card { padding: 1.75rem; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); background: var(--white); }
+  .process-icon { font-size: 2rem; margin-bottom: 1rem; }
+  .process-card h3, .privacy-card h3 { font-size: 1.1rem; color: var(--accent); margin-bottom: 1rem; }
+  .process-list { list-style: none; counter-reset: steps; display: flex; flex-direction: column; gap: 0.75rem; }
+  .process-list li { counter-increment: steps; padding-left: 2rem; position: relative; font-size: 0.9rem; color: var(--text-light); line-height: 1.5; }
+  .process-list li::before { content: counter(steps); position: absolute; left: 0; width: 22px; height: 22px; background: var(--primary); color: white; border-radius: 50%; font-size: 0.75rem; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+  .process-list strong { color: var(--accent); }
+  .privacy-card p { font-size: 0.88rem; color: var(--text-light); line-height: 1.6; }
+
+  /* Aprobados */
+  .aprobados-section { display: flex; flex-direction: column; gap: 1.5rem; }
+  .section-subtitle { display: flex; align-items: center; gap: 0.75rem; font-size: 1.4rem; color: var(--accent); }
+  .badge-aprobado { width: 30px; height: 30px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: 800; }
+  .aprobados-intro { color: var(--text-light); font-size: 0.95rem; }
+  .aprobados-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; }
+  .aprobado-card { padding: 1.75rem; border-radius: var(--radius-lg); border: 1px solid #bbf7d0; background: #f0fdf4; display: flex; flex-direction: column; gap: 0.75rem; }
+  .aprobado-header { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+  .tipo-pill { background: var(--gray-100); color: var(--text-light); font-size: 0.72rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 20px; text-transform: uppercase; }
+  .estado-pill { background: #dcfce7; color: #166534; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.6rem; border-radius: 20px; margin-left: auto; }
+  .aprobado-card h3 { font-size: 1.05rem; color: var(--accent); margin: 0; }
+  .aprobado-fecha { font-size: 0.8rem; color: var(--text-light); }
+  .respuesta-admin { background: white; border: 1px solid #bbf7d0; border-radius: 8px; padding: 0.75rem 1rem; }
+  .resp-label { font-size: 0.75rem; font-weight: 800; color: var(--primary); text-transform: uppercase; display: block; margin-bottom: 0.25rem; }
+  .respuesta-admin p { font-size: 0.88rem; color: var(--text-main); line-height: 1.5; margin: 0; }
+
+  @media (max-width: 900px) {
+    .two-col { grid-template-columns: 1fr; }
+    .form-row.split { grid-template-columns: 1fr; }
+    .aprobados-grid { grid-template-columns: 1fr; }
+  }
+</style>

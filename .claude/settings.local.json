@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx astro *)",
+      "Bash(ping -n 4 127.0.0.1)",
+      "Bash(npm run *)",
+      "Bash(node --env-file=.env scripts/debug-config.mjs)",
+      "Bash(node --env-file=.env -e ' *)",
+      "Bash(xargs basename -a)",
+      "Bash(dir c:\\\\nueva-web\\\\src\\\\pages\\\\*.astro /b)",
+      "Bash(node -e ' *)",
+      "Bash(npm install *)",
+      "Bash(Start-Process -FilePath \"npm\" -ArgumentList \"run\", \"dev\" -WorkingDirectory \"c:\\\\nueva-web\" -NoNewWindow -PassThru)",
+      "Bash(Start-Sleep -Seconds 12)",
+      "Bash(Write-Host \"Server started\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:4321/)",
+      "PowerShell(Set-Location \"c:\\\\nueva-web\"; $proc = Start-Process -FilePath \"npm\" -ArgumentList \"run\", \"dev\" -WorkingDirectory \"c:\\\\nueva-web\" -NoNewWindow -PassThru; Start-Sleep -Seconds 15; Write-Output \"PID: $\\($proc.Id\\)\")"
+    ]
+  }
+}

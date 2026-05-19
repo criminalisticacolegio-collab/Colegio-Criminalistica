@@ -1,0 +1,293 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+import { sanityClient } from 'sanity:client';
+
+const jurisdicciones = await sanityClient.fetch(`*[_type == "jurisdiccion" && activa == true] | order(numero asc)`);
+const especialidades = await sanityClient.fetch(`*[_type == "especialidad"] | order(titulo asc)`);
+---
+
+<MainLayout title="Nuevos Profesionales" showBack={true}>
+  <div class="container page-content">
+    <header class="section-header">
+      <span class="sub-title">Matriculación Profesional</span>
+      <h1>Nuevos Profesionales</h1>
+      <p>Completá tu solicitud de registro digital para iniciar el proceso de colegiación oficial en el CPC CTM.</p>
+    </header>
+
+    <div class="form-wrapper glass">
+      <div class="form-intro">
+        <div class="intro-icon">🎓</div>
+        <div>
+          <h2>Legajo Virtual para Aspirantes</h2>
+          <p>Completá el formulario con tus datos y adjuntá la documentación requerida. El Colegio revisará tu solicitud y se comunicará a la brevedad para coordinar la validación presencial.</p>
+        </div>
+      </div>
+
+      <form class="styled-form" id="enrollment-form" enctype="multipart/form-data">
+        <div class="form-section">
+          <h3 class="form-section-title">Datos Personales</h3>
+          <div class="form-row split">
+            <div class="form-group">
+              <label>Nombre</label>
+              <input type="text" required placeholder="Ej: Juan Carlos" name="nombre" />
+            </div>
+            <div class="form-group">
+              <label>Apellido</label>
+              <input type="text" required placeholder="Ej: Pérez" name="apellido" />
+            </div>
+          </div>
+          <div class="form-row split">
+            <div class="form-group">
+              <label>DNI</label>
+              <input type="text" required placeholder="XXXXXXXX" name="dni" />
+            </div>
+            <div class="form-group">
+              <label>CUIL/CUIT</label>
+              <input type="text" required placeholder="20-XXXXXXXX-X" name="cuil" />
+            </div>
+          </div>
+          <div class="form-row split">
+            <div class="form-group">
+              <label>Teléfono de Contacto</label>
+              <input type="tel" required placeholder="+54 383 XXXXXXX" name="phone" />
+            </div>
+            <div class="form-group">
+              <label>Correo Electrónico</label>
+              <input type="email" required placeholder="ejemplo@correo.com" name="email" />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h3 class="form-section-title">Datos Profesionales</h3>
+          <div class="form-row split">
+            <div class="form-group">
+              <label>Título Profesional Principal</label>
+              <select name="degree" required>
+                <option value="" disabled selected>Seleccione su especialidad</option>
+                {especialidades.map((e: any) => (
+                  <option value={e.titulo}>{e.titulo}</option>
+                ))}
+                <option value="Otros">Otros</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Jurisdicción de Ejercicio</label>
+              <select name="jurisdiction" required>
+                <option value="" disabled selected>Seleccione Jurisdicción</option>
+                {jurisdicciones.map((j: any) => (
+                  <option value={j.titulo}>{j.titulo}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h3 class="form-section-title">Documentación Requerida</h3>
+          <p class="doc-note">Adjuntá los documentos en formato PDF o imagen (JPG/PNG). Tamaño máximo por archivo: 5 MB.</p>
+          <div class="file-grid">
+            <div class="file-input-wrapper">
+              <label class="file-label">
+                <span class="file-icon">📄</span>
+                <span>Título Profesional</span>
+              </label>
+              <input type="file" name="titulo_file" accept=".pdf,image/*" required />
+            </div>
+            <div class="file-input-wrapper">
+              <label class="file-label">
+                <span class="file-icon">🪪</span>
+                <span>DNI (Ambos Lados)</span>
+              </label>
+              <input type="file" name="dni_file" accept=".pdf,image/*" required />
+            </div>
+            <div class="file-input-wrapper">
+              <label class="file-label">
+                <span class="file-icon">📋</span>
+                <span>Certificado de Antecedentes Nacionales</span>
+              </label>
+              <input type="file" name="antecedentes_file" accept=".pdf,image/*" required />
+            </div>
+            <div class="file-input-wrapper">
+              <label class="file-label">
+                <span class="file-icon">💳</span>
+                <span>Comprobante de Pago de Matrícula</span>
+              </label>
+              <p class="file-note">Realizá el pago antes de enviar el formulario. <a href="https://link.mercadopago.com.ar/manoscolaborativas" target="_blank" rel="noopener" class="pay-link">Link de pago →</a></p>
+              <input type="file" name="comprobante_file" accept=".pdf,image/*" required />
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary" id="submit-btn">
+          Enviar Solicitud de Matriculación
+        </button>
+      </form>
+
+      <div id="success-message" class="success-card hidden">
+        <div class="success-icon">✅</div>
+        <h3>Solicitud Enviada Correctamente</h3>
+        <p>Tu solicitud fue recibida. El Colegio revisará tu documentación y te contactará por email para coordinar los próximos pasos.</p>
+        <button onclick="location.reload()" class="btn-outline">Enviar otra solicitud</button>
+      </div>
+    </div>
+
+    <div class="info-cards">
+      <div class="info-card glass">
+        <div class="ic-icon">📋</div>
+        <h4>¿Qué sigue después?</h4>
+        <ol>
+          <li>Revisión de documentación por Secretaría</li>
+          <li>Validación presencial de documentos originales</li>
+          <li>Asignación de número de matrícula</li>
+          <li>Alta en el Padrón Oficial del Colegio</li>
+        </ol>
+      </div>
+      <div class="info-card glass">
+        <div class="ic-icon">📞</div>
+        <h4>¿Tenés dudas?</h4>
+        <p>Contactá a la Secretaría del Colegio para consultar sobre el proceso de matriculación o los requisitos específicos de tu especialidad.</p>
+        <button onclick="window.toggleContactDrawer()" class="btn-contact">Contactar Secretaría</button>
+      </div>
+    </div>
+  </div>
+</MainLayout>
+
+<script>
+  const enrollmentForm = document.querySelector('#enrollment-form') as HTMLFormElement;
+  const successMsg = document.querySelector('#success-message') as HTMLElement;
+  const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+
+  enrollmentForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Enviando...';
+    }
+    const formData = new FormData(enrollmentForm);
+    try {
+      const response = await fetch('/api/aspirantes', {
+        method: 'POST',
+        body: formData,
+      });
+      if (response.ok) {
+        enrollmentForm.style.display = 'none';
+        if (successMsg) successMsg.classList.remove('hidden');
+      } else {
+        alert('Error al procesar la solicitud. Por favor reintente.');
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Enviar Solicitud de Matriculación';
+        }
+      }
+    } catch {
+      alert('Error de conexión. Por favor reintente.');
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Enviar Solicitud de Matriculación';
+      }
+    }
+  });
+</script>
+
+<style>
+  .page-content { padding: 5rem 0; display: flex; flex-direction: column; gap: 3rem; }
+
+  .section-header { text-align: center; }
+  .sub-title { color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.9rem; display: block; margin-bottom: 1rem; }
+  .section-header h1 { font-size: clamp(2.2rem, 5vw, 3rem); margin-bottom: 1rem; color: var(--accent); }
+  .section-header p { font-size: 1.1rem; color: var(--text-light); max-width: 700px; margin: 0 auto; }
+
+  .form-wrapper {
+    padding: 3rem; border-radius: var(--radius-lg);
+    border: 1px solid var(--gray-200); background: var(--white);
+  }
+
+  .form-intro {
+    display: flex; gap: 1.5rem; align-items: flex-start;
+    margin-bottom: 2.5rem; padding-bottom: 2.5rem;
+    border-bottom: 2px solid var(--gray-100);
+  }
+  .intro-icon { font-size: 2.5rem; flex-shrink: 0; }
+  .form-intro h2 { font-size: 1.5rem; color: var(--accent); margin-bottom: 0.5rem; }
+  .form-intro p { color: var(--text-light); line-height: 1.6; font-size: 0.95rem; }
+
+  .styled-form { display: flex; flex-direction: column; gap: 2rem; }
+
+  .form-section { display: flex; flex-direction: column; gap: 1.25rem; }
+  .form-section-title {
+    font-size: 0.85rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--primary); padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--primary-soft);
+  }
+
+  .form-row.split { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+  .form-group label { font-size: 0.85rem; font-weight: 600; color: var(--accent); }
+  .form-group input, .form-group select {
+    padding: 0.75rem 1rem; border: 1px solid var(--gray-300);
+    border-radius: var(--radius-md); font-family: inherit; font-size: 0.95rem;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus, .form-group select:focus {
+    outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft);
+  }
+
+  .doc-note { font-size: 0.85rem; color: var(--text-light); }
+  .file-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  .file-input-wrapper { display: flex; flex-direction: column; gap: 0.5rem; }
+  .file-label { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: 600; color: var(--accent); }
+  .file-icon { font-size: 1.2rem; }
+  .file-input-wrapper input[type="file"] { font-size: 0.85rem; }
+  .file-note { font-size: 0.78rem; color: var(--text-light); margin: 0; line-height: 1.4; }
+  .pay-link { color: var(--primary); font-weight: 700; text-decoration: none; }
+  .pay-link:hover { text-decoration: underline; }
+
+  .btn-primary {
+    background: var(--primary); color: white; border: none;
+    padding: 1rem 2rem; border-radius: var(--radius-md);
+    font-weight: 700; font-size: 1rem; cursor: pointer;
+    transition: var(--transition); width: fit-content; margin-top: 0.5rem;
+  }
+  .btn-primary:hover:not(:disabled) { background: var(--primary-hover); transform: translateY(-2px); }
+  .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .success-card {
+    text-align: center; padding: 3rem;
+    background: #f0fdf4; border: 2px solid #bbf7d0; border-radius: var(--radius-lg);
+  }
+  .success-icon { font-size: 3rem; margin-bottom: 1rem; }
+  .success-card h3 { font-size: 1.5rem; color: #166534; margin-bottom: 0.75rem; }
+  .success-card p { color: #166534; line-height: 1.6; margin-bottom: 1.5rem; }
+
+  .btn-outline {
+    padding: 0.75rem 1.5rem; border: 2px solid var(--primary); background: transparent;
+    color: var(--primary); border-radius: var(--radius-md); font-weight: 700; cursor: pointer;
+    transition: var(--transition);
+  }
+  .btn-outline:hover { background: var(--primary); color: white; }
+
+  .info-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+  .info-card {
+    padding: 2rem; border-radius: var(--radius-lg);
+    border: 1px solid var(--gray-200);
+  }
+  .ic-icon { font-size: 2rem; margin-bottom: 1rem; }
+  .info-card h4 { font-size: 1.1rem; color: var(--accent); margin-bottom: 1rem; }
+  .info-card p { color: var(--text-light); line-height: 1.6; font-size: 0.95rem; margin-bottom: 1rem; }
+  .info-card ol { color: var(--text-light); font-size: 0.9rem; padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; line-height: 1.5; }
+  .btn-contact {
+    background: var(--primary); color: white; border: none;
+    padding: 0.75rem 1.5rem; border-radius: var(--radius-md);
+    font-weight: 700; cursor: pointer; transition: var(--transition); font-family: inherit;
+  }
+  .btn-contact:hover { background: var(--primary-hover); }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 768px) {
+    .form-row.split, .file-grid, .info-cards { grid-template-columns: 1fr; }
+    .form-wrapper { padding: 2rem 1.5rem; }
+    .form-intro { flex-direction: column; }
+  }
+</style>

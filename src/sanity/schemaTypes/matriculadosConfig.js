@@ -4,7 +4,6 @@ export default defineType({
     name: 'matriculadosConfig',
     title: 'Configuración de Matriculados',
     type: 'document',
-    __experimental_actions: ['update', 'publish'],
     fields: [
         defineField({
             name: 'titulo',

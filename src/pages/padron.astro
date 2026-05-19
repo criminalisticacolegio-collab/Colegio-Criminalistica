@@ -1,326 +1,433 @@
 ---
 import MainLayout from '../layouts/MainLayout.astro';
+import { sanityClient } from 'sanity:client';
 
-const results = [
-	{ id: 'MP-1024', name: 'Lic. Juan Carlos Pérez', specialty: 'Balística Forense', jurisdiction: 'Capital', status: 'Activo' },
-	{ id: 'MP-1150', name: 'Lic. María Elena García', specialty: 'Documentoscopia', jurisdiction: 'Valle Viejo', status: 'Activo' },
-	{ id: 'MP-0982', name: 'Lic. Carlos Roberto Gómez', specialty: 'Papiloscopía', jurisdiction: 'Fray M. Esquiú', status: 'Activo' },
-	{ id: 'MP-1210', name: 'Lic. Ana Silvia Martínez', specialty: 'Criminalística Digital', jurisdiction: 'Capital', status: 'Activo' },
-    { id: 'MP-0850', name: 'Lic. Sergio Daniel Torres', specialty: 'Accidentología Vial', jurisdiction: 'Andalgalá', status: 'Activo' },
-];
+// Vista pública: solo ACTIVOS, sin datos sensibles (sin email, sin estado)
+const matriculados = await sanityClient.fetch(`*[_type == "matriculado" && estado == "Activo"] | order(numeroMatricula asc){
+  numeroMatricula,
+  nombreCompleto,
+  "especialidad": especialidad->titulo,
+  "jurisdiccion": jurisdiccion->titulo
+}`).catch(() => []);
+
+const jurisdicciones = await sanityClient.fetch(`*[_type == "jurisdiccion" && activa == true] | order(numero asc)`).catch(() => []);
+const especialidades = await sanityClient.fetch(`*[_type == "especialidad"] | order(titulo asc)`).catch(() => []);
 ---
 
-<MainLayout title="Padrón" showBack={true}>
-		<div class="hero-image-container">
-			<img src="/header-padron.png" alt="Padrón de Matriculados CPC CTM" class="hero-img glass" />
-		</div>
+<MainLayout title="Padrón Oficial" showBack={true}>
+  <!-- Datos embebidos para PDF client-side -->
+  <script id="padron-data" type="application/json" set:html={JSON.stringify(matriculados)}></script>
 
-		<section class="districts-map-section">
-			<div class="map-container glass">
-				<div class="map-header">
-					<h2>Circunscripciones Judiciales</h2>
-					<p>Catamarca se divide en 6 jurisdicciones. Encuentre peritos habilitados por zona.</p>
-				</div>
-				<div class="map-visual-container">
-					<div class="svg-map">
-						<svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid meet">
-							<!-- Simplified schematic paths for Catamarca jurisdictions -->
-							<path class="map-region" id="reg-1" d="M180,180 L220,180 L240,220 L200,260 L160,220 Z" data-name="Capital" />
-							<path class="map-region" id="reg-2" d="M220,180 L300,160 L320,240 L240,220 Z" data-name="Recreo" />
-							<path class="map-region" id="reg-3" d="M100,100 L180,80 L200,180 L120,200 Z" data-name="Belén" />
-							<path class="map-region" id="reg-4" d="M80,40 L160,20 L180,80 L60,80 Z" data-name="Santa María" />
-							<path class="map-region" id="reg-5" d="M40,100 L120,100 L140,220 L60,240 Z" data-name="Tinogasta" />
-							<path class="map-region" id="reg-6" d="M140,220 L200,260 L180,340 L100,320 Z" data-name="Andalgalá" />
-							
-							<!-- Labels -->
-							<text x="190" y="225" class="map-label">1</text>
-							<text x="265" y="205" class="map-label">2</text>
-							<text x="145" y="150" class="map-label">3</text>
-							<text x="115" y="60" class="map-label">4</text>
-							<text x="90" y="170" class="map-label">5</text>
-							<text x="145" y="295" class="map-label">6</text>
-						</svg>
-					</div>
-					<div class="map-legend">
-						<div class="legend-item" onmouseover="document.getElementById('reg-1').classList.add('active')" onmouseout="document.getElementById('reg-1').classList.remove('active')">
-							<span class="l-num">1</span> Capital
-						</div>
-						<div class="legend-item" onmouseover="document.getElementById('reg-2').classList.add('active')" onmouseout="document.getElementById('reg-2').classList.remove('active')">
-							<span class="l-num">2</span> Recreo
-						</div>
-						<div class="legend-item" onmouseover="document.getElementById('reg-3').classList.add('active')" onmouseout="document.getElementById('reg-3').classList.remove('active')">
-							<span class="l-num">3</span> Belén
-						</div>
-						<div class="legend-item" onmouseover="document.getElementById('reg-4').classList.add('active')" onmouseout="document.getElementById('reg-4').classList.remove('active')">
-							<span class="l-num">4</span> Santa María
-						</div>
-						<div class="legend-item" onmouseover="document.getElementById('reg-5').classList.add('active')" onmouseout="document.getElementById('reg-5').classList.remove('active')">
-							<span class="l-num">5</span> Tinogasta
-						</div>
-						<div class="legend-item" onmouseover="document.getElementById('reg-6').classList.add('active')" onmouseout="document.getElementById('reg-6').classList.remove('active')">
-							<span class="l-num">6</span> Andalgalá
-						</div>
-					</div>
-				</div>
-			</div>
-		</section>
+  <div class="page-content container">
 
-		<header class="section-header">
-			<span class="sub-title">Transparencia Pública</span>
-			<h1>Padrón de Matriculados</h1>
-			<p>Sistema oficial de consulta para la validación de profesionales habilitados en toda la provincia.</p>
-		</header>
+    <section class="districts-map-section no-print">
+      <div class="map-container glass">
+        <div class="map-header">
+          <h2>Circunscripciones Judiciales</h2>
+          <p>Catamarca se divide en 6 jurisdicciones. Encuentre peritos habilitados por zona.</p>
+        </div>
+        <div class="map-visual-container">
+          <div class="svg-map">
+            <svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid meet">
+              <path class="map-region" id="reg-1" d="M180,180 L220,180 L240,220 L200,260 L160,220 Z" data-name="Capital" />
+              <path class="map-region" id="reg-2" d="M220,180 L300,160 L320,240 L240,220 Z" data-name="Recreo" />
+              <path class="map-region" id="reg-3" d="M100,100 L180,80 L200,180 L120,200 Z" data-name="Belén" />
+              <path class="map-region" id="reg-4" d="M80,40 L160,20 L180,80 L60,80 Z" data-name="Santa María" />
+              <path class="map-region" id="reg-5" d="M40,100 L120,100 L140,220 L60,240 Z" data-name="Tinogasta" />
+              <path class="map-region" id="reg-6" d="M140,220 L200,260 L180,340 L100,320 Z" data-name="Andalgalá" />
+              <text x="190" y="225" class="map-label">1</text>
+              <text x="265" y="205" class="map-label">2</text>
+              <text x="145" y="150" class="map-label">3</text>
+              <text x="115" y="60" class="map-label">4</text>
+              <text x="90" y="170" class="map-label">5</text>
+              <text x="145" y="295" class="map-label">6</text>
+            </svg>
+          </div>
+          <div class="map-legend">
+            <div class="legend-item" onmouseover="document.getElementById('reg-1').classList.add('active')" onmouseout="document.getElementById('reg-1').classList.remove('active')">
+              <span class="l-num">1</span> Capital
+            </div>
+            <div class="legend-item" onmouseover="document.getElementById('reg-2').classList.add('active')" onmouseout="document.getElementById('reg-2').classList.remove('active')">
+              <span class="l-num">2</span> Recreo
+            </div>
+            <div class="legend-item" onmouseover="document.getElementById('reg-3').classList.add('active')" onmouseout="document.getElementById('reg-3').classList.remove('active')">
+              <span class="l-num">3</span> Belén
+            </div>
+            <div class="legend-item" onmouseover="document.getElementById('reg-4').classList.add('active')" onmouseout="document.getElementById('reg-4').classList.remove('active')">
+              <span class="l-num">4</span> Santa María
+            </div>
+            <div class="legend-item" onmouseover="document.getElementById('reg-5').classList.add('active')" onmouseout="document.getElementById('reg-5').classList.remove('active')">
+              <span class="l-num">5</span> Tinogasta
+            </div>
+            <div class="legend-item" onmouseover="document.getElementById('reg-6').classList.add('active')" onmouseout="document.getElementById('reg-6').classList.remove('active')">
+              <span class="l-num">6</span> Andalgalá
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-		<div class="search-panel glass">
-			<div class="search-main">
-				<div class="input-group">
-					<span class="search-icon">🔍</span>
-					<input type="text" placeholder="Buscar por Nombre, DNI o Número de Matrícula..." />
-				</div>
-				<button class="btn-primary">Buscar Profesional</button>
-			</div>
-			
-			<div class="search-filters">
-				<div class="filter-group">
-					<label>Jurisdicción</label>
-					<select>
-						<option value="">Todas las jurisdicciones</option>
-						<option>Capital</option>
-						<option>Valle Viejo</option>
-						<option>Fray Mamerto Esquiú</option>
-						<option>Interior</option>
-					</select>
-				</div>
-				<div class="filter-group">
-					<label>Especialidad</label>
-					<select>
-						<option value="">Todas las especialidades</option>
-						<option>Balística</option>
-						<option>Documentoscopia</option>
-						<option>Papiloscopía</option>
-						<option>Digital</option>
-					</select>
-				</div>
-				<div class="filter-group">
-					<label>Estado</label>
-					<select>
-						<option>Solo Activos</option>
-						<option>Todos</option>
-					</select>
-				</div>
-				<button class="btn-download">
-					<span class="d-icon">📥</span>
-					Descargar PDF Oficial
-				</button>
-			</div>
-		</div>
+    <header class="section-header no-print">
+      <span class="sub-title">Transparencia Pública</span>
+      <h1>Padrón Oficial de Matriculados</h1>
+      <p>Sistema oficial de consulta para la validación de profesionales habilitados en toda la provincia. Solo se muestran matriculados con habilitación vigente.</p>
+    </header>
 
-		<section class="results-table-container glass">
-			<div class="table-responsive">
-				<table>
-					<thead>
-						<tr>
-							<th>Matrícula</th>
-							<th>Profesional</th>
-							<th>Especialidad</th>
-							<th>Jurisdicción</th>
-							<th>Estado</th>
-						</tr>
-					</thead>
-					<tbody>
-						{results.map(row => (
-							<tr>
-								<td class="mat-id"><strong>{row.id}</strong></td>
-								<td>
-									<div class="prof-name">
-										<span>{row.name}</span>
-									</div>
-								</td>
-								<td>{row.specialty}</td>
-								<td>{row.jurisdiction}</td>
-								<td><span class="status-pill">{row.status}</span></td>
-							</tr>
-						))}
-					</tbody>
-				</table>
-			</div>
+    <div class="search-panel glass no-print">
+      <div class="search-main">
+        <div class="input-group">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" placeholder="Buscar por nombre o número de matrícula..." />
+        </div>
+        <button class="btn-primary" id="btn-buscar">Buscar</button>
+      </div>
 
-			<div class="table-footer">
-				<div class="results-info">
-					Mostrando <strong>5</strong> de 142 profesionales habilitados.
-				</div>
-				<div class="pagination">
-					<button class="p-btn prev" disabled>Anterior</button>
-					<div class="p-pages">
-						<button class="active">1</button>
-						<button>2</button>
-						<button>3</button>
-						<span>...</span>
-						<button>15</button>
-					</div>
-					<button class="p-btn next">Siguiente</button>
-				</div>
-			</div>
-		</section>
+      <div class="search-filters">
+        <div class="filter-group">
+          <label>Jurisdicción</label>
+          <select id="filter-jurisdiction">
+            <option value="">Todas las jurisdicciones</option>
+            {jurisdicciones.map(j => <option value={j.titulo}>{j.titulo}</option>)}
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Especialidad</label>
+          <select id="filter-specialty">
+            <option value="">Todas las especialidades</option>
+            {especialidades.map(e => <option value={e.titulo}>{e.titulo}</option>)}
+          </select>
+        </div>
+        <button id="btn-pdf" class="btn-download">
+          <span class="d-icon">📥</span>
+          Descargar PDF Oficial
+        </button>
+      </div>
+    </div>
 
-		<div class="legal-notice">
-			<p>⚠️ <strong>Aviso Legal:</strong> La información contenida en este padrón es de carácter público y se actualiza mensualmente. Ningún profesional puede ejercer sin matrícula vigente expedida por este Colegio.</p>
-		</div>
-	</div>
+    <section class="results-table-container glass">
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Matrícula</th>
+              <th>Profesional</th>
+              <th>Especialidad</th>
+              <th>Jurisdicción</th>
+            </tr>
+          </thead>
+          <tbody>
+            {matriculados.map(row => (
+              <tr class="matriculado-row"
+                data-nombre={(row.nombreCompleto || '').toLowerCase()}
+                data-matricula={(row.numeroMatricula || '').toLowerCase()}
+                data-jurisdiccion={row.jurisdiccion || ''}
+                data-especialidad={row.especialidad || ''}>
+                <td class="mat-id"><strong>{row.numeroMatricula}</strong></td>
+                <td>
+                  <div class="prof-name">
+                    <span>{row.nombreCompleto}</span>
+                  </div>
+                </td>
+                <td>{row.especialidad || '—'}</td>
+                <td>{row.jurisdiccion || '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-	<style>
-		.page-content { padding: 5rem 0; }
-		
-		.hero-image-container {
-			margin: -2rem auto 4rem;
-			max-width: 1100px;
-			padding: 0 1.5rem;
-		}
+      <div class="table-footer no-print">
+        <div class="results-info">
+          Mostrando <strong id="showing-count">0</strong> de <strong id="total-count">{matriculados.length}</strong> profesionales habilitados.
+        </div>
+        <div class="pagination">
+          <button class="p-btn" id="prev-btn" disabled>Anterior</button>
+          <div class="p-pages" id="page-numbers"></div>
+          <button class="p-btn" id="next-btn">Siguiente</button>
+        </div>
+      </div>
+    </section>
 
-		.hero-img {
-			width: 100%;
-			height: 300px;
-			object-fit: cover;
-			border-radius: var(--radius-lg);
-			box-shadow: var(--shadow-lg);
-		}
+    <div class="legal-notice no-print">
+      <p>⚠️ <strong>Aviso Legal:</strong> La información contenida en este padrón es de carácter público y se actualiza periódicamente. Solo se muestran profesionales con matrícula vigente y activa. Ningún profesional puede ejercer sin matrícula expedida por este Colegio.</p>
+    </div>
+  </div>
 
-		/* Districts Map Redesign */
-		.districts-map-section { margin-bottom: 4rem; }
-		.map-container { padding: 3rem; text-align: center; border: 1px solid var(--gray-200); border-radius: var(--radius-lg); background: var(--white); }
-		.map-header { margin-bottom: 3rem; }
-		.map-header h2 { font-size: 1.8rem; font-weight: 800; color: var(--accent); }
-		
-		.map-visual-container {
-			display: grid;
-			grid-template-columns: 1.2fr 1fr;
-			gap: 4rem;
-			align-items: center;
-			max-width: 900px;
-			margin: 0 auto;
-		}
+  <style>
+    .page-content { padding: 5rem 0; }
 
-		.svg-map {
-			background: var(--gray-50);
-			padding: 2rem;
-			border-radius: 20px;
-			border: 1px solid var(--gray-100);
-		}
+    .districts-map-section { margin-bottom: 4rem; }
+    .map-container { padding: 3rem; text-align: center; border: 1px solid var(--gray-200); border-radius: var(--radius-lg); background: var(--white); }
+    .map-header { margin-bottom: 3rem; }
+    .map-header h2 { font-size: 1.8rem; font-weight: 800; color: var(--accent); }
 
-		.map-region {
-			fill: var(--white);
-			stroke: var(--primary);
-			stroke-width: 2;
-			transition: all 0.3s ease;
-			cursor: pointer;
-		}
+    .map-visual-container {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 4rem;
+      align-items: center;
+      max-width: 900px;
+      margin: 0 auto;
+    }
 
-		.map-region:hover, .map-region.active {
-			fill: var(--primary-soft);
-			stroke-width: 3;
-			transform: scale(1.02);
-			filter: drop-shadow(0 5px 15px rgba(0,0,0,0.1));
-		}
+    .svg-map { background: var(--gray-50); padding: 2rem; border-radius: 20px; border: 1px solid var(--gray-100); }
 
-		.map-label {
-			fill: var(--accent);
-			font-size: 14px;
-			font-weight: 800;
-			pointer-events: none;
-			text-anchor: middle;
-		}
+    .map-region { fill: var(--white); stroke: var(--primary); stroke-width: 2; transition: all 0.3s ease; cursor: pointer; }
+    .map-region:hover, .map-region.active { fill: var(--primary-soft); stroke-width: 3; transform: scale(1.02); filter: drop-shadow(0 5px 15px rgba(0,0,0,0.1)); }
+    .map-label { fill: var(--accent); font-size: 14px; font-weight: 800; pointer-events: none; text-anchor: middle; }
 
-		.map-legend {
-			display: grid;
-			grid-template-columns: 1fr;
-			gap: 1rem;
-		}
+    .map-legend { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+    .legend-item { display: flex; align-items: center; gap: 1rem; padding: 1rem 1.5rem; background: var(--white); border: 1px solid var(--gray-200); border-radius: 12px; font-weight: 700; color: var(--accent); transition: var(--transition); cursor: pointer; }
+    .legend-item:hover { border-color: var(--primary); background: var(--primary-soft); transform: translateX(10px); }
+    .l-num { width: 28px; height: 28px; background: var(--primary); color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; }
 
-		.legend-item {
-			display: flex;
-			align-items: center;
-			gap: 1rem;
-			padding: 1rem 1.5rem;
-			background: var(--white);
-			border: 1px solid var(--gray-200);
-			border-radius: 12px;
-			font-weight: 700;
-			color: var(--accent);
-			transition: var(--transition);
-			cursor: pointer;
-		}
+    .section-header { text-align: center; margin-bottom: 4rem; }
+    .sub-title { color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.9rem; display: block; margin-bottom: 1rem; }
+    .section-header h1 { font-size: clamp(2.5rem, 5vw, 3.5rem); margin-bottom: 1.5rem; color: var(--accent); }
+    .section-header p { font-size: 1.1rem; color: var(--text-light); max-width: 750px; margin: 0 auto; }
 
-		.legend-item:hover {
-			border-color: var(--primary);
-			background: var(--primary-soft);
-			transform: translateX(10px);
-		}
+    .search-panel { padding: 3rem; border-radius: var(--radius-lg); border: 1px solid var(--gray-300); margin-bottom: 3rem; }
+    .search-main { display: flex; gap: 1.5rem; margin-bottom: 2rem; }
+    .input-group { flex: 1; position: relative; }
+    .search-icon { position: absolute; left: 1.25rem; top: 50%; transform: translateY(-50%); color: var(--text-light); }
+    .input-group input { width: 100%; padding: 1rem 1rem 1rem 3.5rem; border: 1px solid var(--gray-300); border-radius: var(--radius-md); font-size: 1rem; font-family: inherit; transition: var(--transition); }
+    .input-group input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
 
-		.l-num {
-			width: 28px;
-			height: 28px;
-			background: var(--primary);
-			color: white;
-			border-radius: 6px;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			font-size: 0.8rem;
-		}
+    .btn-primary { background: var(--primary); color: white; border: none; padding: 0 2rem; border-radius: var(--radius-md); font-weight: 700; font-size: 1rem; cursor: pointer; transition: var(--transition); }
+    .btn-primary:hover { background: var(--primary-hover); transform: translateY(-2px); }
 
-		.section-header { text-align: center; margin-bottom: 5rem; }
-		.sub-title { color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.9rem; display: block; margin-bottom: 1rem; }
-		.section-header h1 { font-size: clamp(2.5rem, 5vw, 3.5rem); margin-bottom: 1.5rem; color: var(--accent); }
-		.section-header p { font-size: 1.25rem; color: var(--text-light); max-width: 800px; margin: 0 auto; }
+    .search-filters { display: flex; gap: 1.5rem; align-items: flex-end; flex-wrap: wrap; }
+    .filter-group { display: flex; flex-direction: column; gap: 0.5rem; flex: 1; min-width: 200px; }
+    .filter-group label { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--accent); }
+    .filter-group select { padding: 0.8rem 1rem; border: 1px solid var(--gray-200); border-radius: 8px; font-family: inherit; background: var(--white); font-weight: 600; font-size: 0.95rem; }
 
-		.search-panel { padding: 3rem; border-radius: var(--radius-lg); border: 1px solid var(--gray-300); margin-bottom: 4rem; }
-		
-		.search-main { display: flex; gap: 1.5rem; margin-bottom: 2.5rem; }
-		.input-group { flex: 1; position: relative; }
-		.search-icon { position: absolute; left: 1.25rem; top: 50%; transform: translateY(-50%); color: var(--text-light); }
-		.input-group input { width: 100%; padding: 1.1rem 1.1rem 1.1rem 3.5rem; border: 1px solid var(--gray-300); border-radius: var(--radius-md); font-size: 1.1rem; font-family: inherit; transition: var(--transition); }
-		.input-group input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+    .btn-download { background: var(--white); border: 2px solid var(--primary); color: var(--primary); padding: 0.7rem 1.5rem; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 0.75rem; transition: var(--transition); height: 3.25rem; white-space: nowrap; }
+    .btn-download:hover:not(:disabled) { background: var(--primary); color: white; }
+    .btn-download:disabled { opacity: 0.6; cursor: not-allowed; }
 
-		.btn-primary { background: var(--primary); color: white; border: none; padding: 0 2.5rem; border-radius: var(--radius-md); font-weight: 700; font-size: 1rem; cursor: pointer; transition: var(--transition); }
-		.btn-primary:hover { background: var(--primary-hover); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .results-table-container { border-radius: var(--radius-lg); border: 1px solid var(--gray-200); overflow: hidden; }
+    .table-responsive { width: 100%; overflow-x: auto; }
 
-		.search-filters { display: flex; gap: 1.5rem; align-items: flex-end; flex-wrap: wrap; }
-		.filter-group { display: flex; flex-direction: column; gap: 0.5rem; flex: 1; min-width: 200px; }
-		.filter-group label { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--accent); }
-		.filter-group select { padding: 0.8rem 1rem; border: 1px solid var(--gray-200); border-radius: 8px; font-family: inherit; background: var(--white); font-weight: 600; font-size: 0.95rem; }
+    table { width: 100%; border-collapse: collapse; text-align: left; min-width: 600px; }
+    th { background: var(--gray-100); padding: 1.25rem 1.5rem; font-size: 0.8rem; font-weight: 800; text-transform: uppercase; color: var(--primary); letter-spacing: 0.05em; border-bottom: 2px solid var(--gray-200); }
+    td { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--gray-100); font-size: 0.98rem; color: var(--text-main); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover { background: var(--primary-soft); }
 
-		.btn-download { background: var(--white); border: 2px solid var(--primary); color: var(--primary); padding: 0.7rem 1.5rem; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 0.75rem; transition: var(--transition); height: 3.25rem; }
-		.btn-download:hover { background: var(--primary); color: white; }
+    .mat-id { color: var(--primary); font-family: monospace; font-size: 1rem; }
 
-		.results-table-container { border-radius: var(--radius-lg); border: 1px solid var(--gray-200); overflow: hidden; }
-		.table-responsive { width: 100%; overflow-x: auto; }
-		
-		table { width: 100%; border-collapse: collapse; text-align: left; min-width: 800px; }
-		th { background: var(--gray-100); padding: 1.25rem 1.5rem; font-size: 0.8rem; font-weight: 800; text-transform: uppercase; color: var(--primary); letter-spacing: 0.05em; border-bottom: 2px solid var(--gray-200); }
-		td { padding: 1.5rem; border-bottom: 1px solid var(--gray-100); font-size: 1rem; color: var(--text-main); }
-		tr:last-child td { border-bottom: none; }
-		tr:hover { background: var(--primary-soft); }
+    .table-footer { padding: 1.75rem 2rem; border-top: 1px solid var(--gray-100); display: flex; justify-content: space-between; align-items: center; background: var(--gray-50); flex-wrap: wrap; gap: 1rem; }
+    .results-info { font-size: 0.9rem; color: var(--text-light); }
 
-		.mat-id { color: var(--primary); font-family: monospace; font-size: 1.1rem; }
-		.status-pill { background: #dcfce7; color: #166534; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 800; border: 1px solid #bbf7d0; }
+    .pagination { display: flex; gap: 1rem; align-items: center; }
+    .p-btn { background: var(--white); border: 1px solid var(--gray-300); padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
+    .p-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .p-pages { display: flex; gap: 0.5rem; align-items: center; }
+    .p-pages button { width: 35px; height: 35px; border-radius: 8px; border: 1px solid transparent; background: transparent; cursor: pointer; font-weight: 700; transition: var(--transition); }
+    .p-pages button.active { background: var(--primary); color: white; }
+    .p-pages button:hover:not(.active) { background: var(--gray-200); }
 
-		.table-footer { padding: 2rem; border-top: 1px solid var(--gray-100); display: flex; justify-content: space-between; align-items: center; background: var(--gray-50); }
-		.results-info { font-size: 0.9rem; color: var(--text-light); }
-		
-		.pagination { display: flex; gap: 1.5rem; align-items: center; }
-		.p-btn { background: var(--white); border: 1px solid var(--gray-300); padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
-		.p-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-		.p-pages { display: flex; gap: 0.5rem; align-items: center; }
-		.p-pages button { width: 35px; height: 35px; border-radius: 8px; border: 1px solid transparent; background: transparent; cursor: pointer; font-weight: 700; transition: var(--transition); }
-		.p-pages button.active { background: var(--primary); color: white; }
-		.p-pages button:hover:not(.active) { background: var(--gray-200); }
+    .legal-notice { margin-top: 3rem; background: #fffbeb; border: 1px solid #fde68a; padding: 1.5rem; border-radius: 12px; color: #92400e; font-size: 0.9rem; }
 
-		.legal-notice { margin-top: 3rem; background: #fffbeb; border: 1px solid #fde68a; padding: 1.5rem; border-radius: 12px; color: #92400e; font-size: 0.95rem; }
+    @media (max-width: 1024px) {
+      .search-main { flex-direction: column; }
+      .search-filters { flex-direction: column; align-items: stretch; }
+      .btn-download { width: 100%; justify-content: center; }
+      .map-visual-container { grid-template-columns: 1fr; }
+    }
+  </style>
 
-		@media (max-width: 1024px) {
-			.search-main { flex-direction: column; }
-			.search-filters { flex-direction: column; align-items: stretch; }
-			.btn-download { width: 100%; justify-content: center; }
-		}
-	</style>
+  <script>
+    // ── Filtros y paginación ────────────────────────────────────────
+    const ROWS_PER_PAGE = 15;
+    let currentPage = 1;
+    let filteredRows: HTMLElement[] = [];
+
+    const searchInput = document.getElementById('search-input') as HTMLInputElement;
+    const filterJurisdiction = document.getElementById('filter-jurisdiction') as HTMLSelectElement;
+    const filterSpecialty = document.getElementById('filter-specialty') as HTMLSelectElement;
+    const allRows = Array.from(document.querySelectorAll('.matriculado-row')) as HTMLElement[];
+
+    const showingCount = document.getElementById('showing-count');
+    const totalCount = document.getElementById('total-count');
+    const prevBtn = document.getElementById('prev-btn') as HTMLButtonElement;
+    const nextBtn = document.getElementById('next-btn') as HTMLButtonElement;
+    const pageNumbers = document.getElementById('page-numbers');
+
+    function applyFilters() {
+      const searchTerm = searchInput?.value.toLowerCase() || '';
+      const jurisdiction = filterJurisdiction?.value || '';
+      const specialty = filterSpecialty?.value || '';
+
+      filteredRows = allRows.filter(row => {
+        const nombre = row.getAttribute('data-nombre') || '';
+        const matricula = row.getAttribute('data-matricula') || '';
+        const rowJurisdiction = row.getAttribute('data-jurisdiccion') || '';
+        const rowSpecialty = row.getAttribute('data-especialidad') || '';
+
+        const matchesSearch = !searchTerm || nombre.includes(searchTerm) || matricula.includes(searchTerm);
+        const matchesJurisdiction = !jurisdiction || rowJurisdiction === jurisdiction;
+        const matchesSpecialty = !specialty || rowSpecialty === specialty;
+
+        return matchesSearch && matchesJurisdiction && matchesSpecialty;
+      });
+
+      currentPage = 1;
+      renderPage();
+    }
+
+    function renderPage() {
+      const total = filteredRows.length;
+      const totalPages = Math.max(1, Math.ceil(total / ROWS_PER_PAGE));
+      const start = (currentPage - 1) * ROWS_PER_PAGE;
+      const end = Math.min(start + ROWS_PER_PAGE, total);
+
+      allRows.forEach(row => (row.style.display = 'none'));
+      filteredRows.slice(start, end).forEach(row => (row.style.display = ''));
+
+      if (showingCount) showingCount.textContent = String(end - start);
+      if (totalCount) totalCount.textContent = String(total);
+      if (prevBtn) prevBtn.disabled = currentPage === 1;
+      if (nextBtn) nextBtn.disabled = currentPage === totalPages;
+
+      if (pageNumbers) {
+        pageNumbers.innerHTML = '';
+        const maxVisible = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+        if (endPage - startPage < maxVisible - 1) startPage = Math.max(1, endPage - maxVisible + 1);
+
+        if (startPage > 1) { pageNumbers.appendChild(makePageBtn(1)); if (startPage > 2) pageNumbers.appendChild(makeDots()); }
+        for (let p = startPage; p <= endPage; p++) pageNumbers.appendChild(makePageBtn(p));
+        if (endPage < totalPages) { if (endPage < totalPages - 1) pageNumbers.appendChild(makeDots()); pageNumbers.appendChild(makePageBtn(totalPages)); }
+      }
+    }
+
+    function makePageBtn(page: number): HTMLButtonElement {
+      const btn = document.createElement('button');
+      btn.textContent = String(page);
+      if (page === currentPage) btn.classList.add('active');
+      btn.addEventListener('click', () => { currentPage = page; renderPage(); });
+      return btn;
+    }
+
+    function makeDots(): HTMLSpanElement {
+      const s = document.createElement('span');
+      s.textContent = '...';
+      return s;
+    }
+
+    prevBtn?.addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderPage(); } });
+    nextBtn?.addEventListener('click', () => {
+      const totalPages = Math.ceil(filteredRows.length / ROWS_PER_PAGE);
+      if (currentPage < totalPages) { currentPage++; renderPage(); }
+    });
+
+    searchInput?.addEventListener('input', applyFilters);
+    filterJurisdiction?.addEventListener('change', applyFilters);
+    filterSpecialty?.addEventListener('change', applyFilters);
+
+    applyFilters();
+
+    // ── Descarga PDF Oficial ─────────────────────────────────────────
+    const padronData: any[] = JSON.parse(document.getElementById('padron-data')?.textContent || '[]');
+
+    document.getElementById('btn-pdf')?.addEventListener('click', async () => {
+      const btn = document.getElementById('btn-pdf') as HTMLButtonElement;
+      btn.disabled = true;
+      btn.textContent = 'Generando PDF...';
+
+      try {
+        const { jsPDF } = await import('jspdf');
+        const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+        // Logo
+        let logoData = '';
+        try {
+          const res = await fetch('/LOGO-CENTRAL.jpg');
+          const blob = await res.blob();
+          logoData = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve((e.target?.result as string) ?? '');
+            reader.readAsDataURL(blob);
+          });
+        } catch { /* logo unavailable */ }
+
+        // Encabezado
+        doc.setFillColor(27, 94, 32);
+        doc.rect(0, 0, 210, 38, 'F');
+        if (logoData) doc.addImage(logoData, 'JPEG', 6, 5, 26, 26);
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(13);
+        doc.text('COLEGIO DE PROFESIONALES EN CIENCIAS CRIMINALÍSTICAS', 105, 13, { align: 'center' });
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.text('PADRÓN OFICIAL DE MATRICULADOS ACTIVOS — PROVINCIA DE CATAMARCA', 105, 22, { align: 'center' });
+        const fecha = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        doc.setFontSize(8);
+        doc.text(`Emitido el ${fecha}`, 105, 31, { align: 'center' });
+
+        // Cabecera tabla
+        const colX = [11, 40, 118, 168];
+        const headers = ['Matrícula', 'Profesional', 'Especialidad', 'Jurisdicción'];
+
+        let y = 50;
+        doc.setFillColor(27, 94, 32);
+        doc.rect(10, y - 5.5, 190, 8, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        headers.forEach((h, i) => doc.text(h, colX[i], y));
+        y += 8;
+
+        // Filas de datos
+        padronData.forEach((row: any, idx: number) => {
+          if (y > 274) {
+            doc.addPage();
+            y = 20;
+            doc.setFillColor(27, 94, 32);
+            doc.rect(10, y - 5.5, 190, 8, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFont('helvetica', 'bold');
+            headers.forEach((h, i) => doc.text(h, colX[i], y));
+            y += 8;
+          }
+
+          if (idx % 2 === 0) {
+            doc.setFillColor(240, 253, 244);
+            doc.rect(10, y - 5.5, 190, 8, 'F');
+          }
+
+          doc.setTextColor(0, 0, 0);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8);
+          doc.text(String(row.numeroMatricula || ''), colX[0], y);
+          doc.text(String(row.nombreCompleto || '').substring(0, 34), colX[1], y);
+          doc.text(String(row.especialidad || '—').substring(0, 24), colX[2], y);
+          doc.text(String(row.jurisdiccion || '—').substring(0, 14), colX[3], y);
+          y += 8;
+        });
+
+        // Pie de página en última página
+        const pageH = doc.internal.pageSize.getHeight();
+        doc.setFillColor(27, 94, 32);
+        doc.rect(0, pageH - 12, 210, 12, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.text('criminalisticacolegio@gmail.com  |  San Fernando del Valle de Catamarca', 105, pageH - 4, { align: 'center' });
+
+        const nombreArchivo = `Padron_Oficial_CPC_CTM_${fecha.replace(/\//g, '-')}.pdf`;
+        doc.save(nombreArchivo);
+
+      } catch (err) {
+        console.error('[padron] Error generando PDF:', err);
+        alert('Error al generar el PDF. Por favor reintente.');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span class="d-icon">📥</span> Descargar PDF Oficial';
+      }
+    });
+  </script>
 </MainLayout>

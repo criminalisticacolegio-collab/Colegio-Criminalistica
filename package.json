@@ -12,14 +12,20 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/node": "^9.0.3",
+    "@astrojs/node": "^10.1.1",
     "@astrojs/react": "^5.0.3",
     "@sanity/astro": "^3.3.1",
     "@sanity/client": "^7.21.0",
     "@sanity/image-url": "^2.1.1",
+    "@supabase/supabase-js": "^2.105.4",
     "astro": "^6.1.8",
+    "firebase": "^12.13.0",
+    "jspdf": "^4.2.1",
+    "mercadopago": "^2.12.1",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
+    "firebase-admin": "^12.7.0",
+    "resend": "^6.12.3",
     "sanity": "^5.21.0",
     "styled-components": "^6.4.1"
   }

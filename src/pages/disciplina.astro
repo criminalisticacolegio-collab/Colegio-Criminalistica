@@ -1,153 +1,289 @@
 ---
 import MainLayout from '../layouts/MainLayout.astro';
+import { sanityClient } from 'sanity:client';
+
+const data = await sanityClient.fetch(`*[_type == "tribunalConfig"][0]{
+  descripcion,
+  presidenteTrib_nombre,
+  presidenteTrib_especialidad,
+  titular1_nombre, titular1_especialidad,
+  titular2_nombre, titular2_especialidad,
+  titular3_nombre, titular3_especialidad,
+  suplente1_nombre, suplente1_especialidad,
+  suplente2_nombre, suplente2_especialidad,
+  reglamento,
+  "archivoReglamento": archivoReglamento.asset->url,
+  contactoTribunal,
+  "resoluciones": resoluciones[] | order(fecha desc) {
+    numero, fecha, titulo, resumen, normativa,
+    "archivo": archivo.asset->url
+  }
+}`).catch(() => null);
+
+const descripcion = data?.descripcion || 'El Tribunal de Ética y Disciplina es el órgano encargado de velar por el cumplimiento del Código de Ética Profesional y la conducta de los matriculados.';
+
+const miembros = [
+  { cargo: 'Presidente del Tribunal', nombre: data?.presidenteTrib_nombre, especialidad: data?.presidenteTrib_especialidad },
+  { cargo: 'Miembro Titular',         nombre: data?.titular1_nombre,       especialidad: data?.titular1_especialidad },
+  { cargo: 'Miembro Titular',         nombre: data?.titular2_nombre,       especialidad: data?.titular2_especialidad },
+  { cargo: 'Miembro Titular',         nombre: data?.titular3_nombre,       especialidad: data?.titular3_especialidad },
+  { cargo: 'Miembro Suplente',        nombre: data?.suplente1_nombre,      especialidad: data?.suplente1_especialidad },
+  { cargo: 'Miembro Suplente',        nombre: data?.suplente2_nombre,      especialidad: data?.suplente2_especialidad },
+].filter(m => m.nombre);
+
+const resoluciones = data?.resoluciones || [];
+
+function formatFecha(dateStr: string) {
+  if (!dateStr) return '';
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
+}
 ---
 
-<MainLayout title="Disciplina y Legal" showBack={true}>
-	<div class="container page-content">
-		<header class="section-header">
-			<span class="sub-title">Tribunal de Ética</span>
-			<h1>Disciplina y Legal</h1>
-			<p>Garantía de integridad y marco normativo para el ejercicio profesional científico en Catamarca.</p>
-		</header>
+<MainLayout title="Tribunal de Disciplina" showBack={true}>
+  <div class="container page-content">
+    <header class="section-header">
+      <span class="sub-title">Tribunal de Ética</span>
+      <h1>Disciplina y Marco Legal</h1>
+      <p>Garantía de integridad y marco normativo para el ejercicio profesional en la Provincia de Catamarca.</p>
+    </header>
 
-		<section class="tribunal-section">
-			<div class="tribunal-glass glass">
-				<div class="tribunal-header">
-					<div class="icon-box">⚖️</div>
-					<div class="text-box">
-						<h2>Autoridades del Tribunal</h2>
-						<p>El Tribunal de Disciplina es el órgano encargado de velar por el cumplimiento del Código de Ética Profesional.</p>
-					</div>
-				</div>
-				<div class="tribunal-grid">
-					<div class="t-auth">
-						<span class="t-role">1° Miembro Titular (Presidente)</span>
-						<span class="t-name">Lic. Quevedo Orlando Antonio</span>
-					</div>
-					<div class="t-auth">
-						<span class="t-role">2° Miembro Titular</span>
-						<span class="t-name">Franco Natalia</span>
-					</div>
-					<div class="t-auth">
-						<span class="t-role">3° Miembro Titular</span>
-						<span class="t-name">Pereira Carlos</span>
-					</div>
-					<div class="t-auth">
-						<span class="t-role">4° Miembro Titular</span>
-						<span class="t-name">Sarmiento Enrique</span>
-					</div>
-					<div class="t-auth">
-						<span class="t-role">1° Miembro Suplente</span>
-						<span class="t-name">Bulacios Anahi</span>
-					</div>
-					<div class="t-auth">
-						<span class="t-role">2° Miembro Suplente</span>
-						<span class="t-name">Carrizo Xavier</span>
-					</div>
-					<div class="t-auth">
-						<span class="t-role">3° Miembro Suplente</span>
-						<span class="t-name">Pereira Carlos</span>
-					</div>
-					<div class="t-auth">
-						<span class="t-role">4° Miembro Suplente</span>
-						<span class="t-name">[Pendiente de asignar]</span>
-					</div>
-				</div>
-			</div>
-		</section>
+    <!-- Autoridades del Tribunal -->
+    <section class="tribunal-section">
+      <div class="tribunal-glass glass">
+        <div class="tribunal-header">
+          <div class="icon-box">⚖️</div>
+          <div class="text-box">
+            <h2>Tribunal de Ética y Disciplina</h2>
+            <p>{descripcion}</p>
+          </div>
+        </div>
 
-		<div class="legal-tools">
-			<!-- Jurisprudencia IA -->
-			<section class="tool-card ai-tool glass full-width">
-				<div class="tool-header">
-					<span class="tag-ai">IA Engine</span>
-					<h3>Analista Inteligente de Jurisprudencia</h3>
-					<p>Buscador avanzado de fallos y resoluciones del tribunal (Casos Anónimos).</p>
-				</div>
-				<div class="search-box-mock">
-					<input type="text" placeholder="Ej: Faltas a la ética pericial, negligencia..." disabled />
-					<button class="btn-search">🔍</button>
-				</div>
-				<div class="case-results">
-					<div class="case-item">
-						<span class="case-tag">Resolución 01/24</span>
-						<p>Fallo sobre incompatibilidad en peritajes privados simultáneos.</p>
-					</div>
-					<div class="case-item">
-						<span class="case-tag">Resolución 15/23</span>
-						<p>Interpretación del Art. 45 del Código de Ética.</p>
-					</div>
-				</div>
-			</section>
-		</div>
-	</div>
+        {miembros.length > 0 ? (
+          <div class="tribunal-grid">
+            {miembros.map(m => (
+              <div class="t-auth">
+                <span class="t-role">{m.cargo}</span>
+                <span class="t-name">{m.nombre}</span>
+                {m.especialidad && <span class="t-esp">{m.especialidad}</span>}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p class="empty-notice">La composición del Tribunal está siendo cargada en el sistema.</p>
+        )}
 
-	<style>
-		.full-width { grid-column: 1 / -1; }
-		.page-content { padding: 5rem 0; }
-		
-		.section-header { text-align: center; margin-bottom: 5rem; }
-		.sub-title { color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.9rem; display: block; margin-bottom: 1rem; }
-		.section-header h1 { font-size: clamp(2.5rem, 5vw, 3.5rem); margin-bottom: 1.5rem; color: var(--accent); }
-		.section-header p { font-size: 1.25rem; color: var(--text-light); max-width: 800px; margin: 0 auto; }
+        {(data?.archivoReglamento || data?.contactoTribunal) && (
+          <div class="tribunal-footer">
+            {data.archivoReglamento && (
+              <a href={data.archivoReglamento} target="_blank" rel="noopener" class="btn-reglamento">
+                📄 Descargar Reglamento
+              </a>
+            )}
+            {data.contactoTribunal && (
+              <a href={`mailto:${data.contactoTribunal}`} class="btn-contacto-tribunal">
+                ✉️ {data.contactoTribunal}
+              </a>
+            )}
+          </div>
+        )}
+      </div>
+    </section>
 
-		.tribunal-section { margin-bottom: 5rem; }
-		.tribunal-glass { padding: 3rem; border-radius: var(--radius-lg); border: 1px solid var(--gray-300); }
-		.tribunal-header { display: flex; align-items: center; gap: 2rem; margin-bottom: 3rem; border-bottom: 1px solid var(--gray-200); padding-bottom: 2rem; }
-		.icon-box { background: var(--primary); color: white; width: 60px; height: 60px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; }
-		.tribunal-header h2 { font-size: 1.75rem; margin-bottom: 0.5rem; }
-		.tribunal-header p { color: var(--text-light); }
+    <!-- Resoluciones -->
+    <section class="resoluciones-section">
+      <h2 class="section-title">Resoluciones del Tribunal</h2>
 
-		.tribunal-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2rem; }
-		.t-auth { display: flex; flex-direction: column; }
-		.t-role { font-size: 0.8rem; text-transform: uppercase; color: var(--primary); font-weight: 700; margin-bottom: 0.25rem; }
-		.t-name { font-size: 1.1rem; font-weight: 600; color: var(--text-main); }
+      {resoluciones.length > 0 ? (
+        <div class="resoluciones-grid">
+          {resoluciones.map((r, idx) => (
+            <div class="res-card glass" id={`res-${idx}`}>
+              <div class="res-top">
+                <div class="res-meta">
+                  <span class="res-num">Resolución {r.numero}</span>
+                  <span class="res-fecha">{formatFecha(r.fecha)}</span>
+                </div>
+                {r.archivo && (
+                  <a href={r.archivo} target="_blank" rel="noopener" class="btn-pdf" title="Descargar PDF">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15h8v1H8zm0-3h8v1H8zm0-3h5v1H8z"/></svg>
+                    PDF
+                  </a>
+                )}
+              </div>
+              <h3 class="res-titulo">{r.titulo}</h3>
+              {r.resumen && <p class="res-resumen">{r.resumen}</p>}
+              {r.normativa && <p class="res-norm"><strong>Normativa:</strong> {r.normativa}</p>}
 
-		.legal-tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 2.5rem; }
-		.tool-card { padding: 2.5rem; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); display: flex; flex-direction: column; }
-		.tag-ai { background: var(--primary-light); color: var(--primary); padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; margin-bottom: 1rem; width: fit-content; }
-		
-		.tool-header h3 { font-size: 1.5rem; margin-bottom: 1rem; }
-		.tool-header p { color: var(--text-light); font-size: 0.95rem; margin-bottom: 2rem; line-height: 1.5; }
+              <button
+                class="btn-ai"
+                data-idx={idx}
+                data-numero={r.numero || ''}
+                data-titulo={r.titulo}
+                data-resumen={r.resumen || ''}
+                data-normativa={r.normativa || ''}
+                data-archivo={r.archivo || ''}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+                Analizar con IA
+              </button>
 
-		/* Search Mock */
-		.search-box-mock { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
-		.search-box-mock input { flex: 1; padding: 0.75rem 1rem; border: 1px solid var(--gray-300); border-radius: var(--radius-md); background: var(--gray-50); }
-		.btn-search { background: var(--primary); border: none; padding: 0 1rem; border-radius: var(--radius-md); color: white; cursor: pointer; }
+              <div class="ai-result hidden" id={`ai-${idx}`}>
+                <div class="ai-header">
+                  <span class="ai-badge">Análisis IA</span>
+                  <button class="ai-close" data-idx={idx}>✕</button>
+                </div>
+                <div class="ai-body"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div class="empty-state glass">
+          <span class="empty-icon">⚖️</span>
+          <h3>No hay resoluciones publicadas</h3>
+          <p>Las resoluciones del Tribunal aparecerán aquí una vez cargadas en el sistema.</p>
+        </div>
+      )}
+    </section>
+  </div>
 
-		.case-results { display: flex; flex-direction: column; gap: 1rem; }
-		.case-item { padding: 1rem; background: var(--white); border-radius: 12px; border: 1px solid var(--gray-200); }
-		.case-tag { font-size: 0.75rem; font-weight: 700; color: var(--primary); display: block; margin-bottom: 0.25rem; }
-		.case-item p { font-size: 0.85rem; color: var(--text-main); line-height: 1.4; }
+  <script>
+    document.querySelectorAll<HTMLButtonElement>('.btn-ai').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const idx = btn.dataset.idx!;
+        const resultEl = document.getElementById(`ai-${idx}`)!;
+        const bodyEl = resultEl.querySelector<HTMLElement>('.ai-body')!;
 
-		/* Doc Grid */
-		.doc-links { display: flex; flex-direction: column; gap: 1rem; }
-		.doc-card { display: flex; align-items: center; gap: 1rem; padding: 1.25rem; background: var(--white); border: 1px solid var(--gray-200); border-radius: 16px; text-decoration: none; color: var(--text-main); transition: var(--transition); }
-		.doc-card:hover { border-color: var(--primary); transform: translateX(5px); box-shadow: var(--shadow-sm); }
-		.d-icon { font-size: 1.5rem; }
-		.d-info strong { display: block; font-size: 0.95rem; }
-		.d-info span { font-size: 0.8rem; color: var(--text-light); }
+        resultEl.classList.remove('hidden');
+        btn.disabled = true;
+        btn.textContent = 'Analizando...';
+        bodyEl.textContent = '';
 
-		/* Chat Mock */
-		.chat-mock { background: var(--gray-900); padding: 1.5rem; border-radius: 16px; margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
-		.chat-msg { padding: 0.75rem 1rem; border-radius: 12px; font-size: 0.85rem; line-height: 1.4; max-width: 85%; }
-		.chat-msg.bot { background: rgba(255,255,255,0.1); color: white; align-self: flex-start; }
-		.chat-msg.user { background: var(--primary); color: white; align-self: flex-end; }
-		.chat-msg.loading { display: flex; gap: 4px; padding: 0.75rem; }
-		.dot { width: 6px; height: 6px; background: white; border-radius: 50%; opacity: 0.6; animation: chatDot 1.4s infinite; }
-		.dot:nth-child(2) { animation-delay: 0.2s; }
-		.dot:nth-child(3) { animation-delay: 0.4s; }
-		
-		@keyframes chatDot {
-			0%, 100% { transform: translateY(0); }
-			50% { transform: translateY(-5px); }
-		}
+        try {
+          const res = await fetch('/api/analizar-resolucion', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              numero: btn.dataset.numero,
+              titulo: btn.dataset.titulo,
+              resumen: btn.dataset.resumen,
+              normativa: btn.dataset.normativa,
+              archivo: btn.dataset.archivo || null,
+            }),
+          });
 
-		.btn-chat-start { background: var(--primary); color: white; border: none; padding: 1rem; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; transition: var(--transition); width: 100%; border: 1px solid var(--primary); }
-		.btn-chat-start:hover { background: transparent; color: var(--primary); }
+          const data = await res.json();
+          if (data.analisis) {
+            const a = data.analisis;
+            const gravedadColor = { leve: '#22c55e', moderada: '#f59e0b', grave: '#ef4444', 'muy grave': '#7f1d1d' }[a.gravedad?.toLowerCase()] || '#6b7280';
+            bodyEl.innerHTML = `
+              <div class="ai-field"><span class="ai-label">Resumen del caso</span><p>${a.resumen || '—'}</p></div>
+              <div class="ai-field ai-field--violation"><span class="ai-label ai-label--red">Normas transgredidas</span><p>${a.transgresiones || '—'}</p></div>
+              <div class="ai-field ai-field--favor"><span class="ai-label ai-label--green">Atenuantes / A favor del matriculado</span><p>${a.atenuantes || '—'}</p></div>
+              <div class="ai-field"><span class="ai-label">Gravedad</span><p class="ai-gravedad" style="color:${gravedadColor};border-color:${gravedadColor}">${a.gravedad || '—'}</p></div>
+              <div class="ai-field"><span class="ai-label">Recomendación profesional</span><p>${a.recomendacion || '—'}</p></div>
+            `;
+          } else {
+            bodyEl.innerHTML = `<p class="ai-error">${data.error || 'No se pudo obtener el análisis.'}</p>`;
+          }
+        } catch {
+          bodyEl.innerHTML = '<p class="ai-error">Error de conexión. Intentá de nuevo.</p>';
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg> Analizar con IA`;
+        }
+      });
+    });
 
-		@media (max-width: 1024px) {
-			.legal-tools { grid-template-columns: 1fr; }
-		}
-	</style>
+    document.querySelectorAll<HTMLButtonElement>('.ai-close').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = btn.dataset.idx!;
+        document.getElementById(`ai-${idx}`)?.classList.add('hidden');
+      });
+    });
+  </script>
+
+  <style>
+    .full-width { grid-column: 1 / -1; }
+    .page-content { padding: 5rem 0; }
+
+    .section-header { text-align: center; margin-bottom: 5rem; }
+    .sub-title { color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.9rem; display: block; margin-bottom: 1rem; }
+    .section-header h1 { font-size: clamp(2.5rem, 5vw, 3.5rem); margin-bottom: 1.5rem; color: var(--accent); }
+    .section-header p { font-size: 1.15rem; color: var(--text-light); max-width: 700px; margin: 0 auto; }
+
+    .tribunal-section { margin-bottom: 5rem; }
+    .tribunal-glass { padding: 3rem; border-radius: var(--radius-lg); border: 1px solid var(--gray-300); }
+    .tribunal-header { display: flex; align-items: flex-start; gap: 2rem; margin-bottom: 3rem; border-bottom: 1px solid var(--gray-200); padding-bottom: 2rem; }
+    .icon-box { background: var(--primary); color: white; width: 60px; height: 60px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; flex-shrink: 0; }
+    .tribunal-header h2 { font-size: 1.65rem; margin-bottom: 0.5rem; }
+    .tribunal-header p { color: var(--text-light); line-height: 1.6; }
+
+    .tribunal-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; }
+    .t-auth { display: flex; flex-direction: column; padding: 1.25rem 1.5rem; background: var(--gray-50); border-radius: 10px; border-left: 3px solid var(--primary); }
+    .t-role { font-size: 0.72rem; text-transform: uppercase; color: var(--primary); font-weight: 800; letter-spacing: 0.06em; margin-bottom: 0.4rem; }
+    .t-name { font-size: 1rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.2rem; }
+    .t-esp { font-size: 0.8rem; color: var(--text-light); }
+
+    .tribunal-footer { margin-top: 2.5rem; padding-top: 2rem; border-top: 1px solid var(--gray-200); display: flex; gap: 1rem; flex-wrap: wrap; }
+    .btn-reglamento, .btn-contacto-tribunal { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; font-size: 0.9rem; text-decoration: none; transition: var(--transition); }
+    .btn-reglamento { background: var(--primary); color: white; }
+    .btn-reglamento:hover { background: var(--primary-hover); }
+    .btn-contacto-tribunal { background: var(--gray-50); border: 1px solid var(--gray-300); color: var(--text-main); }
+    .btn-contacto-tribunal:hover { border-color: var(--primary); color: var(--primary); }
+
+    .empty-notice { color: var(--text-light); font-style: italic; padding: 2rem; }
+
+    /* Resoluciones */
+    .resoluciones-section { margin-top: 2rem; }
+    .section-title { font-size: 1.75rem; margin-bottom: 2rem; color: var(--accent); border-bottom: 2px solid var(--primary); padding-bottom: 0.75rem; }
+
+    .resoluciones-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 2rem; }
+
+    .res-card { padding: 2rem; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); display: flex; flex-direction: column; gap: 0.75rem; transition: var(--transition); }
+    .res-card:hover { border-color: var(--primary); box-shadow: var(--shadow-md); }
+
+    .res-top { display: flex; justify-content: space-between; align-items: flex-start; }
+    .res-meta { display: flex; flex-direction: column; gap: 0.2rem; }
+    .res-num { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; color: var(--primary); letter-spacing: 0.05em; }
+    .res-fecha { font-size: 0.8rem; color: var(--text-light); }
+
+    .btn-pdf { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.75rem; background: var(--primary-light); color: var(--primary); border-radius: 6px; font-size: 0.78rem; font-weight: 700; text-decoration: none; transition: var(--transition); }
+    .btn-pdf:hover { background: var(--primary); color: white; }
+
+    .res-titulo { font-size: 1.05rem; color: var(--accent); line-height: 1.35; }
+    .res-resumen { font-size: 0.9rem; color: var(--text-light); line-height: 1.55; }
+    .res-norm { font-size: 0.85rem; color: var(--text-light); }
+
+    .btn-ai { margin-top: 0.5rem; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.55rem 1.1rem; background: var(--accent); color: white; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: var(--transition); width: fit-content; }
+    .btn-ai:hover:not(:disabled) { background: var(--primary); }
+    .btn-ai:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .ai-result { margin-top: 1rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; overflow: hidden; }
+    .ai-header { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: var(--primary); }
+    .ai-badge { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: white; letter-spacing: 0.05em; }
+    .ai-close { background: rgba(255,255,255,0.2); border: none; color: white; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; }
+    .ai-body { padding: 1rem; font-size: 0.88rem; color: var(--text-main); line-height: 1.65; display: flex; flex-direction: column; gap: 0.75rem; }
+    .ai-field { display: flex; flex-direction: column; gap: 0.2rem; }
+    .ai-field--violation { background: #fff1f2; border-left: 3px solid #ef4444; padding: 0.6rem 0.75rem; border-radius: 0 6px 6px 0; }
+    .ai-field--favor { background: #f0fdf4; border-left: 3px solid #22c55e; padding: 0.6rem 0.75rem; border-radius: 0 6px 6px 0; }
+    .ai-label { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--primary); }
+    .ai-label--red { color: #dc2626; }
+    .ai-label--green { color: #16a34a; }
+    .ai-field p { margin: 0; }
+    .ai-gravedad { display: inline-block; font-weight: 700; text-transform: capitalize; border: 1px solid; border-radius: 6px; padding: 0.15rem 0.6rem; font-size: 0.82rem; }
+    .ai-error { color: #ef4444; font-weight: 600; }
+
+    .hidden { display: none; }
+
+    .empty-state { text-align: center; padding: 4rem 2rem; border-radius: var(--radius-lg); border: 1px dashed var(--gray-300); }
+    .empty-icon { font-size: 3rem; display: block; margin-bottom: 1rem; }
+    .empty-state h3 { font-size: 1.4rem; margin-bottom: 0.75rem; color: var(--accent); }
+    .empty-state p { color: var(--text-light); }
+
+    @media (max-width: 1024px) {
+      .tribunal-header { flex-direction: column; }
+      .resoluciones-grid { grid-template-columns: 1fr; }
+    }
+  </style>
 </MainLayout>

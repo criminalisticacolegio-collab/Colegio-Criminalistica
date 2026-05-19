@@ -1,4 +1,5 @@
 import { createClient } from '@sanity/client';
+import { enviarConfirmacionAspirante } from '../../lib/email.js';
 
 export const prerender = false;
 
@@ -11,14 +12,9 @@ const client = createClient({
 });
 
 export const POST = async ({ request }) => {
-  console.log('====================================');
-  console.log('RETÉN DE ADUANA - HEADER RECIBIDO:', request.headers.get('content-type'));
-  console.log('====================================');
-
   try {
     const data = await request.formData();
-    
-    // Extracción de campos de texto con data.get()
+
     const nombre = data.get('nombre');
     const apellido = data.get('apellido');
     const dni = data.get('dni');
@@ -27,13 +23,13 @@ export const POST = async ({ request }) => {
     const cuil = data.get('cuil');
     const jurisdiction = data.get('jurisdiction');
     const degree = data.get('degree');
-    
-    // Extracción de archivos
+
     const tituloFile = data.get('titulo_file');
     const dniFile = data.get('dni_file');
     const certificadoFile = data.get('certificado_file');
+    const antecedentesFile = data.get('antecedentes_file');
+    const comprobanteFile = data.get('comprobante_file');
 
-    // Validación básica
     if (!nombre || !apellido || !dni || !email) {
       return new Response(
         JSON.stringify({ message: 'Faltan campos obligatorios en el formulario' }),
@@ -41,10 +37,8 @@ export const POST = async ({ request }) => {
       );
     }
 
-    // Helper de subida secuencial a Sanity
     const uploadAsset = async (file, label) => {
       if (!file || !file.size || file.size === 0) return null;
-      
       const buffer = Buffer.from(await file.arrayBuffer());
       const asset = await client.assets.upload('file', buffer, {
         filename: file.name || `${label}.file`,
@@ -56,8 +50,9 @@ export const POST = async ({ request }) => {
     const tituloId = await uploadAsset(tituloFile, 'Título');
     const dniId = await uploadAsset(dniFile, 'DNI');
     const certId = await uploadAsset(certificadoFile, 'Certificado');
+    const antecedentesId = await uploadAsset(antecedentesFile, 'Antecedentes');
+    const comprobanteId = await uploadAsset(comprobanteFile, 'Comprobante');
 
-    // Documento Sanity
     const doc = {
       _type: 'aspirante',
       nombre,
@@ -71,17 +66,29 @@ export const POST = async ({ request }) => {
       ...(tituloId && { archivoTitulo: { _type: 'file', asset: { _type: 'reference', _ref: tituloId } } }),
       ...(dniId && { archivoDNI: { _type: 'file', asset: { _type: 'reference', _ref: dniId } } }),
       ...(certId && { archivoCertificado: { _type: 'file', asset: { _type: 'reference', _ref: certId } } }),
+      ...(antecedentesId && { archivoAntecedentes: { _type: 'file', asset: { _type: 'reference', _ref: antecedentesId } } }),
+      ...(comprobanteId && { archivoComprobante: { _type: 'file', asset: { _type: 'reference', _ref: comprobanteId } } }),
     };
 
     const result = await client.create(doc);
+
+    // Enviar email de confirmación — no bloqueamos si falla
+    enviarConfirmacionAspirante({
+      nombre,
+      apellido,
+      dni,
+      email,
+      tituloProfesional: degree,
+      cuil,
+      jurisdiccion: jurisdiction,
+    }).catch((err) => console.error('[aspirantes] Error enviando email de confirmación:', err));
 
     return new Response(
       JSON.stringify({ success: true, message: 'Registro exitoso', id: result._id }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
-
   } catch (error) {
-    console.error('Error:', error);
+    console.error('[aspirantes] Error:', error);
     return new Response(
       JSON.stringify({ success: false, message: error.message }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

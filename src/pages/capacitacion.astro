@@ -1,167 +1,1306 @@
 ---
 import MainLayout from '../layouts/MainLayout.astro';
+import { sanityClient } from 'sanity:client';
+import imageUrlBuilder from '@sanity/image-url';
 
-const courses = [
-	{ id: 1, title: 'Introducción al Peritaje Judicial', duration: '10hs', modules: 4, image: 'https://images.unsplash.com/photo-1577412647305-991150c7d163?auto=format&fit=crop&q=80&w=800' },
-	{ id: 2, title: 'Documentoscopia Avanzada', duration: '25hs', modules: 8, image: 'https://images.unsplash.com/photo-1503551723145-6c040742065b?auto=format&fit=crop&q=80&w=800' },
-	{ id: 3, title: 'Informática Forense I', duration: '15hs', modules: 6, image: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=800' },
-];
+const config = await sanityClient.fetch(`*[_type == "capacitacionConfig"][0]{
+  descripcion,
+  cursoDestacado,
+  "cursos": cursos[activo != false] | order(orden asc) {
+    ...,
+    linkPagoExterno
+  },
+  materiales
+}`);
+
+const builder = imageUrlBuilder({ projectId: '8q7vz6co', dataset: 'production' });
+function urlFor(source) {
+  return source ? builder.image(source).width(800).auto('format').url() : null;
+}
+
+function getEmbedUrl(url) {
+  if (!url) return null;
+  const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
+  const vim = url.match(/(?:vimeo\.com\/)(\d+)/);
+  if (vim) return `https://player.vimeo.com/video/${vim[1]}`;
+  return url;
+}
+
+function getYTThumb(url) {
+  const match = url?.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return match ? `https://img.youtube.com/vi/${match[1]}/maxresdefault.jpg` : null;
+}
+
+function getSanityFileUrl(asset) {
+  if (!asset?._ref) return '#';
+  // Sanity file ref: file-XXXX-pdf → https://cdn.sanity.io/files/projectId/dataset/XXXX.pdf
+  const ref = asset._ref.replace('file-', '').replace(/-([^-]+)$/, '.$1');
+  return `https://cdn.sanity.io/files/8q7vz6co/production/${ref}`;
+}
+
+const destacado  = config?.cursoDestacado?.activo ? config.cursoDestacado : null;
+const cursos     = config?.cursos || [];
+const materiales = config?.materiales || [];
+const categorias = ['Todos', ...new Set(cursos.map(c => c.categoria).filter(Boolean))];
+const descripcion = config?.descripcion || 'Plataforma integral de formación para la actualización profesional y científica.';
+
+// Inscripción ya confirmada (redirigido desde MercadoPago)
+const url = Astro.url;
+const inscripcionOk = url.searchParams.get('inscripcion') === 'ok';
+
+function badgeAcceso(tipoAcceso: string | undefined, precioNormal: number | undefined) {
+  if (!tipoAcceso || tipoAcceso === 'gratuito_publico') return { label: 'Gratis', cls: 'access-free' };
+  if (tipoAcceso === 'gratuito_matriculados') return { label: 'Solo matriculados', cls: 'access-mat' };
+  const p = (precioNormal || 0).toLocaleString('es-AR');
+  return { label: `$${p}`, cls: 'access-paid' };
+}
 ---
 
 <MainLayout title="Capacitación" showBack={true}>
-	<div class="container page-content">
-		<header class="section-header">
-			<span class="sub-title">Campus Virtual</span>
-			<h1>Capacitación Continua</h1>
-			<p>Plataforma integral de formación para la actualización profesional y científica.</p>
-		</header>
 
-		<section class="featured-lms glass">
-			<div class="lms-badge">En Vivo</div>
-			<div class="featured-grid">
-				<div class="featured-video">
-					<div class="video-placeholder">
-						<div class="play-btn">▶</div>
-						<span>Previsualización del Curso</span>
-					</div>
-				</div>
-				<div class="featured-details">
-					<h2>Diplomatura en Criminalística Digital</h2>
-					<p>Un recorrido exhaustivo por las nuevas fronteras de la evidencia informática y el peritaje en entornos virtuales. Incluye prácticas en laboratorio remoto.</p>
-					<ul class="feat-list">
-						<li>✅ 40 Horas de contenido</li>
-						<li>✅ Clases sincrónicas y asincrónicas</li>
-						<li>✅ Examen final con certificación oficial</li>
-					</ul>
-					<button class="btn-primary">Inscribirme ahora</button>
-				</div>
-			</div>
-		</section>
+  <!-- ════════════════════ BANNER: inscripción exitosa ═══════ -->
+  {inscripcionOk && (
+    <div class="success-banner" id="success-banner">
+      ✅ ¡Inscripción confirmada! Recibirás un email con los detalles.
+      <button onclick="document.getElementById('success-banner').remove()" class="banner-close">✕</button>
+    </div>
+  )}
 
-		<section class="courses-section">
-			<div class="section-title-alt">
-				<h2>Cursos y Seminarios</h2>
-				<div class="filters">
-					<button class="filter-btn active">Todos</button>
-					<button class="filter-btn">Pericial</button>
-					<button class="filter-btn">Legal</button>
-					<button class="filter-btn">Técnico</button>
-				</div>
-			</div>
+  <!-- ════════════════════ MODAL de VIDEO ════════════════════ -->
+  <div id="video-modal" class="vmodal-overlay" aria-modal="true" role="dialog" aria-hidden="true">
+    <div class="vmodal-card">
+      <button id="close-modal" class="vmodal-close" aria-label="Cerrar video">✕</button>
+      <div class="vmodal-title-bar">
+        <span id="modal-title" class="vmodal-title"></span>
+      </div>
+      <div class="vmodal-frame-wrapper">
+        <iframe
+          id="modal-iframe"
+          src=""
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowfullscreen
+          frameborder="0"
+          title="Video del curso"
+        ></iframe>
+      </div>
+    </div>
+  </div>
 
-			<div class="courses-grid">
-				{courses.map(course => (
-					<div class="course-card">
-						<div class="card-image">
-							<img src={course.image} alt={course.title} />
-							<div class="meta-overlay">
-								<span>{course.duration}</span>
-								<span>{course.modules} Módulos</span>
-							</div>
-						</div>
-						<div class="card-body">
-							<h3>{course.title}</h3>
-							<p>Contenido actualizado según las últimas normativas vigentes en la provincia.</p>
-							<div class="card-footer">
-								<a href="#" class="link-more">Ver detalles →</a>
-								<button class="btn-sm">Acceder</button>
-							</div>
-						</div>
-					</div>
-				))}
-			</div>
-		</section>
+  <!-- ════════════════════ MODAL de INSCRIPCIÓN ═══════════════ -->
+  <div id="enroll-modal" class="emodal-overlay" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="emodal-card">
+      <button id="enroll-close" class="emodal-close" aria-label="Cerrar">✕</button>
 
-		<section class="material-download glass">
-			<div class="material-content">
-				<h3>Material y Biblioteca</h3>
-				<p>Acceda a guías rápidas, protocolos de actuación y bibliografía recomendada para sus peritajes.</p>
-			</div>
-			<div class="material-actions">
-				<a href="#" class="download-item">
-					<span class="icon">📄</span>
-					<div class="d-text">
-						<strong>Guía Procedimiento</strong>
-						<span>PDF - 2.4 MB</span>
-					</div>
-				</a>
-				<a href="#" class="download-item">
-					<span class="icon">📁</span>
-					<div class="d-text">
-						<strong>Protocolos 2024</strong>
-						<span>ZIP - 15.0 MB</span>
-					</div>
-				</a>
-			</div>
-		</section>
-	</div>
+      <!-- Paso: autenticación -->
+      <div id="emodal-step-auth" class="emodal-step">
+        <div class="emodal-header">
+          <h3>Inscribirse al curso</h3>
+          <p id="emodal-course-display" class="emodal-course-name"></p>
+        </div>
+        <div id="emodal-price-row" class="emodal-price-row"></div>
+        <div class="form-tabs">
+          <button class="tab-btn active" data-tab="login">Ya tengo cuenta</button>
+          <button class="tab-btn" data-tab="register">Crear cuenta</button>
+        </div>
+        <div class="emodal-form">
+          <input type="email" id="emodal-email" placeholder="Tu email" autocomplete="email" />
+          <input type="text" id="emodal-nombre" placeholder="Tu nombre completo" autocomplete="name" class="emodal-hidden" />
+          <input type="password" id="emodal-pass" placeholder="Contraseña" autocomplete="current-password" />
+          <p id="emodal-error" class="emodal-error emodal-hidden"></p>
+          <button id="emodal-submit" class="emodal-btn-primary">Continuar</button>
+        </div>
+      </div>
 
-	<style>
-		.page-content { padding: 5rem 0; }
-		
-		.section-header { text-align: center; margin-bottom: 5rem; }
-		.sub-title { color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.9rem; display: block; margin-bottom: 1rem; }
-		.section-header h1 { font-size: clamp(2.5rem, 5vw, 3.5rem); margin-bottom: 1.5rem; color: var(--accent); }
-		.section-header p { font-size: 1.25rem; color: var(--text-light); max-width: 800px; margin: 0 auto; }
+      <!-- Paso: procesando -->
+      <div id="emodal-step-processing" class="emodal-step emodal-hidden">
+        <div class="emodal-spinner"></div>
+        <p class="emodal-processing-text">Procesando tu inscripción…</p>
+      </div>
 
-		.featured-lms { border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--gray-300); margin-bottom: 7rem; position: relative; }
-		.lms-badge { position: absolute; top: 1.5rem; left: 1.5rem; background: #e74c3c; color: white; padding: 0.35rem 1rem; border-radius: 20px; font-weight: 700; font-size: 0.75rem; z-index: 10; animation: pulse 2s infinite; }
-		
-		@keyframes pulse {
-			0% { opacity: 1; }
-			50% { opacity: 0.7; }
-			100% { opacity: 1; }
-		}
+      <!-- Paso: éxito -->
+      <div id="emodal-step-success" class="emodal-step emodal-hidden">
+        <div class="emodal-success-icon">✅</div>
+        <h3>¡Inscripción confirmada!</h3>
+        <p id="emodal-success-msg">Recibirás un email con los detalles.</p>
+        <button id="emodal-done" class="emodal-btn-primary">Cerrar</button>
+      </div>
+    </div>
+  </div>
 
-		.featured-grid { display: grid; grid-template-columns: 1.25fr 1fr; }
-		.featured-video { background: #000; display: flex; align-items: center; justify-content: center; min-height: 400px; }
-		.video-placeholder { text-align: center; color: white; display: flex; flex-direction: column; align-items: center; gap: 1rem; }
-		.play-btn { width: 80px; height: 80px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; border: 4px solid rgba(255,255,255,0.2); transition: var(--transition); cursor: pointer; }
-		.play-btn:hover { transform: scale(1.1); background: var(--primary-hover); }
-		
-		.featured-details { padding: 4rem; display: flex; flex-direction: column; justify-content: center; }
-		.featured-details h2 { font-size: 2.25rem; margin-bottom: 1.5rem; }
-		.featured-details p { font-size: 1.1rem; line-height: 1.7; color: var(--text-light); margin-bottom: 2rem; }
-		.feat-list { list-style: none; margin-bottom: 2.5rem; }
-		.feat-list li { margin-bottom: 0.75rem; font-weight: 600; color: var(--accent); }
+  <div class="container page-content">
 
-		.btn-primary { background: var(--primary); color: white; border: none; padding: 1.1rem 2rem; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; font-size: 1rem; width: fit-content; transition: var(--transition); }
-		.btn-primary:hover { background: var(--primary-hover); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    <!-- ══════════════════ ENCABEZADO ══════════════════ -->
+    <header class="section-header">
+      <span class="sub-title">Campus Virtual</span>
+      <h1>Capacitación Continua</h1>
+      <p>{descripcion}</p>
+    </header>
 
-		.section-title-alt { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3rem; }
-		.filters { display: flex; gap: 0.75rem; }
-		.filter-btn { background: var(--white); border: 1px solid var(--gray-300); padding: 0.5rem 1.25rem; border-radius: 30px; font-weight: 600; cursor: pointer; transition: var(--transition); }
-		.filter-btn.active, .filter-btn:hover { background: var(--primary); border-color: var(--primary); color: white; }
+    <!-- ══════════════════ HERO: CURSO DESTACADO ══════════════════ -->
+    {destacado ? (
+      <section class="featured-hero glass">
+        <div class="hero-badge">{destacado.badge || 'Destacado'}</div>
+        <div class="hero-grid">
 
-		.courses-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2.5rem; margin-bottom: 7rem; }
-		.course-card { background: var(--white); border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--gray-200); transition: var(--transition); }
-		.course-card:hover { transform: translateY(-8px); box-shadow: var(--shadow-lg); border-color: var(--primary); }
-		.card-image { height: 200px; position: relative; }
-		.card-image img { width: 100%; height: 100%; object-fit: cover; }
-		.meta-overlay { position: absolute; bottom: 1rem; right: 1rem; background: rgba(0,0,0,0.7); color: white; padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.8rem; display: flex; gap: 0.75rem; font-weight: 600; }
+          <!-- Video / Thumbnail -->
+          <div class="hero-media" id="hero-media">
+            {getEmbedUrl(destacado.videoUrl) ? (
+              <div
+                class="hero-thumb-wrapper"
+                data-embed={getEmbedUrl(destacado.videoUrl)}
+                id="hero-thumb-trigger"
+                role="button"
+                tabindex="0"
+                aria-label={`Reproducir: ${destacado.titulo}`}
+              >
+                <img
+                  src={getYTThumb(destacado.videoUrl) || '/placeholder-video.jpg'}
+                  alt={destacado.titulo}
+                  class="hero-thumb-img"
+                  onerror="this.style.display='none'; this.nextElementSibling.style.background='#111';"
+                />
+                <div class="hero-play-overlay">
+                  <div class="hero-play-btn" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="white" width="40" height="40">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                  </div>
+                  <span>Reproducir video</span>
+                </div>
+              </div>
+            ) : (
+              <div class="hero-no-video">
+                <div class="no-video-icon">🎓</div>
+                <span>Próximamente</span>
+              </div>
+            )}
+          </div>
 
-		.card-body { padding: 1.75rem; }
-		.card-body h3 { font-size: 1.25rem; margin-bottom: 0.75rem; }
-		.card-body p { font-size: 0.95rem; color: var(--text-light); line-height: 1.6; margin-bottom: 1.5rem; }
-		.card-footer { display: flex; justify-content: space-between; align-items: center; }
-		.link-more { color: var(--primary); text-decoration: none; font-weight: 700; font-size: 0.9rem; }
-		.btn-sm { background: var(--gray-100); border: 1px solid var(--gray-300); padding: 0.5rem 1rem; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: var(--transition); }
-		.btn-sm:hover { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+          <!-- Detalle -->
+          <div class="hero-details">
+            <h2>{destacado.titulo}</h2>
+            <p>{destacado.descripcion}</p>
+            {(destacado.caracteristicas?.length > 0) && (
+              <ul class="hero-feat-list">
+                {destacado.caracteristicas.map(f => (
+                  <li><span class="feat-check">✅</span>{f}</li>
+                ))}
+              </ul>
+            )}
+            <div class="hero-meta">
+              {destacado.duracion && (
+                <div class="hero-meta-item">
+                  <span class="meta-icon">⏱</span>
+                  <div><strong>{destacado.duracion}</strong><span>Duración</span></div>
+                </div>
+              )}
+              {destacado.modulos && (
+                <div class="hero-meta-item">
+                  <span class="meta-icon">📚</span>
+                  <div><strong>{destacado.modulos} módulos</strong><span>Contenido</span></div>
+                </div>
+              )}
+            </div>
+            {getEmbedUrl(destacado.videoUrl) && (
+              <button
+                class="btn-hero-play"
+                data-embed={getEmbedUrl(destacado.videoUrl)}
+                data-title={destacado.titulo}
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M8 5v14l11-7z"/></svg>
+                ▶ Ver Video en YouTube
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+    ) : (
+      <!-- Placeholder si no hay curso destacado configurado en Sanity -->
+      <section class="featured-hero glass placeholder-hero">
+        <div class="hero-badge">Próximamente</div>
+        <div class="placeholder-content">
+          <div class="placeholder-icon">🎓</div>
+          <h2>Curso Destacado</h2>
+          <p>Configurá el curso destacado desde el panel de administración de Sanity.</p>
+        </div>
+      </section>
+    )}
 
-		.material-download { padding: 3rem; border-radius: var(--radius-lg); display: flex; justify-content: space-between; align-items: center; gap: 3rem; }
-		.material-content h3 { font-size: 1.75rem; margin-bottom: 0.75rem; }
-		.material-content p { color: var(--text-light); max-width: 500px; }
-		.material-actions { display: flex; gap: 1.5rem; }
-		.download-item { background: var(--white); padding: 1rem 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--gray-200); display: flex; align-items: center; gap: 1rem; text-decoration: none; color: var(--text-main); transition: var(--transition); }
-		.download-item:hover { border-color: var(--primary); transform: translateY(-3px); box-shadow: var(--shadow-sm); }
-		.download-item .icon { font-size: 1.5rem; }
-		.d-text { display: flex; flex-direction: column; }
-		.d-text strong { font-size: 0.9rem; }
-		.d-text span { font-size: 0.75rem; color: var(--text-light); }
+    <!-- ══════════════════ CURSOS Y SEMINARIOS ══════════════════ -->
+    <section class="courses-section">
+      <div class="section-title-alt">
+        <h2>Cursos y Seminarios</h2>
+        <div class="filters" id="filter-group" role="group" aria-label="Filtrar por categoría">
+          {categorias.map((cat, i) => (
+            <button
+              class={`filter-btn${i === 0 ? ' active' : ''}`}
+              data-filter={cat}
+              aria-pressed={i === 0 ? 'true' : 'false'}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
 
-		@media (max-width: 1024px) {
-			.featured-grid { grid-template-columns: 1fr; }
-			.material-download { flex-direction: column; text-align: center; }
-		}
-	</style>
+      {cursos.length > 0 ? (
+        <div class="courses-grid" id="courses-grid">
+          {cursos.map(course => {
+            const imgSrc = course.imagen ? urlFor(course.imagen) : getYTThumb(course.videoUrl);
+            const embedUrl = getEmbedUrl(course.videoUrl);
+            return (
+              <article
+                class="course-card"
+                data-cat={course.categoria || 'Todos'}
+                aria-label={course.titulo}
+              >
+                <div class="card-media">
+                  {imgSrc ? (
+                    <img src={imgSrc} alt={course.titulo} loading="lazy" />
+                  ) : (
+                    <div class="card-img-placeholder">🎓</div>
+                  )}
+
+                  {course.categoria && (
+                    <span class={`cat-badge cat-${(course.categoria || '').toLowerCase()}`}>
+                      {course.categoria}
+                    </span>
+                  )}
+
+                  {embedUrl && (
+                    <button
+                      class="card-play-btn"
+                      data-embed={embedUrl}
+                      data-title={course.titulo}
+                      aria-label={`Ver video: ${course.titulo}`}
+                    >
+                      <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><path d="M8 5v14l11-7z"/></svg>
+                    </button>
+                  )}
+
+                  <div class="card-meta-overlay">
+                    {course.duracion && <span>⏱ {course.duracion}</span>}
+                    {course.modulos && <span>📚 {course.modulos} mód.</span>}
+                  </div>
+                </div>
+
+                <div class="card-body">
+                  <h3>{course.titulo}</h3>
+                  {course.descripcion && <p>{course.descripcion}</p>}
+
+                  {(() => {
+                    const b = badgeAcceso(course.tipoAcceso, course.precioNormal);
+                    return <span class={`access-badge ${b.cls}`}>{b.label}</span>;
+                  })()}
+
+                  <div class="card-actions">
+                    {embedUrl ? (
+                      <button
+                        class="btn-watch"
+                        data-embed={embedUrl}
+                        data-title={course.titulo}
+                      >
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M8 5v14l11-7z"/></svg>
+                        ▶ Ver Video en YouTube
+                      </button>
+                    ) : (
+                      <span class="no-video-badge">Sin video aún</span>
+                    )}
+
+                    {course._key && (
+                      <button
+                        class="btn-inscribir"
+                        data-key={course._key}
+                        data-titulo={course.titulo}
+                        data-tipo={course.tipoAcceso || 'gratuito_publico'}
+                        data-precio={String(course.precioNormal ?? '')}
+                        data-precio-mat={String(course.precioMatriculado ?? '')}
+                        data-link-externo={course.linkPagoExterno || ''}
+                      >
+                        Inscribirse
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      ) : (
+        <div class="empty-courses">
+          <div class="empty-icon">📋</div>
+          <h3>Sin cursos publicados</h3>
+          <p>Agregá cursos desde el panel de Sanity Studio en <code>/admin-colegio</code>.</p>
+        </div>
+      )}
+    </section>
+
+    <!-- ══════════════════ MATERIALES DESCARGABLES ══════════════════ -->
+    {materiales.length > 0 && (
+      <section class="materials-section glass">
+        <div class="materials-header">
+          <div>
+            <h3>Material y Biblioteca</h3>
+            <p>Documentos, protocolos y bibliografía para tu práctica profesional.</p>
+          </div>
+        </div>
+        <div class="materials-grid">
+          {materiales.map(mat => (
+            <a
+              href={getSanityFileUrl(mat.archivo?.asset)}
+              class="material-card"
+              target="_blank"
+              rel="noopener noreferrer"
+              download
+            >
+              <span class="mat-icon">{mat.icono || '📄'}</span>
+              <div class="mat-info">
+                <strong>{mat.titulo}</strong>
+                {mat.descripcion && <span>{mat.descripcion}</span>}
+              </div>
+              <span class="mat-arrow">↓</span>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
+
+  </div><!-- /container -->
 </MainLayout>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<script>
+  import { auth } from '../lib/firebase.js';
+  import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+
+  // ── Inscripción ───────────────────────────────────────────
+  interface CourseData { key: string; titulo: string; tipo: string; precio: string; precioMat: string; }
+  let currentCourse: CourseData | null = null;
+  let enrollMode: 'login' | 'register' = 'login';
+
+  const enrollModal   = document.getElementById('enroll-modal') as HTMLDivElement;
+  const stepAuth      = document.getElementById('emodal-step-auth') as HTMLDivElement;
+  const stepProcess   = document.getElementById('emodal-step-processing') as HTMLDivElement;
+  const stepSuccess   = document.getElementById('emodal-step-success') as HTMLDivElement;
+  const emailInput    = document.getElementById('emodal-email') as HTMLInputElement;
+  const passInput     = document.getElementById('emodal-pass') as HTMLInputElement;
+  const nombreInput   = document.getElementById('emodal-nombre') as HTMLInputElement;
+  const errorEl       = document.getElementById('emodal-error') as HTMLParagraphElement;
+  const priceRow      = document.getElementById('emodal-price-row') as HTMLDivElement;
+  const courseDisplay = document.getElementById('emodal-course-display') as HTMLParagraphElement;
+  const successMsg    = document.getElementById('emodal-success-msg') as HTMLParagraphElement;
+
+  function showEnrollStep(step: 'auth' | 'processing' | 'success') {
+    stepAuth.classList.toggle('emodal-hidden', step !== 'auth');
+    stepProcess.classList.toggle('emodal-hidden', step !== 'processing');
+    stepSuccess.classList.toggle('emodal-hidden', step !== 'success');
+  }
+
+  function openEnrollModal(course: CourseData) {
+    currentCourse = course;
+    courseDisplay.textContent = course.titulo;
+    errorEl.classList.add('emodal-hidden');
+    errorEl.textContent = '';
+    emailInput.value = '';
+    passInput.value = '';
+    nombreInput.value = '';
+
+    // Precio badge
+    const tipo = course.tipo;
+    if (tipo === 'gratuito_publico') {
+      priceRow.innerHTML = '<span class="eprice-badge eprice-free">Acceso gratuito</span>';
+    } else if (tipo === 'gratuito_matriculados') {
+      priceRow.innerHTML = '<span class="eprice-badge eprice-mat">Gratuito — solo matriculados</span>';
+    } else if (tipo === 'pago_matriculados' && course.precioMat) {
+      priceRow.innerHTML = `<span class="eprice-badge eprice-paid">$${course.precio} · Matriculados: $${course.precioMat}</span>`;
+    } else {
+      priceRow.innerHTML = `<span class="eprice-badge eprice-paid">$${course.precio}</span>`;
+    }
+
+    showEnrollStep('auth');
+    enrollModal.setAttribute('aria-hidden', 'false');
+    enrollModal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    emailInput.focus();
+  }
+
+  function closeEnrollModal() {
+    enrollModal.setAttribute('aria-hidden', 'true');
+    enrollModal.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  // Abrir modal al hacer click en "Inscribirse"
+  document.querySelectorAll<HTMLButtonElement>('.btn-inscribir').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const linkExterno = btn.dataset.linkExterno?.trim();
+      if (linkExterno) {
+        window.open(linkExterno, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      openEnrollModal({
+        key: btn.dataset.key!,
+        titulo: btn.dataset.titulo!,
+        tipo: btn.dataset.tipo || 'gratuito_publico',
+        precio: btn.dataset.precio || '0',
+        precioMat: btn.dataset.precioMat || '',
+      });
+    });
+  });
+
+  // Tabs login / register
+  document.querySelectorAll<HTMLButtonElement>('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      enrollMode = btn.dataset.tab as 'login' | 'register';
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+      nombreInput.classList.toggle('emodal-hidden', enrollMode !== 'register');
+      passInput.autocomplete = enrollMode === 'login' ? 'current-password' : 'new-password';
+      errorEl.classList.add('emodal-hidden');
+    });
+  });
+
+  // Submit inscripción
+  document.getElementById('emodal-submit')?.addEventListener('click', async () => {
+    const email = emailInput.value.trim();
+    const pass = passInput.value;
+    const nombre = nombreInput.value.trim();
+
+    if (!email || !pass) {
+      errorEl.textContent = 'Completá tu email y contraseña.';
+      errorEl.classList.remove('emodal-hidden');
+      return;
+    }
+
+    errorEl.classList.add('emodal-hidden');
+    showEnrollStep('processing');
+
+    try {
+      if (!auth) {
+        showEnrollStep('auth');
+        errorEl.textContent = 'Sistema de autenticación no disponible. Contactá al Colegio para inscribirte.';
+        errorEl.classList.remove('emodal-hidden');
+        return;
+      }
+
+      // Firebase auth
+      let credential;
+      if (enrollMode === 'login') {
+        credential = await signInWithEmailAndPassword(auth, email, pass);
+      } else {
+        credential = await createUserWithEmailAndPassword(auth, email, pass);
+      }
+
+      const userEmail = credential.user.email!;
+      const displayName = credential.user.displayName || nombre || userEmail;
+
+      // Llamar a la API de inscripción
+      const res = await fetch('/api/inscribir', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cursoKey: currentCourse!.key,
+          email: userEmail,
+          nombre: displayName,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.mpUrl) {
+        window.location.href = data.mpUrl;
+        return;
+      }
+
+      if (data.error) {
+        showEnrollStep('auth');
+        errorEl.textContent = data.error;
+        errorEl.classList.remove('emodal-hidden');
+        return;
+      }
+
+      successMsg.textContent = data.message || 'Recibirás un email con los detalles.';
+      showEnrollStep('success');
+
+    } catch (err: any) {
+      showEnrollStep('auth');
+      const code = err?.code || '';
+      let msg = 'Error al procesar. Intentá de nuevo.';
+      if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found') {
+        msg = 'Email o contraseña incorrectos.';
+      } else if (code === 'auth/email-already-in-use') {
+        msg = 'El email ya está registrado. Usá "Ya tengo cuenta".';
+      } else if (code === 'auth/weak-password') {
+        msg = 'La contraseña debe tener al menos 6 caracteres.';
+      } else if (code === 'auth/invalid-email') {
+        msg = 'Email inválido.';
+      } else if (code === 'auth/network-request-failed') {
+        msg = 'Sin conexión. Verificá tu internet e intentá de nuevo.';
+      } else if (code === 'auth/too-many-requests') {
+        msg = 'Demasiados intentos. Esperá unos minutos e intentá de nuevo.';
+      }
+      errorEl.textContent = msg;
+      errorEl.classList.remove('emodal-hidden');
+    }
+  });
+
+  document.getElementById('enroll-close')?.addEventListener('click', closeEnrollModal);
+  document.getElementById('emodal-done')?.addEventListener('click', closeEnrollModal);
+  enrollModal?.addEventListener('click', (e) => { if (e.target === enrollModal) closeEnrollModal(); });
+
+  // ── Helpers ───────────────────────────────────────────────
+  const modal     = document.getElementById('video-modal') as HTMLDivElement;
+  const iframe    = document.getElementById('modal-iframe') as HTMLIFrameElement;
+  const modalTitle = document.getElementById('modal-title') as HTMLSpanElement;
+  const closeBtn  = document.getElementById('close-modal') as HTMLButtonElement;
+
+  function openModal(embedUrl: string, title: string) {
+    iframe.src = embedUrl + '?autoplay=1&rel=0';
+    modalTitle.textContent = title;
+    modal.setAttribute('aria-hidden', 'false');
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal() {
+    iframe.src = '';
+    modal.setAttribute('aria-hidden', 'true');
+    modal.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  closeBtn?.addEventListener('click', closeModal);
+  modal?.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeModal();
+      closeEnrollModal();
+    }
+  });
+
+  // ── Botones de video: modal en página (fallback nueva pestaña) ─
+  function embedToWatchUrl(embedUrl: string): string {
+    const ytMatch = embedUrl.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/);
+    if (ytMatch) return `https://www.youtube.com/watch?v=${ytMatch[1]}`;
+    const vimeoMatch = embedUrl.match(/player\.vimeo\.com\/video\/(\d+)/);
+    if (vimeoMatch) return `https://vimeo.com/${vimeoMatch[1]}`;
+    return embedUrl;
+  }
+
+  document.querySelectorAll<HTMLButtonElement>('[data-embed][data-title]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const embed = btn.dataset.embed!;
+      const title = btn.dataset.title!;
+      if (modal && iframe) {
+        openModal(embed, title);
+      } else {
+        window.open(embedToWatchUrl(embed), '_blank', 'noopener,noreferrer');
+      }
+    });
+  });
+
+  // ── Hero: click en thumbnail → reproduce inline ──────────
+  const heroTrigger = document.getElementById('hero-thumb-trigger') as HTMLDivElement | null;
+  if (heroTrigger) {
+    const activateHero = () => {
+      const embedUrl = heroTrigger.dataset.embed!;
+      const heroMedia = document.getElementById('hero-media') as HTMLDivElement;
+      const ifr = document.createElement('iframe');
+      ifr.src = embedUrl + '?autoplay=1&rel=0';
+      ifr.allow = 'autoplay; fullscreen; picture-in-picture';
+      ifr.allowFullscreen = true;
+      ifr.title = 'Video del curso destacado';
+      ifr.style.cssText = 'width:100%;height:100%;border:none;';
+      heroMedia.style.background = '#000';
+      heroMedia.innerHTML = '';
+      heroMedia.appendChild(ifr);
+    };
+    heroTrigger.addEventListener('click', activateHero);
+    heroTrigger.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') activateHero(); });
+  }
+
+  // ── Filtros de categoría ──────────────────────────────────
+  const filterBtns = document.querySelectorAll<HTMLButtonElement>('.filter-btn');
+  const cards      = document.querySelectorAll<HTMLElement>('.course-card');
+
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const filter = btn.dataset.filter!;
+
+      filterBtns.forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
+
+      cards.forEach(card => {
+        const cat = card.dataset.cat || 'Todos';
+        const show = filter === 'Todos' || cat === filter;
+        card.style.display = show ? '' : 'none';
+        card.style.animation = show ? 'fadeIn 0.25s ease' : '';
+      });
+    });
+  });
+</script>
+
+<style>
+  /* ── Layout general ────────────────────────────────────── */
+  .page-content { padding: 5rem 0 6rem; }
+
+  .section-header { text-align: center; margin-bottom: 4rem; }
+  .sub-title { color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.9rem; display: block; margin-bottom: 1rem; }
+  .section-header h1 { font-size: clamp(2.5rem, 5vw, 3.5rem); margin-bottom: 1.5rem; color: var(--accent); }
+  .section-header p { font-size: 1.2rem; color: var(--text-light); max-width: 700px; margin: 0 auto; line-height: 1.6; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  /* ── Hero / Curso destacado ─────────────────────────────── */
+  .featured-hero {
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--gray-200);
+    overflow: hidden;
+    margin-bottom: 6rem;
+    position: relative;
+    background: var(--white);
+  }
+
+  .hero-badge {
+    position: absolute;
+    top: 1.25rem;
+    left: 1.25rem;
+    background: #e74c3c;
+    color: white;
+    padding: 0.3rem 0.9rem;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    z-index: 10;
+    animation: pulse 2.5s infinite;
+  }
+
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.65; } }
+
+  .hero-grid { display: grid; grid-template-columns: 1.2fr 1fr; min-height: 420px; }
+
+  .hero-media {
+    background: #0a0a0a;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 380px;
+  }
+
+  .hero-thumb-wrapper {
+    position: absolute;
+    inset: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .hero-thumb-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease;
+  }
+
+  .hero-thumb-wrapper:hover .hero-thumb-img { transform: scale(1.03); }
+
+  .hero-play-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    transition: background 0.3s;
+  }
+
+  .hero-thumb-wrapper:hover .hero-play-overlay { background: rgba(0,0,0,0.5); }
+
+  .hero-play-btn {
+    width: 80px;
+    height: 80px;
+    background: var(--primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 0 8px rgba(27,94,32,0.3);
+    transition: transform 0.25s, box-shadow 0.25s;
+  }
+
+  .hero-thumb-wrapper:hover .hero-play-btn {
+    transform: scale(1.12);
+    box-shadow: 0 0 0 12px rgba(27,94,32,0.2);
+  }
+
+  .hero-play-overlay span { color: white; font-weight: 600; font-size: 0.9rem; letter-spacing: 0.03em; }
+
+  .hero-no-video {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    color: rgba(255,255,255,0.5);
+  }
+  .no-video-icon { font-size: 3.5rem; }
+
+  .hero-details {
+    padding: 3.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1.25rem;
+  }
+
+  .hero-details h2 { font-size: clamp(1.5rem, 2.5vw, 2.1rem); color: var(--accent); line-height: 1.25; }
+  .hero-details p { font-size: 1rem; color: var(--text-light); line-height: 1.7; }
+
+  .hero-feat-list { list-style: none; display: flex; flex-direction: column; gap: 0.6rem; }
+  .hero-feat-list li { display: flex; align-items: center; gap: 0.6rem; font-size: 0.95rem; font-weight: 600; color: var(--accent); }
+  .feat-check { flex-shrink: 0; }
+
+  .hero-meta { display: flex; gap: 2rem; margin-top: 0.25rem; }
+  .hero-meta-item { display: flex; align-items: center; gap: 0.75rem; }
+  .meta-icon { font-size: 1.5rem; }
+  .hero-meta-item div { display: flex; flex-direction: column; }
+  .hero-meta-item strong { font-size: 1rem; color: var(--accent); font-weight: 800; }
+  .hero-meta-item span { font-size: 0.75rem; color: var(--text-light); text-transform: uppercase; font-weight: 600; }
+
+  .btn-hero-play {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.9rem 1.75rem;
+    border-radius: var(--radius-md);
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    width: fit-content;
+    transition: var(--transition);
+  }
+  .btn-hero-play:hover { background: var(--primary-hover); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
+  /* Placeholder hero */
+  .placeholder-hero .hero-grid { display: block; }
+  .placeholder-content { padding: 5rem; text-align: center; }
+  .placeholder-icon { font-size: 3rem; margin-bottom: 1rem; }
+  .placeholder-content h2 { color: var(--accent); margin-bottom: 0.75rem; }
+  .placeholder-content p { color: var(--text-light); }
+
+  /* ── Cursos: header + filtros ──────────────────────────── */
+  .courses-section { margin-bottom: 6rem; }
+
+  .section-title-alt {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2.5rem;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .section-title-alt h2 { font-size: 1.75rem; color: var(--accent); }
+
+  .filters { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+  .filter-btn {
+    background: var(--white);
+    border: 1.5px solid var(--gray-300);
+    padding: 0.45rem 1.1rem;
+    border-radius: 30px;
+    font-weight: 600;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: var(--transition);
+    color: var(--text-main);
+  }
+  .filter-btn.active,
+  .filter-btn:hover { background: var(--primary); border-color: var(--primary); color: white; }
+
+  /* ── Grilla de cursos ──────────────────────────────────── */
+  .courses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+  }
+
+  .course-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--gray-200);
+    overflow: hidden;
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+  }
+  .course-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); border-color: rgba(27,94,32,0.3); }
+
+  .card-media {
+    position: relative;
+    height: 210px;
+    background: #1a1a1a;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .card-media img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease; }
+  .course-card:hover .card-media img { transform: scale(1.05); }
+
+  .card-img-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3.5rem;
+    background: linear-gradient(135deg, #1b5e20, #2e7d32);
+  }
+
+  /* Badge de categoría */
+  .cat-badge {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    backdrop-filter: blur(6px);
+  }
+  .cat-pericial  { background: rgba(27,94,32,0.85); color: white; }
+  .cat-legal     { background: rgba(44,62,80,0.85); color: white; }
+  .cat-técnico   { background: rgba(139,90,43,0.85); color: white; }
+  .cat-digital   { background: rgba(74,20,140,0.85); color: white; }
+
+  /* Botón play sobre la imagen */
+  .card-play-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    width: 56px;
+    height: 56px;
+    background: rgba(27,94,32,0.9);
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.25s, transform 0.25s;
+    backdrop-filter: blur(4px);
+    color: white;
+  }
+  .course-card:hover .card-play-btn { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+  .card-meta-overlay {
+    position: absolute;
+    bottom: 0.75rem;
+    right: 0.75rem;
+    display: flex;
+    gap: 0.5rem;
+  }
+  .card-meta-overlay span {
+    background: rgba(0,0,0,0.7);
+    color: white;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    backdrop-filter: blur(4px);
+  }
+
+  .card-body { padding: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; flex: 1; }
+  .card-body h3 { font-size: 1.1rem; color: var(--accent); line-height: 1.35; }
+  .card-body p { font-size: 0.9rem; color: var(--text-light); line-height: 1.6; flex: 1; }
+
+  .card-actions { display: flex; align-items: center; gap: 1rem; margin-top: auto; }
+
+  .btn-watch {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.55rem 1.1rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: var(--transition);
+  }
+  .btn-watch:hover { background: var(--primary-hover); transform: translateY(-1px); }
+
+  .no-video-badge {
+    font-size: 0.8rem;
+    color: var(--text-light);
+    font-style: italic;
+  }
+
+  /* Estado vacío */
+  .empty-courses {
+    text-align: center;
+    padding: 5rem 2rem;
+    background: var(--gray-50);
+    border-radius: var(--radius-lg);
+    border: 2px dashed var(--gray-300);
+  }
+  .empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+  .empty-courses h3 { color: var(--accent); margin-bottom: 0.5rem; }
+  .empty-courses p { color: var(--text-light); font-size: 0.95rem; }
+  .empty-courses code { background: var(--gray-100); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.85rem; }
+
+  /* ── Materiales ─────────────────────────────────────────── */
+  .materials-section {
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--gray-200);
+    padding: 3rem;
+  }
+
+  .materials-header { margin-bottom: 2rem; }
+  .materials-header h3 { font-size: 1.5rem; color: var(--accent); margin-bottom: 0.4rem; }
+  .materials-header p { color: var(--text-light); font-size: 0.95rem; }
+
+  .materials-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .material-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    color: var(--text-main);
+    transition: var(--transition);
+  }
+  .material-card:hover { border-color: var(--primary); transform: translateY(-3px); box-shadow: var(--shadow-md); }
+
+  .mat-icon { font-size: 1.75rem; flex-shrink: 0; }
+  .mat-info { display: flex; flex-direction: column; gap: 0.2rem; flex: 1; }
+  .mat-info strong { font-size: 0.9rem; font-weight: 700; color: var(--accent); }
+  .mat-info span { font-size: 0.78rem; color: var(--text-light); }
+  .mat-arrow { font-size: 1.1rem; color: var(--primary); font-weight: 700; flex-shrink: 0; }
+
+  /* ── Modal de video ─────────────────────────────────────── */
+  .vmodal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+
+  .vmodal-overlay.open { opacity: 1; pointer-events: auto; }
+
+  .vmodal-card {
+    background: #111;
+    border-radius: 16px;
+    overflow: hidden;
+    width: 100%;
+    max-width: 900px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+    transform: scale(0.95);
+    transition: transform 0.25s ease;
+    position: relative;
+  }
+  .vmodal-overlay.open .vmodal-card { transform: scale(1); }
+
+  .vmodal-title-bar {
+    padding: 0.9rem 3.5rem 0.9rem 1.25rem;
+    background: rgba(255,255,255,0.05);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .vmodal-title { color: white; font-size: 0.9rem; font-weight: 600; }
+
+  .vmodal-close {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.75rem;
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: white;
+    font-size: 1rem;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    z-index: 10;
+  }
+  .vmodal-close:hover { background: rgba(255,255,255,0.25); }
+
+  .vmodal-frame-wrapper {
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 */
+    height: 0;
+    overflow: hidden;
+  }
+  .vmodal-frame-wrapper iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
+  /* ── Botón Inscribirse ───────────────────────────────────── */
+  .btn-inscribir {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: transparent;
+    color: var(--primary);
+    border: 1.5px solid var(--primary);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: var(--transition);
+    margin-left: auto;
+  }
+  .btn-inscribir:hover { background: var(--primary); color: white; transform: translateY(-1px); }
+
+  /* ── Badges de acceso en tarjeta ────────────────────────── */
+  .access-badge {
+    display: inline-block;
+    padding: 0.22rem 0.65rem;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    align-self: flex-start;
+  }
+  .access-free { background: #dcfce7; color: #166534; }
+  .access-mat  { background: #e0f2fe; color: #0369a1; }
+  .access-paid { background: #fef9c3; color: #854d0e; }
+
+  /* ── Banner de inscripción exitosa ──────────────────────── */
+  .success-banner {
+    position: fixed;
+    top: 1.25rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #166534;
+    color: white;
+    padding: 0.85rem 3rem 0.85rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    z-index: 4000;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    white-space: nowrap;
+  }
+  .banner-close {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.7);
+    font-size: 1rem;
+    cursor: pointer;
+    line-height: 1;
+  }
+
+  /* ── Modal de inscripción ─────────────────────────────────── */
+  .emodal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 3500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  .emodal-overlay.open { opacity: 1; pointer-events: auto; }
+
+  .emodal-card {
+    background: var(--white);
+    border-radius: 18px;
+    padding: 2.25rem;
+    width: 100%;
+    max-width: 420px;
+    position: relative;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.2);
+    transform: translateY(16px);
+    transition: transform 0.2s ease;
+  }
+  .emodal-overlay.open .emodal-card { transform: translateY(0); }
+
+  .emodal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: var(--gray-100);
+    border: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-light);
+    transition: background 0.15s;
+  }
+  .emodal-close:hover { background: var(--gray-200); }
+
+  .emodal-step { display: flex; flex-direction: column; gap: 1rem; }
+  .emodal-hidden { display: none !important; }
+
+  .emodal-header h3 { font-size: 1.25rem; color: var(--accent); margin: 0 0 0.25rem; }
+  .emodal-course-name { font-size: 0.88rem; color: var(--text-light); margin: 0; font-style: italic; }
+
+  .emodal-price-row { min-height: 1.5rem; }
+
+  .eprice-badge {
+    display: inline-block;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+  .eprice-free { background: #dcfce7; color: #166534; }
+  .eprice-mat  { background: #e0f2fe; color: #0369a1; }
+  .eprice-paid { background: #fef9c3; color: #854d0e; }
+
+  .form-tabs {
+    display: flex;
+    gap: 0.4rem;
+    border-bottom: 1.5px solid var(--gray-200);
+    padding-bottom: 0.75rem;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    padding: 0.35rem 0.9rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: var(--text-light);
+    transition: var(--transition);
+  }
+  .tab-btn.active { background: var(--primary); color: white; }
+  .tab-btn:not(.active):hover { background: var(--gray-100); color: var(--accent); }
+
+  .emodal-form { display: flex; flex-direction: column; gap: 0.75rem; }
+  .emodal-form input {
+    width: 100%;
+    padding: 0.7rem 0.9rem;
+    border: 1.5px solid var(--gray-300);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    color: var(--text-main);
+    background: var(--white);
+    transition: border-color 0.15s;
+    box-sizing: border-box;
+  }
+  .emodal-form input:focus { outline: none; border-color: var(--primary); }
+
+  .emodal-error {
+    font-size: 0.82rem;
+    color: #dc2626;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    padding: 0.55rem 0.8rem;
+    margin: 0;
+  }
+
+  .emodal-btn-primary {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: var(--transition);
+    width: 100%;
+  }
+  .emodal-btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+
+  /* Spinner */
+  .emodal-step-processing { align-items: center; padding: 2rem 0; }
+  .emodal-spinner {
+    width: 44px;
+    height: 44px;
+    border: 4px solid var(--gray-200);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .emodal-processing-text { color: var(--text-light); font-size: 0.9rem; margin: 0; }
+
+  /* Success step */
+  .emodal-success-icon { font-size: 2.5rem; text-align: center; }
+  #emodal-step-success h3 { text-align: center; color: var(--accent); margin: 0; }
+  #emodal-step-success p { text-align: center; color: var(--text-light); font-size: 0.9rem; margin: 0; }
+
+  /* ── Responsive ─────────────────────────────────────────── */
+  @media (max-width: 1024px) {
+    .hero-grid { grid-template-columns: 1fr; }
+    .hero-media { min-height: 280px; }
+    .hero-details { padding: 2.5rem; }
+  }
+
+  @media (max-width: 768px) {
+    .section-title-alt { flex-direction: column; align-items: flex-start; }
+    .courses-grid { grid-template-columns: 1fr; }
+    .materials-section { padding: 2rem; }
+    .hero-details { padding: 2rem; }
+    .hero-details h2 { font-size: 1.5rem; }
+    .hero-meta { flex-direction: column; gap: 1rem; }
+    .card-actions { flex-wrap: wrap; }
+    .btn-inscribir { margin-left: 0; width: 100%; justify-content: center; }
+    .success-banner { white-space: normal; width: calc(100% - 2rem); text-align: center; }
+  }
+</style>

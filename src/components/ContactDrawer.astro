@@ -1,198 +1,515 @@
 ---
+interface Props {
+  telefono?: string;
+  email?: string;
+  direccion?: string;
+  horarios?: string;
+  whatsapp?: string;
+}
+
+const {
+  telefono = '+54 383 445-1234',
+  email = 'criminalisticacolegio@gmail.com',
+  direccion = 'San Fernando del Valle de Catamarca',
+  horarios = 'Lunes a Viernes · 8:00 a 14:00 hs',
+  whatsapp = '',
+} = Astro.props;
+
+const waNumber = whatsapp.replace(/\D/g, '');
 ---
-<div id="contact-drawer" class="drawer">
-    <div class="drawer-overlay" id="drawer-overlay"></div>
-    <div class="drawer-content glass">
-        <div class="drawer-header">
-            <div class="header-title">
-                <span class="sub">Atención Personalizada</span>
-                <h2>Contacto</h2>
-            </div>
-            <button id="close-drawer" class="close-btn">&times;</button>
-        </div>
-        <div class="drawer-body">
-            <p class="intro">Comuníquese con nosotros a través de nuestros canales oficiales de atención al matriculado y al público en general.</p>
-            
-            <div class="contact-links-grid">
-                <a href="https://wa.me/543834000000" target="_blank" class="contact-card whatsapp">
-                    <div class="card-icon">💬</div>
-                    <div class="card-text">
-                        <strong>WhatsApp Business</strong>
-                        <span>Atención inmediata vía chat</span>
-                    </div>
-                    <span class="arrow">→</span>
-                </a>
-                
-                <a href="tel:+543834000000" class="contact-card phone">
-                    <div class="card-icon">📞</div>
-                    <div class="card-text">
-                        <strong>Línea Telefónica</strong>
-                        <span>+54 383 400-0000</span>
-                    </div>
-                    <span class="arrow">→</span>
-                </a>
-                
-                <a href="mailto:institucional@cpccatamarca.org" class="contact-card email">
-                    <div class="card-icon">📧</div>
-                    <div class="card-text">
-                        <strong>Correo Institucional</strong>
-                        <span>institucional@cpccatamarca.org</span>
-                    </div>
-                    <span class="arrow">→</span>
-                </a>
-            </div>
 
-            <div class="social-section">
-                <h3>Siganos en Redes</h3>
-                <div class="social-pills">
-                    <a href="#" class="social-pill ig">Instagram</a>
-                    <a href="#" class="social-pill fb">Facebook</a>
-                    <a href="#" class="social-pill ln">LinkedIn</a>
-                </div>
-            </div>
+<div id="contact-drawer-overlay" class="drawer-overlay" aria-hidden="true"></div>
 
-            <div class="location-card">
-                <div class="loc-header">
-                    <span class="loc-icon">📍</span>
-                    <strong>Sede Central</strong>
-                </div>
-                <p>Calle Ficticia 123, San Fernando del Valle de Catamarca, Catamarca, Argentina.</p>
-                <span class="hours">Lunes a Viernes: 08:00 - 13:00 hs</span>
-            </div>
+<aside id="contact-drawer" class="contact-drawer" aria-label="Panel de contacto" aria-hidden="true">
+  <div class="drawer-header">
+    <h2>Contacto Institucional</h2>
+    <button id="close-drawer-btn" class="close-btn" aria-label="Cerrar panel de contacto">✕</button>
+  </div>
+
+  <div class="drawer-body">
+    <div class="contact-info-block">
+      <div class="info-item">
+        <span class="info-icon">📍</span>
+        <div>
+          <strong>Sede Central</strong>
+          <span>{direccion}</span>
         </div>
+      </div>
+      <div class="info-item">
+        <span class="info-icon">📞</span>
+        <div>
+          <strong>Teléfono</strong>
+          <span>{telefono}</span>
+        </div>
+      </div>
+      <div class="info-item">
+        <span class="info-icon">✉️</span>
+        <div>
+          <strong>Email</strong>
+          <span>{email}</span>
+        </div>
+      </div>
+      <div class="info-item">
+        <span class="info-icon">🕐</span>
+        <div>
+          <strong>Horario de Atención</strong>
+          <span>{horarios}</span>
+        </div>
+      </div>
     </div>
-</div>
+
+    <!-- Tabs -->
+    <div class="contact-tabs">
+      <button class="tab-btn active" data-tab="email">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,12 2,6"/></svg>
+        Correo electrónico
+      </button>
+      {waNumber && (
+        <button class="tab-btn" data-tab="whatsapp">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.999 2C6.477 2 2 6.478 2 12c0 1.82.487 3.52 1.337 4.996L2 22l5.155-1.312A9.945 9.945 0 0 0 12 22c5.523 0 10-4.478 10-10S17.523 2 12 2z" fill-rule="evenodd" clip-rule="evenodd"/></svg>
+          WhatsApp
+        </button>
+      )}
+    </div>
+
+    <!-- Tab: Email -->
+    <div id="tab-email" class="tab-content active">
+      <form id="contact-form" class="contact-form">
+        <h3>Enviar Consulta por Email</h3>
+        <div class="form-group">
+          <label for="contact-name">Nombre completo</label>
+          <input type="text" id="contact-name" name="name" placeholder="Su nombre" required />
+        </div>
+        <div class="form-group">
+          <label for="contact-email">Correo electrónico</label>
+          <input type="email" id="contact-email" name="email" placeholder="ejemplo@correo.com" required />
+        </div>
+        <div class="form-group">
+          <label for="contact-message">Mensaje</label>
+          <textarea id="contact-message" name="message" rows="4" placeholder="Escriba su consulta aquí..." required></textarea>
+        </div>
+        <button type="submit" class="btn-submit">Enviar Mensaje</button>
+        <p id="contact-feedback" class="feedback hidden"></p>
+      </form>
+    </div>
+
+    <!-- Tab: WhatsApp -->
+    {waNumber && (
+      <div id="tab-whatsapp" class="tab-content">
+        <div class="wa-panel">
+          <div class="wa-icon-wrap">
+            <svg viewBox="0 0 24 24" fill="#25d366" width="48" height="48"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.999 2C6.477 2 2 6.478 2 12c0 1.82.487 3.52 1.337 4.996L2 22l5.155-1.312A9.945 9.945 0 0 0 12 22c5.523 0 10-4.478 10-10S17.523 2 12 2z"/></svg>
+          </div>
+          <h3>Contactar por WhatsApp</h3>
+          <p>Escribí tu consulta y se abrirá una conversación de WhatsApp con la secretaría del Colegio.</p>
+          <div class="form-group" style="margin-top:1.25rem;">
+            <label for="wa-nombre">Tu nombre (opcional)</label>
+            <input type="text" id="wa-nombre" placeholder="Nombre completo" />
+          </div>
+          <div class="form-group" style="margin-top:0.75rem;">
+            <label for="wa-msg">Consulta</label>
+            <textarea id="wa-msg" rows="4" placeholder="Escribí tu consulta..."></textarea>
+          </div>
+          <a
+            id="wa-link"
+            href={`https://wa.me/${waNumber}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn-wa"
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.999 2C6.477 2 2 6.478 2 12c0 1.82.487 3.52 1.337 4.996L2 22l5.155-1.312A9.945 9.945 0 0 0 12 22c5.523 0 10-4.478 10-10S17.523 2 12 2z"/></svg>
+            Abrir WhatsApp
+          </a>
+        </div>
+      </div>
+    )}
+  </div>
+</aside>
 
 <style>
-    .drawer {
-        position: fixed;
-        top: 0;
-        right: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 2000;
-        visibility: hidden;
-        transition: visibility 0.3s;
-    }
+  .drawer-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 1999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
 
-    .drawer.open {
-        visibility: visible;
-    }
+  .drawer-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
 
-    .drawer-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.4);
-        backdrop-filter: blur(4px);
-        opacity: 0;
-        transition: opacity 0.4s ease;
-    }
+  .contact-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 420px;
+    max-width: 100vw;
+    height: 100dvh;
+    background: var(--white);
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -8px 0 30px rgba(0, 0, 0, 0.15);
+    transform: translateX(100%);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow-y: auto;
+  }
 
-    .drawer.open .drawer-overlay {
-        opacity: 1;
-    }
+  .contact-drawer.open {
+    transform: translateX(0);
+  }
 
-    .drawer-content {
-        position: absolute;
-        top: 0;
-        right: -450px;
-        width: 100%;
-        max-width: 450px;
-        height: 100%;
-        background: var(--white);
-        box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
-        transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        display: flex;
-        flex-direction: column;
-        border-left: 1px solid var(--gray-200);
-    }
+  .drawer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.75rem 2rem;
+    border-bottom: 2px solid var(--primary);
+    background: var(--primary);
+    color: white;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
 
-    .drawer.open .drawer-content {
-        right: 0;
-    }
+  .drawer-header h2 {
+    color: white;
+    font-size: 1.25rem;
+    margin: 0;
+  }
 
-    .drawer-header {
-        padding: 2.5rem 2rem;
-        background: var(--gray-50);
-        border-bottom: 1px solid var(--gray-200);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
+  .close-btn {
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: white;
+    font-size: 1.1rem;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+  }
 
-    .header-title .sub { font-size: 0.75rem; text-transform: uppercase; color: var(--primary); font-weight: 800; letter-spacing: 0.05em; margin-bottom: 0.25rem; display: block; }
-    .header-title h2 { margin: 0; color: var(--accent); font-size: 1.75rem; }
+  .close-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
 
-    .close-btn {
-        background: var(--white);
-        border: 1px solid var(--gray-300);
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        font-size: 1.5rem;
-        cursor: pointer;
-        color: var(--text-light);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: var(--transition);
-    }
-    .close-btn:hover { background: var(--gray-100); border-color: var(--primary); color: var(--primary); }
+  .drawer-body {
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
 
-    .drawer-body {
-        padding: 2.5rem 2rem;
-        overflow-y: auto;
-        flex: 1;
-    }
+  .contact-info-block {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 1.5rem;
+    background: var(--gray-50);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--gray-200);
+  }
 
-    .intro { color: var(--text-light); font-size: 1rem; line-height: 1.6; margin-bottom: 2.5rem; }
+  .info-item {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+  }
 
-    .contact-links-grid { display: flex; flex-direction: column; gap: 1.25rem; margin-bottom: 3.5rem; }
-    
-    .contact-card { display: flex; align-items: center; gap: 1.25rem; padding: 1.5rem; border: 1px solid var(--gray-200); border-radius: var(--radius-lg); text-decoration: none; color: var(--text-main); transition: var(--transition); position: relative; }
-    .contact-card:hover { border-color: var(--primary); background: var(--primary-soft); transform: translateX(-5px); }
-    
-    .card-icon { width: 50px; height: 50px; background: var(--gray-50); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; transition: var(--transition); }
-    .contact-card:hover .card-icon { background: var(--primary); color: white; }
-    
-    .card-text { flex: 1; }
-    .card-text strong { display: block; font-size: 1.05rem; margin-bottom: 0.25rem; }
-    .card-text span { font-size: 0.85rem; color: var(--text-light); }
-    
-    .arrow { color: var(--gray-300); font-weight: 700; transition: var(--transition); }
-    .contact-card:hover .arrow { color: var(--primary); transform: translateX(5px); }
+  .info-icon {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+  }
 
-    .social-section h3 { font-size: 1.1rem; margin-bottom: 1.25rem; color: var(--accent); }
-    .social-pills { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 3.5rem; }
-    .social-pill { padding: 0.6rem 1.25rem; background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 30px; text-decoration: none; color: var(--text-main); font-weight: 700; font-size: 0.85rem; transition: var(--transition); }
-    .social-pill:hover { background: var(--primary); color: white; border-color: var(--primary); transform: translateY(-3px); }
+  .info-item strong {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 0.2rem;
+  }
 
-    .location-card { background: var(--gray-50); padding: 2rem; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); }
-    .loc-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; color: var(--primary); }
-    .location-card p { font-size: 0.9rem; line-height: 1.6; color: var(--text-main); margin-bottom: 1rem; }
-    .hours { font-size: 0.8rem; font-weight: 700; color: var(--text-light); text-transform: uppercase; }
+  .info-item span {
+    font-size: 0.9rem;
+    color: var(--text-light);
+  }
 
-    @media (max-width: 480px) {
-        .drawer-content { max-width: 100%; right: -100%; }
-    }
+  /* Tabs */
+  .contact-tabs {
+    display: flex;
+    gap: 0.5rem;
+    border-bottom: 2px solid var(--gray-200);
+    padding-bottom: 0;
+  }
+
+  .tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-light);
+    transition: all 0.2s;
+  }
+
+  .tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+  }
+
+  .tab-btn:hover:not(.active) {
+    color: var(--primary);
+    background: var(--primary-soft);
+    border-radius: 8px 8px 0 0;
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Email form */
+  .contact-form h3 {
+    font-size: 1.05rem;
+    margin-bottom: 1.25rem;
+    color: var(--accent);
+  }
+
+  .contact-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .form-group label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  .form-group input,
+  .form-group textarea {
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius-md);
+    font-family: inherit;
+    font-size: 0.95rem;
+    transition: border-color 0.2s;
+    resize: vertical;
+  }
+
+  .form-group input:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-soft);
+  }
+
+  .btn-submit {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.9rem;
+    border-radius: var(--radius-md);
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: var(--transition);
+    margin-top: 0.5rem;
+  }
+
+  .btn-submit:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+  }
+
+  .btn-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .feedback {
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-align: center;
+    margin-top: 0.5rem;
+  }
+
+  .feedback.success { color: #166534; }
+  .feedback.error { color: #991b1b; }
+  .hidden { display: none; }
+
+  /* WhatsApp panel */
+  .wa-panel {
+    text-align: center;
+    padding: 0.5rem 0;
+  }
+
+  .wa-icon-wrap {
+    margin-bottom: 1rem;
+  }
+
+  .wa-panel h3 {
+    font-size: 1.1rem;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+  }
+
+  .wa-panel p {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    line-height: 1.5;
+    margin-bottom: 0;
+  }
+
+  .wa-panel .form-group {
+    text-align: left;
+  }
+
+  .btn-wa {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 1.25rem;
+    padding: 0.9rem 2rem;
+    background: #25d366;
+    color: white;
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1rem;
+    transition: var(--transition);
+  }
+
+  .btn-wa:hover {
+    background: #128c50;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
+  }
+
+  @media (max-width: 480px) {
+    .contact-drawer { width: 100vw; }
+  }
 </style>
 
 <script>
-    const drawer = document.getElementById('contact-drawer');
-    const overlay = document.getElementById('drawer-overlay');
-    const closeBtn = document.getElementById('close-drawer');
+  const drawer = document.getElementById('contact-drawer');
+  const overlay = document.getElementById('contact-drawer-overlay');
+  const closeBtn = document.getElementById('close-drawer-btn');
+  const form = document.getElementById('contact-form') as HTMLFormElement;
+  const feedback = document.getElementById('contact-feedback');
 
-    function toggleDrawer() {
-        drawer.classList.toggle('open');
-        document.body.style.overflow = drawer.classList.contains('open') ? 'hidden' : '';
+  function openDrawer() {
+    drawer?.classList.add('open');
+    overlay?.classList.add('open');
+    drawer?.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeDrawer() {
+    drawer?.classList.remove('open');
+    overlay?.classList.remove('open');
+    drawer?.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+
+  (window as any).toggleContactDrawer = openDrawer;
+
+  closeBtn?.addEventListener('click', closeDrawer);
+  overlay?.addEventListener('click', closeDrawer);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeDrawer();
+  });
+
+  // Tabs
+  document.querySelectorAll<HTMLButtonElement>('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab!;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(`tab-${tab}`)?.classList.add('active');
+    });
+  });
+
+  // WhatsApp dynamic link
+  const waLink = document.getElementById('wa-link') as HTMLAnchorElement;
+  const waNombre = document.getElementById('wa-nombre') as HTMLInputElement;
+  const waMsg = document.getElementById('wa-msg') as HTMLTextAreaElement;
+
+  function updateWaLink() {
+    if (!waLink) return;
+    const base = waLink.href.split('?')[0];
+    const nombre = waNombre?.value.trim();
+    const msg = waMsg?.value.trim();
+    let text = '';
+    if (nombre) text += `Hola, soy ${nombre}. `;
+    if (msg) text += msg;
+    else text += 'Hola, me comunico desde el sitio web del CPC CTM.';
+    waLink.href = `${base}?text=${encodeURIComponent(text)}`;
+  }
+
+  waNombre?.addEventListener('input', updateWaLink);
+  waMsg?.addEventListener('input', updateWaLink);
+
+  // Email form
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+    if (feedback) feedback.className = 'feedback hidden';
+
+    const data = new FormData(form);
+    const nombre  = data.get('name')    as string;
+    const email   = data.get('email')   as string;
+    const mensaje = data.get('message') as string;
+
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre, email, mensaje }),
+      });
+
+      if (res.ok) {
+        if (feedback) {
+          feedback.textContent = '✅ Mensaje enviado. Te responderemos pronto.';
+          feedback.className = 'feedback success';
+        }
+        form.reset();
+      } else {
+        throw new Error('Error del servidor');
+      }
+    } catch {
+      if (feedback) {
+        feedback.textContent = '❌ Error al enviar. Por favor reintente.';
+        feedback.className = 'feedback error';
+      }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Enviar Mensaje';
     }
-
-    closeBtn.addEventListener('click', toggleDrawer);
-    overlay.addEventListener('click', toggleDrawer);
-
-    // Expose toggle function to global scope
-    window.toggleContactDrawer = toggleDrawer;
+  });
 </script>

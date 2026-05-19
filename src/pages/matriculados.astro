@@ -1,243 +1,903 @@
 ---
 import MainLayout from '../layouts/MainLayout.astro';
+import { sanityClient } from 'sanity:client';
+
+const config = await sanityClient.fetch(`*[_type == "configuracionCobros"][0]`);
+const valorCuota = config?.valorCuotaMensual || 0;
+const valorAnual = config?.valorMatriculaAnual || 0;
+const promoActiva = config?.promocionAnualActiva || false;
 ---
 
-<MainLayout title="Matriculados" showBack={true}>
-	<div class="container page-content">
-		<header class="section-header">
-			<span class="sub-title">Gestión Profesional</span>
-			<h1>Área de Matriculados</h1>
-			<p>Portal exclusivo para la gestión de legajos, administración de pagos y servicios para el profesional colegiado.</p>
-		</header>
+<MainLayout title="Matriculados">
+  <!-- Datos de config pasados al cliente -->
+  <div id="cfg" data-cuota={valorCuota} data-anual={valorAnual} data-promo={promoActiva ? 'true' : 'false'} class="hidden"></div>
 
-		<div class="single-layout">
-			<!-- Nuevos Profesionales -->
-			<section class="portal-section">
-				<div class="portal-card new-pro glass">
-					<div class="card-tag primary">Legajo Virtual</div>
-					<h2>Aspirantes a la Matrícula</h2>
-					<p>Complete su solicitud de registro digital. Este es el primer paso para su colegiación oficial en la Provincia de Catamarca.</p>
-					
-					<div id="registration-form-container">
-						<form class="styled-form" id="enrollment-form" enctype="multipart/form-data">
-							<div class="form-row split">
-								<div class="form-group">
-									<label>Nombre</label>
-									<input type="text" required placeholder="Ej: Juan Carlos" name="nombre" />
-								</div>
-								<div class="form-group">
-									<label>Apellido</label>
-									<input type="text" required placeholder="Ej: Pérez" name="apellido" />
-								</div>
-							</div>
-							<div class="form-row split">
-								<div class="form-group">
-									<label>DNI</label>
-									<input type="text" required placeholder="XXXXXXXX" name="dni" />
-								</div>
-								<div class="form-group">
-									<label>Teléfono de Contacto</label>
-									<input type="tel" required placeholder="+54 383 XXXXXXX" name="phone" />
-								</div>
-							</div>
-							<div class="form-row split">
-								<div class="form-group">
-									<label>CUIL/CUIT</label>
-									<input type="text" required placeholder="20-XXXXXXXX-X" name="cuil" />
-								</div>
-								<div class="form-group">
-									<label>Jurisdicción de Ejercicio</label>
-									<select name="jurisdiction" required>
-										<option value="" disabled selected>Seleccione Jurisdicción</option>
-										<option>1° Circunscripción (Capital)</option>
-										<option>2° Circunscripción (Recreo)</option>
-										<option>3° Circunscripción (Belén)</option>
-										<option>4° Circunscripción (Santa María)</option>
-										<option>5° Circunscripción (Tinogasta)</option>
-										<option>6° Circunscripción (Andalgalá)</option>
-									</select>
-								</div>
-							</div>
-							<div class="form-row">
-								<div class="form-group">
-									<label>Título Profesional Principal</label>
-									<select name="degree" required>
-										<option value="" disabled selected>Seleccione su especialidad</option>
-										<option>Lic. en Criminalística</option>
-										<option>Perito Papiloscópico</option>
-										<option>Perito Balístico</option>
-										<option>Calígrafo Público</option>
-										<option>Otros</option>
-									</select>
-								</div>
-							</div>
-							
-							<div class="file-upload-section">
-								<h3>Documentación Requerida (Digital)</h3>
-								<div class="file-grid">
-									<div class="file-input-wrapper">
-										<label>Título Profesional (Fronte/Dorso)</label>
-										<input type="file" name="titulo_file" accept=".pdf,image/*" required />
-									</div>
-									<div class="file-input-wrapper">
-										<label>DNI (Ambos Lados)</label>
-										<input type="file" name="dni_file" accept=".pdf,image/*" required />
-									</div>
-									<div class="file-input-wrapper">
-										<label>Certificado de Antecedentes</label>
-										<input type="file" name="certificado_file" accept=".pdf,image/*" required />
-									</div>
-								</div>
-							</div>
+  <!-- Estado: cargando -->
+  <div id="state-loading" class="auth-loading">
+    <div class="spinner-ring"></div>
+    <p>Verificando credenciales...</p>
+  </div>
 
-							<div class="form-row">
-								<div class="form-group">
-									<label>Correo Electrónico de Contacto</label>
-									<input type="email" required placeholder="ejemplo@correo.com" name="email" />
-								</div>
-							</div>
-							<button type="submit" class="btn-primary">Iniciar Registro y Pago de Matrícula</button>
-							<span class="form-helper">Al iniciar, recibirá un cupón de pago para el Derecho de Inscripción.</span>
-						</form>
+  <!-- Estado: no autenticado -->
+  <div id="state-login" class="auth-gate hidden">
+    <div class="gate-card glass">
+      <div class="gate-icon">🔒</div>
+      <h1>Área de Matriculados</h1>
+      <p>Esta sección es exclusiva para profesionales colegiados. Iniciá sesión para acceder a tus pagos y certificados.</p>
+      <form id="gate-form" class="gate-form">
+        <div class="form-group">
+          <label>Correo Electrónico</label>
+          <input type="email" id="gate-email" placeholder="tu@email.com" required />
+        </div>
+        <div class="form-group">
+          <label>Contraseña</label>
+          <input type="password" id="gate-password" placeholder="••••••••" required />
+        </div>
+        <div id="gate-error" class="gate-error hidden">Credenciales incorrectas. Verificá tus datos.</div>
+        <button type="submit" id="gate-btn" class="btn-login-gate">Ingresar</button>
+      </form>
 
-						<div id="success-message" style="display: none;" class="success-card glass">
-							<div class="success-icon">✅</div>
-							<h3>¡Registro Iniciado con Éxito!</h3>
-							<p>La solicitud ha sido recibida correctamente. La solicitud concluirá con la <strong>certificación física</strong> de la documentación adjuntada en nuestra sede central.</p>
-							<button onclick="location.reload()" class="btn-outline">Volver</button>
-						</div>
-					</div>
+      <!-- Olvidé contraseña / Primera vez -->
+      <div id="reset-section" class="reset-section">
+        <button type="button" id="btn-forgot" class="btn-forgot">
+          ¿Olvidaste tu contraseña o es tu primera vez?
+        </button>
+        <!-- Formulario de recuperación (oculto por defecto) -->
+        <div id="reset-form-wrap" class="reset-form-wrap hidden">
+          <div class="reset-form-inner">
+            <input type="email" id="reset-email" placeholder="Tu email registrado en el padrón" autocomplete="email" />
+            <button type="button" id="btn-reset-submit" class="btn-reset-submit">
+              Enviar instrucciones
+            </button>
+          </div>
+          <p id="reset-error" class="reset-msg reset-msg-error hidden"></p>
+          <p id="reset-success" class="reset-msg reset-msg-ok hidden"></p>
+        </div>
+      </div>
 
-					<script>
-						const form = document.querySelector('#enrollment-form');
-						const successMsg = document.querySelector('#success-message');
-						const submitBtn = form?.querySelector('button[type="submit"]');
-						
-						if (form) {
-							form.addEventListener('submit', async (e) => {
-								e.preventDefault();
-								
-								// Evitar múltiples envíos
-								if (submitBtn) {
-									submitBtn.disabled = true;
-									submitBtn.textContent = 'Procesando...';
-								}
+      <p class="gate-links">
+        <a href="/nuevos-profesionales" class="gate-link">¿Aún no estás matriculado?</a>
+      </p>
+    </div>
+  </div>
 
-								const formData = new FormData(form);
+  <!-- Estado: no vinculado al padrón -->
+  <div id="state-unlinked" class="auth-gate hidden">
+    <div class="gate-card glass warning-card">
+      <div class="gate-icon">⚠️</div>
+      <h2>Email no vinculado al Padrón</h2>
+      <p>Tu cuenta (<strong id="unlinked-email-text"></strong>) no está registrada en el Padrón Oficial del CPC CTM.</p>
+      <p>Contactá a Secretaría para vincular tu legajo digital.</p>
+      <div class="gate-actions">
+        <button onclick="window.toggleContactDrawer()" class="btn-primary">Contactar Secretaría</button>
+        <button id="btn-logout-unlinked" class="btn-outline">Cerrar Sesión</button>
+      </div>
+    </div>
+  </div>
 
-								try {
-									const response = await fetch('/api/aspirantes', {
-										method: 'POST',
-										body: formData,
-									});
+  <!-- Contenido principal -->
+  <div id="main-content" class="container page-content hidden">
+    <header class="account-header">
+      <div class="header-info">
+        <span class="section-label">Área Privada</span>
+        <h1>Bienvenido/a, <span id="user-name">—</span></h1>
+        <p>Matrícula N° <strong id="user-mat">—</strong> · <span id="user-estado-text" class="estado-inline">—</span></p>
+      </div>
+      <button id="btn-logout" class="btn-logout">Cerrar Sesión</button>
+    </header>
 
-									const result = await response.json();
+    <!-- Banner: email no verificado -->
+    <div id="banner-verify" class="banner-verify hidden">
+      <span>⚠️</span>
+      <p>Por favor verificá tu dirección de email para activar todas las funciones. Revisá tu bandeja de entrada.</p>
+      <button id="btn-resend-verify" class="btn-resend-verify">Reenviar email</button>
+    </div>
 
-									if (response.ok) {
-										form.style.display = 'none';
-										successMsg.style.display = 'flex';
-									} else {
-										alert('Error: ' + (result.message || 'Error al procesar la solicitud.'));
-										if (submitBtn) {
-											submitBtn.disabled = false;
-											submitBtn.textContent = 'Iniciar Registro y Pago de Matrícula';
-										}
-									}
-								} catch (error) {
-									console.error('Error:', error);
-									alert('Error de conexión.');
-									if (submitBtn) {
-										submitBtn.disabled = false;
-										submitBtn.textContent = 'Iniciar Registro y Pago de Matrícula';
-									}
-								}
-							});
-						}
-					</script>
-				</div>
-			</section>
+    <!-- Alerta si no está activo -->
+    <div id="alert-inactive" class="alert-inactive hidden">
+      <span>⚠️</span>
+      <p>Tu matrícula no está activa. No podés descargar certificados. Regularizá tu situación contactando al Colegio.</p>
+      <button onclick="window.toggleContactDrawer()" class="btn-contact-inline">Contactar</button>
+    </div>
 
-			<aside class="info-sidebar">
-				<div class="info-card glass">
-					<h4>¿Ya eres matriculado?</h4>
-					<p>Si ya posees matrícula activa, accede a las nuevas secciones dedicadas:</p>
-					<div class="link-grid">
-						<a href="/pagos" class="link-item">
-							<span class="l-icon">💳</span>
-							<strong>Pagos y Deuda</strong>
-						</a>
-						<a href="/tramites" class="link-item">
-							<span class="l-icon">📜</span>
-							<strong>Trámites y Certificados</strong>
-						</a>
-					</div>
-				</div>
-			</aside>
-		</div>
-	</div>
+    <div class="two-col-layout">
 
-	<style>
-		.page-content { padding: 5rem 0; }
-		
-		.section-header { text-align: center; margin-bottom: 5rem; }
-		.sub-title { color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.9rem; display: block; margin-bottom: 1rem; }
-		.section-header h1 { font-size: clamp(2.5rem, 5vw, 3.5rem); margin-bottom: 1.5rem; color: var(--accent); }
-		.section-header p { font-size: 1.25rem; color: var(--text-light); max-width: 800px; margin: 0 auto; }
+      <!-- ══ COLUMNA IZQUIERDA: MIS PAGOS ══ -->
+      <section class="col-left">
+        <h2 class="col-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          Mis Pagos
+        </h2>
 
-		.single-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 3rem; align-items: start; }
-		
-		.portal-card { padding: 3rem; border-radius: var(--radius-lg); position: relative; border: 1px solid var(--gray-200); background: var(--white); }
-		
-		.card-tag { display: inline-block; padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 1.5rem; background: var(--gray-100); color: var(--text-light); }
-		.card-tag.primary { background: var(--primary); color: white; }
+        <!-- Card: cuota mensual -->
+        <div class="pay-card glass">
+          <div class="pay-card-header">
+            <div class="pay-icon blue">💳</div>
+            <div>
+              <h3>Cuota Mensual</h3>
+              <p class="pay-desc">Aporte social mensual al Colegio</p>
+            </div>
+          </div>
+          <div class="pay-amount" id="display-cuota">
+            ${valorCuota.toLocaleString('es-AR')}
+          </div>
+          <button id="btn-pagar-cuota" class="btn-pay">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            Pagar ahora
+          </button>
+        </div>
 
-		.portal-card h2 { font-size: 2rem; margin-bottom: 1rem; }
-		.portal-card p { font-size: 1.1rem; color: var(--text-light); margin-bottom: 2.5rem; line-height: 1.6; }
+        <!-- Card: matrícula anual -->
+        <div class="pay-card glass">
+          <div class="pay-card-header">
+            <div class="pay-icon green">🏅</div>
+            <div>
+              <h3>
+                Matrícula Anual
+                {promoActiva && <span class="promo-badge">PROMO ACTIVA</span>}
+              </h3>
+              <p class="pay-desc">Renovación anual de habilitación profesional</p>
+            </div>
+          </div>
+          <div class="pay-amount" id="display-anual">
+            ${valorAnual.toLocaleString('es-AR')}
+          </div>
+          <button id="btn-pagar-anual" class="btn-pay btn-pay-green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            Pagar matrícula
+          </button>
+        </div>
 
-		/* Form */
-		.styled-form { display: flex; flex-direction: column; gap: 1.5rem; }
-		.form-row.split { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-		.form-group { display: flex; flex-direction: column; gap: 0.5rem; flex: 1; }
-		.form-group label { font-size: 0.9rem; font-weight: 600; color: var(--accent); }
-		.form-group input, .form-group select { padding: 0.8rem 1rem; border: 1px solid var(--gray-300); border-radius: var(--radius-md); font-family: inherit; font-size: 1rem; transition: var(--transition); }
-		.form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
-		
-		.btn-primary { background: var(--primary); color: white; border: none; padding: 1.1rem; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; transition: var(--transition); font-size: 1rem; }
-		.btn-primary:hover { background: var(--primary-hover); transform: translateY(-2px); box-shadow: var(--shadow-md); }
-		.form-helper { font-size: 0.8rem; color: var(--text-light); text-align: center; margin-top: 0.5rem; }
+        <!-- Card: historial -->
+        <div class="pay-card glass">
+          <div class="pay-card-header">
+            <div class="pay-icon gray">📋</div>
+            <div>
+              <h3>Estado de Cuenta</h3>
+              <p class="pay-desc">Últimos 6 pagos registrados</p>
+            </div>
+            <span id="badge-estado" class="estado-badge al-dia">AL DÍA</span>
+          </div>
+          <div id="historial-container">
+            <p class="hist-loading">Cargando historial...</p>
+          </div>
+        </div>
+      </section>
 
-		/* File Upload Styles */
-		.file-upload-section { margin: 1rem 0; padding: 2rem; background: var(--gray-50); border-radius: var(--radius-md); border: 1px dashed var(--gray-300); }
-		.file-upload-section h3 { font-size: 1rem; margin-bottom: 1.5rem; color: var(--accent); }
-		.file-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; }
-		.file-input-wrapper { display: flex; flex-direction: column; gap: 0.5rem; }
-		.file-input-wrapper label { font-size: 0.85rem; font-weight: 600; color: var(--text-light); }
-		.file-input-wrapper input[type="file"] { font-size: 0.8rem; }
+      <!-- ══ COLUMNA DERECHA: MIS CERTIFICADOS ══ -->
+      <section class="col-right">
+        <h2 class="col-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          Mis Certificados
+        </h2>
 
-		/* Success Card */
-		.success-card { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 4rem 2rem; animation: fadeIn 0.5s ease-out; }
-		.success-icon { font-size: 4rem; margin-bottom: 1.5rem; }
-		.success-card h3 { font-size: 2rem; color: var(--accent); margin-bottom: 1rem; }
-		.success-card p { font-size: 1.1rem; line-height: 1.6; margin-bottom: 2rem; max-width: 500px; }
-		
-		.btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); padding: 0.8rem 2rem; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; transition: var(--transition); }
-		.btn-outline:hover { background: var(--primary); color: white; }
+        <!-- Constancia de Matrícula -->
+        <div class="cert-card glass" id="cert-matricula">
+          <div class="cert-header">
+            <div class="cert-icon green-bg">📜</div>
+            <div>
+              <h3>Constancia de Matrícula Vigente</h3>
+              <p class="cert-desc">Certifica tu habilitación como profesional activo del CPC CTM. Vigencia 30 días desde la emisión.</p>
+            </div>
+          </div>
+          <div class="cert-use">
+            <span class="use-label">Útil para:</span>
+            licitaciones, concursos, peritos judiciales, convenios institucionales.
+          </div>
+          <button id="btn-cert-matricula" class="btn-cert" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Descargar PDF
+          </button>
+        </div>
 
-		@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        <!-- Constancia de Ética -->
+        <div class="cert-card glass" id="cert-etica">
+          <div class="cert-header">
+            <div class="cert-icon blue-bg">⚖️</div>
+            <div>
+              <h3>Constancia de Ética Profesional</h3>
+              <p class="cert-desc">Certifica que no registrás sanciones disciplinarias vigentes ante el Tribunal del Colegio.</p>
+            </div>
+          </div>
+          <div class="cert-use">
+            <span class="use-label">Útil para:</span>
+            concursos públicos, habilitaciones judiciales, contratos con organismos del Estado.
+          </div>
+          <button id="btn-cert-etica" class="btn-cert btn-cert-blue" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Descargar PDF
+          </button>
+          <div id="etica-msg" class="cert-msg hidden"></div>
+        </div>
 
-		/* Sidebar */
-		.info-card { padding: 2.5rem; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); }
-		.info-card h4 { font-size: 1.25rem; margin-bottom: 1rem; }
-		.info-card p { font-size: 0.95rem; color: var(--text-light); margin-bottom: 2rem; line-height: 1.5; }
-		
-		.link-grid { display: flex; flex-direction: column; gap: 1rem; }
-		.link-item { display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--white); border: 1px solid var(--gray-200); border-radius: 12px; text-decoration: none; color: var(--text-main); transition: var(--transition); }
-		.link-item:hover { border-color: var(--primary); transform: translateX(5px); }
-		.l-icon { font-size: 1.25rem; }
-		.link-item strong { font-size: 0.95rem; }
-
-		@media (max-width: 1024px) {
-			.single-layout { grid-template-columns: 1fr; }
-		}
-	</style>
+        <p class="cert-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Los certificados están disponibles solo para matriculados con estado <strong>Activo</strong>.
+        </p>
+      </section>
+    </div>
+  </div>
 </MainLayout>
+
+<script>
+  import { auth } from '../lib/firebase';
+  import { signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+  import { createClient } from '@sanity/client';
+  import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
+  import { db } from '../lib/firebase';
+
+  const sanity = createClient({
+    projectId: '8q7vz6co', dataset: 'production', useCdn: true, apiVersion: '2023-05-03',
+  });
+
+  const cfg = document.getElementById('cfg')!;
+  const valorCuota = Number(cfg.dataset.cuota) || 0;
+  const valorAnual = Number(cfg.dataset.anual) || 0;
+
+  const stateLoading = document.getElementById('state-loading')!;
+  const stateLogin   = document.getElementById('state-login')!;
+  const stateUnlinked = document.getElementById('state-unlinked')!;
+  const mainContent  = document.getElementById('main-content')!;
+
+  function show(el: HTMLElement) { el.classList.remove('hidden'); }
+  function hide(el: HTMLElement) { el.classList.add('hidden'); }
+
+  // Fallback: si Firebase no responde en 6s, mostrar login con aviso
+  const authFallback = setTimeout(() => {
+    hide(stateLoading);
+    show(stateLogin);
+    const errEl = document.getElementById('gate-error');
+    if (errEl) {
+      errEl.textContent = 'El sistema de autenticación no está disponible. Configurá las credenciales de Firebase.';
+      errEl.classList.remove('hidden');
+    }
+  }, 6000);
+
+  let resettingPassword = false;
+
+  // ── Auth state ────────────────────────────────────────────
+  if (!auth) {
+    clearTimeout(authFallback);
+    hide(stateLoading);
+    show(stateLogin);
+    const errEl = document.getElementById('gate-error');
+    if (errEl) {
+      errEl.textContent = 'Firebase no está configurado. Completá las credenciales en el archivo .env.';
+      errEl.classList.remove('hidden');
+    }
+  } else {
+  onAuthStateChanged(auth, async (user) => {
+    if (resettingPassword) return;
+    clearTimeout(authFallback);
+    hide(stateLoading);
+    if (!user) { show(stateLogin); return; }
+
+    // Buscar matriculado en Sanity
+    let mat: any = null;
+    try {
+      mat = await sanity.fetch(
+        `*[_type == "matriculado" && email == $email][0]{
+          nombreCompleto, numeroMatricula, estado, email,
+          especialidad->{ titulo }, jurisdiccion->{ titulo }
+        }`,
+        { email: user.email }
+      );
+    } catch (e) { console.error(e); }
+
+    if (!mat) {
+      (document.getElementById('unlinked-email-text') as HTMLElement).textContent = user.email || '';
+      show(stateUnlinked);
+      return;
+    }
+
+    // Mostrar contenido principal
+    show(mainContent);
+
+    // Banner si el email aún no está verificado
+    if (!user.emailVerified) {
+      const bannerVerify = document.getElementById('banner-verify')!;
+      show(bannerVerify);
+      const btnResend = document.getElementById('btn-resend-verify') as HTMLButtonElement;
+      btnResend?.addEventListener('click', async () => {
+        btnResend.disabled = true;
+        btnResend.textContent = 'Enviando...';
+        try {
+          await sendEmailVerification(user);
+          btnResend.textContent = '✓ Email enviado';
+        } catch {
+          btnResend.disabled = false;
+          btnResend.textContent = 'Reenviar email';
+        }
+      });
+    }
+
+    (document.getElementById('user-name') as HTMLElement).textContent = mat.nombreCompleto || '—';
+    (document.getElementById('user-mat') as HTMLElement).textContent = mat.numeroMatricula || '—';
+    const estadoText = document.getElementById('user-estado-text') as HTMLElement;
+    estadoText.textContent = mat.estado || '—';
+    estadoText.className = `estado-inline ${mat.estado === 'Activo' ? 'activo' : 'inactivo'}`;
+
+    const esActivo = mat.estado === 'Activo';
+
+    if (!esActivo) {
+      show(document.getElementById('alert-inactive')!);
+    } else {
+      // Habilitar certificados
+      const btnMat = document.getElementById('btn-cert-matricula') as HTMLButtonElement;
+      const btnEtica = document.getElementById('btn-cert-etica') as HTMLButtonElement;
+      btnMat.disabled = false;
+      btnEtica.disabled = false;
+
+      btnMat.addEventListener('click', () => generarConstanciaMatricula(mat));
+      btnEtica.addEventListener('click', () => generarConstanciaEtica(mat));
+    }
+
+    // Cargar historial Firestore
+    cargarHistorial(user.email!);
+
+    // Botones de pago
+    setupPagos(user.email!);
+  });
+  } // end if(auth)
+
+  // ── Login gate ────────────────────────────────────────────
+  const gateForm = document.getElementById('gate-form') as HTMLFormElement;
+  const gateError = document.getElementById('gate-error')!;
+  const gateBtn = document.getElementById('gate-btn') as HTMLButtonElement;
+
+  gateForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!auth) { show(gateError); return; }
+    const email = (document.getElementById('gate-email') as HTMLInputElement).value;
+    const pass  = (document.getElementById('gate-password') as HTMLInputElement).value;
+    gateBtn.disabled = true;
+    gateBtn.textContent = 'Verificando...';
+    hide(gateError);
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+      hide(stateLogin);
+    } catch {
+      show(gateError);
+      gateBtn.disabled = false;
+      gateBtn.textContent = 'Ingresar';
+    }
+  });
+
+  document.getElementById('btn-logout')?.addEventListener('click', () => auth && signOut(auth).then(() => location.reload()));
+  document.getElementById('btn-logout-unlinked')?.addEventListener('click', () => auth && signOut(auth).then(() => location.reload()));
+
+  // ── Recuperar contraseña / Primera vez ────────────────────
+  const btnForgot       = document.getElementById('btn-forgot') as HTMLButtonElement;
+  const resetFormWrap   = document.getElementById('reset-form-wrap')!;
+  const resetEmailInput = document.getElementById('reset-email') as HTMLInputElement;
+  const btnResetSubmit  = document.getElementById('btn-reset-submit') as HTMLButtonElement;
+  const resetError      = document.getElementById('reset-error')!;
+  const resetSuccess    = document.getElementById('reset-success')!;
+
+  btnForgot?.addEventListener('click', () => {
+    resetFormWrap.classList.toggle('hidden');
+    if (!resetFormWrap.classList.contains('hidden')) {
+      resetEmailInput.focus();
+      btnForgot.textContent = 'Cancelar';
+    } else {
+      btnForgot.textContent = '¿Olvidaste tu contraseña o es tu primera vez?';
+    }
+  });
+
+  btnResetSubmit?.addEventListener('click', async () => {
+    const email = resetEmailInput.value.trim();
+    if (!email) {
+      resetError.textContent = 'Ingresá tu email.';
+      resetError.classList.remove('hidden');
+      return;
+    }
+
+    resetError.classList.add('hidden');
+    resetSuccess.classList.add('hidden');
+    btnResetSubmit.disabled = true;
+    btnResetSubmit.textContent = 'Verificando...';
+
+    if (!auth) {
+      resetError.textContent = 'El sistema de autenticación no está disponible. Contactá a Secretaría.';
+      resetError.classList.remove('hidden');
+      btnResetSubmit.disabled = false;
+      btnResetSubmit.textContent = 'Enviar instrucciones';
+      return;
+    }
+
+    try {
+      // Verificar que el email esté en el padrón antes de enviar
+      const mat = await sanity.fetch(
+        `*[_type == "matriculado" && email == $email][0]{ _id }`,
+        { email }
+      );
+      if (!mat) {
+        resetError.textContent = 'El email no está registrado en el padrón oficial. Contactá a Secretaría para vincular tu legajo.';
+        resetError.classList.remove('hidden');
+        btnResetSubmit.disabled = false;
+        btnResetSubmit.textContent = 'Enviar instrucciones';
+        return;
+      }
+
+      btnResetSubmit.textContent = 'Enviando...';
+
+      // Intentar crear cuenta para detectar si ya existe
+      // (Firebase moderno no lanza auth/user-not-found en sendPasswordResetEmail por privacidad)
+      let isNewUser = false;
+      try {
+        const tmp = `Tmp${Math.random().toString(36).slice(2, 10)}!A1`;
+        resettingPassword = true;
+        await createUserWithEmailAndPassword(auth, email, tmp);
+        isNewUser = true;
+        await signOut(auth);
+        resettingPassword = false;
+      } catch (createErr: any) {
+        resettingPassword = false;
+        if (createErr.code !== 'auth/email-already-in-use') {
+          throw createErr;
+        }
+      }
+
+      await sendPasswordResetEmail(auth, email);
+
+      resetSuccess.textContent = isNewUser
+        ? `Te enviamos un email a ${email} para que puedas crear tu contraseña. Revisá también la carpeta de spam.`
+        : `Te enviamos un email a ${email} con el enlace para recuperar tu contraseña. Revisá también la carpeta de spam.`;
+      resetSuccess.classList.remove('hidden');
+      resetEmailInput.value = '';
+    } catch (err: any) {
+      console.error('Reset error:', err.code, err.message);
+      const msg =
+        err.code === 'auth/invalid-email'         ? 'El formato del email no es válido.' :
+        err.code === 'auth/too-many-requests'      ? 'Demasiados intentos. Esperá unos minutos e intentá de nuevo.' :
+        err.code === 'auth/operation-not-allowed'  ? 'Autenticación por email no habilitada. En Firebase Console → Authentication → Sign-in methods, activá Email/Contraseña.' :
+        err.code === 'auth/network-request-failed' ? 'Error de red. Verificá tu conexión e intentá de nuevo.' :
+        `Error (${err.code || 'desconocido'}). Contactá a Secretaría.`;
+      resetError.textContent = msg;
+      resetError.classList.remove('hidden');
+    } finally {
+      resettingPassword = false;
+      btnResetSubmit.disabled = false;
+      btnResetSubmit.textContent = 'Enviar instrucciones';
+    }
+  });
+
+  // ── Historial Firestore ───────────────────────────────────
+  async function cargarHistorial(email: string) {
+    const cont = document.getElementById('historial-container')!;
+    if (!db) {
+      cont.innerHTML = '<p class="hist-empty">Historial no disponible (Firestore no configurado).</p>';
+      return;
+    }
+    try {
+      const q = query(
+        collection(db, 'pagos'),
+        where('matriculadoEmail', '==', email),
+        orderBy('fecha', 'desc'),
+        limit(6)
+      );
+      const snap = await getDocs(q);
+      if (snap.empty) {
+        cont.innerHTML = '<p class="hist-empty">Sin pagos registrados aún.</p>';
+        (document.getElementById('badge-estado') as HTMLElement).className = 'estado-badge con-deuda';
+        (document.getElementById('badge-estado') as HTMLElement).textContent = 'SIN PAGOS';
+        return;
+      }
+      const rows = snap.docs.map(d => {
+        const p = d.data();
+        const fecha = p.fecha ? new Date(p.fecha).toLocaleDateString('es-AR') : '—';
+        const monto = p.monto ? `$${Number(p.monto).toLocaleString('es-AR')}` : '—';
+        return `<div class="hist-row">
+          <div class="hist-info"><span class="hist-concepto">${p.concepto || 'Pago'}</span><span class="hist-fecha">${fecha}</span></div>
+          <span class="hist-monto">${monto}</span>
+          <span class="hist-badge">✓</span>
+        </div>`;
+      }).join('');
+      cont.innerHTML = rows;
+    } catch (e) {
+      console.error('Historial:', e);
+      cont.innerHTML = '<p class="hist-empty">Error cargando historial.</p>';
+    }
+  }
+
+  // ── Pagos MercadoPago ─────────────────────────────────────
+  function setupPagos(email: string) {
+    const handlePay = async (amount: number, title: string, btn: HTMLButtonElement) => {
+      const orig = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Procesando...';
+      try {
+        const res = await fetch('/api/create-preference', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount, email, title }),
+        });
+        const { init_point } = await res.json();
+        window.location.href = init_point;
+      } catch {
+        alert('Error al iniciar el pago. Reintente.');
+        btn.disabled = false;
+        btn.textContent = orig!;
+      }
+    };
+
+    document.getElementById('btn-pagar-cuota')?.addEventListener('click', function () {
+      handlePay(valorCuota, 'Cuota Social Colegio', this as HTMLButtonElement);
+    });
+    document.getElementById('btn-pagar-anual')?.addEventListener('click', function () {
+      handlePay(valorAnual, 'Matrícula Anual Colegio', this as HTMLButtonElement);
+    });
+  }
+
+  // ── Logo loader ───────────────────────────────────────────
+  async function getLogoBase64(): Promise<string | null> {
+    try {
+      const res = await fetch('/LOGO-CENTRAL.jpg');
+      if (!res.ok) return null;
+      const blob = await res.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return null;
+    }
+  }
+
+  // ── Certificados PDF (jsPDF) ──────────────────────────────
+  async function generarConstanciaMatricula(mat: any) {
+    const { jsPDF } = await import('jspdf');
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const logo = await getLogoBase64();
+    const hoy = new Date();
+    const vencimiento = new Date(hoy); vencimiento.setDate(hoy.getDate() + 30);
+    const fmtFecha = (d: Date) => d.toLocaleDateString('es-AR', { day:'2-digit', month:'long', year:'numeric' });
+
+    // Header
+    doc.setFillColor(27, 94, 32);
+    doc.rect(0, 0, 210, 40, 'F');
+    if (logo) doc.addImage(logo, 'JPEG', 6, 7, 26, 26);
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.text('COLEGIO DE PROFESIONALES EN CIENCIAS CRIMINALÍSTICAS', 105, 16, { align: 'center' });
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('PROVINCIA DE CATAMARCA', 105, 24, { align: 'center' });
+    doc.text('criminalisticacolegio@gmail.com', 105, 31, { align: 'center' });
+
+    // Título
+    doc.setTextColor(27, 94, 32);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.text('CONSTANCIA DE MATRÍCULA VIGENTE', 105, 60, { align: 'center' });
+
+    doc.setDrawColor(27, 94, 32);
+    doc.setLineWidth(0.5);
+    doc.line(30, 65, 180, 65);
+
+    // Cuerpo
+    doc.setTextColor(40, 40, 40);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.text('El Colegio de Profesionales en Ciencias Criminalísticas de la Provincia de Catamarca', 105, 80, { align: 'center' });
+    doc.text('CERTIFICA que el/la profesional que se detalla a continuación se encuentra', 105, 88, { align: 'center' });
+    doc.text('MATRICULADO/A y HABILITADO/A para el ejercicio de la profesión.', 105, 96, { align: 'center' });
+
+    // Datos
+    const y0 = 115;
+    const campo = (label: string, valor: string, y: number) => {
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+      doc.setTextColor(100, 100, 100); doc.text(label.toUpperCase(), 35, y);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
+      doc.setTextColor(20, 20, 20); doc.text(valor, 35, y + 6);
+    };
+    campo('Nombre completo', mat.nombreCompleto || '—', y0);
+    campo('N° de Matrícula', mat.numeroMatricula || '—', y0 + 20);
+    campo('Especialidad', mat.especialidad?.titulo || '—', y0 + 40);
+    campo('Jurisdicción', mat.jurisdiccion?.titulo || '—', y0 + 60);
+    campo('Estado', 'ACTIVO', y0 + 80);
+    campo('Fecha de emisión', fmtFecha(hoy), y0 + 100);
+    campo('Vigencia hasta', fmtFecha(vencimiento), y0 + 120);
+
+    // Firma
+    doc.setDrawColor(180, 180, 180); doc.line(45, 255, 115, 255);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(60, 60, 60);
+    doc.text('Presidente CPC CTM', 80, 261, { align: 'center' });
+
+    // Footer
+    doc.setFillColor(27, 94, 32);
+    doc.rect(0, 274, 210, 23, 'F');
+    doc.setTextColor(255, 255, 255); doc.setFontSize(7.5); doc.setFont('helvetica', 'normal');
+    doc.text('Avenida América Latina 1672 — San Fernando del Valle de Catamarca', 105, 281, { align: 'center' });
+    doc.text('criminalisticacolegio@gmail.com', 105, 287, { align: 'center' });
+    doc.setFontSize(6.5);
+    doc.text(`Emitido el ${fmtFecha(hoy)} · Matrícula N° ${mat.numeroMatricula}`, 105, 294, { align: 'center' });
+
+    doc.save(`constancia-matricula-${mat.numeroMatricula}.pdf`);
+  }
+
+  async function generarConstanciaEtica(mat: any) {
+    const eticaMsg = document.getElementById('etica-msg')!;
+    const btn = document.getElementById('btn-cert-etica') as HTMLButtonElement;
+    btn.disabled = true;
+    btn.textContent = 'Verificando...';
+
+    // Verificar sanciones en Sanity (estado del matriculado)
+    if (mat.estado !== 'Activo') {
+      eticaMsg.textContent = 'No podés obtener esta constancia en este momento. Contactá al Colegio para más información.';
+      eticaMsg.className = 'cert-msg cert-msg-error';
+      btn.disabled = false;
+      btn.textContent = 'Descargar PDF';
+      return;
+    }
+
+    const { jsPDF } = await import('jspdf');
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const logo = await getLogoBase64();
+    const hoy = new Date();
+    const fmtFecha = (d: Date) => d.toLocaleDateString('es-AR', { day:'2-digit', month:'long', year:'numeric' });
+
+    doc.setFillColor(27, 94, 32);
+    doc.rect(0, 0, 210, 40, 'F');
+    if (logo) doc.addImage(logo, 'JPEG', 6, 7, 26, 26);
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
+    doc.text('COLEGIO DE PROFESIONALES EN CIENCIAS CRIMINALÍSTICAS', 105, 16, { align: 'center' });
+    doc.setFontSize(10); doc.setFont('helvetica', 'normal');
+    doc.text('PROVINCIA DE CATAMARCA — TRIBUNAL DE ÉTICA', 105, 24, { align: 'center' });
+
+    doc.setTextColor(27, 94, 32);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(17);
+    doc.text('CONSTANCIA DE ÉTICA PROFESIONAL', 105, 60, { align: 'center' });
+    doc.setDrawColor(27, 94, 32); doc.setLineWidth(0.5); doc.line(30, 65, 180, 65);
+
+    doc.setTextColor(40, 40, 40); doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
+    doc.text('El Tribunal de Ética del Colegio de Profesionales en Ciencias Criminalísticas', 105, 80, { align: 'center' });
+    doc.text('de la Provincia de Catamarca CERTIFICA que:', 105, 88, { align: 'center' });
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
+    doc.setTextColor(27, 94, 32);
+    doc.text(mat.nombreCompleto?.toUpperCase() || '—', 105, 104, { align: 'center' });
+
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(60, 60, 60);
+    doc.text(`Matrícula N° ${mat.numeroMatricula || '—'}`, 105, 113, { align: 'center' });
+
+    doc.setFontSize(11); doc.setTextColor(40, 40, 40);
+    const texto = 'NO REGISTRA sanciones disciplinarias vigentes ante este Tribunal a la fecha de emisión del presente certificado.';
+    const lines = doc.splitTextToSize(texto, 140);
+    doc.text(lines, 105, 130, { align: 'center' });
+
+    const campo2 = (label: string, valor: string, y: number) => {
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(100,100,100);
+      doc.text(label.toUpperCase(), 35, y);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(20,20,20);
+      doc.text(valor, 35, y + 6);
+    };
+    campo2('Fecha de emisión', fmtFecha(hoy), 155);
+    campo2('Vigencia', '30 días desde la fecha de emisión', 175);
+
+    doc.setDrawColor(180,180,180); doc.line(45, 220, 115, 220);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(60,60,60);
+    doc.text('Presidente del Tribunal de Ética · CPC CTM', 80, 226, { align: 'center' });
+
+    doc.setFillColor(27, 94, 32); doc.rect(0, 274, 210, 23, 'F');
+    doc.setTextColor(255,255,255); doc.setFontSize(7.5); doc.setFont('helvetica', 'normal');
+    doc.text('Avenida América Latina 1672 — San Fernando del Valle de Catamarca', 105, 281, { align: 'center' });
+    doc.text('criminalisticacolegio@gmail.com', 105, 287, { align: 'center' });
+
+    doc.save(`constancia-etica-${mat.numeroMatricula}.pdf`);
+    btn.disabled = false;
+    btn.textContent = 'Descargar PDF';
+  }
+</script>
+
+<style>
+  .hidden { display: none !important; }
+
+  /* Auth states */
+  .auth-loading {
+    min-height: 60vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 1.5rem; color: var(--text-light);
+  }
+  .spinner-ring {
+    width: 44px; height: 44px; border-radius: 50%;
+    border: 4px solid var(--gray-200); border-top-color: var(--primary);
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .auth-gate {
+    min-height: 70vh; display: flex; align-items: center; justify-content: center; padding: 3rem 1.5rem;
+  }
+  .gate-card {
+    width: 100%; max-width: 460px; padding: 3rem;
+    border-radius: var(--radius-lg); border: 1px solid var(--gray-200);
+    text-align: center; display: flex; flex-direction: column; gap: 1.25rem;
+  }
+  .warning-card { border-color: #fbbf24; background: #fffbeb; }
+  .gate-icon { font-size: 3rem; }
+  .gate-card h1, .gate-card h2 { color: var(--accent); margin: 0; font-size: 1.6rem; }
+  .gate-card p { color: var(--text-light); line-height: 1.6; margin: 0; }
+  .gate-form { text-align: left; display: flex; flex-direction: column; gap: 1rem; }
+  .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+  .form-group label { font-size: 0.85rem; font-weight: 600; color: var(--accent); }
+  .form-group input {
+    padding: 0.75rem 1rem; border: 1px solid var(--gray-300);
+    border-radius: var(--radius-md); font-family: inherit; font-size: 0.95rem;
+  }
+  .gate-error { background: #fee2e2; color: #991b1b; padding: 0.75rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600; }
+  .btn-login-gate {
+    background: var(--primary); color: white; border: none; padding: 0.9rem;
+    border-radius: var(--radius-md); font-weight: 700; font-size: 1rem;
+    cursor: pointer; transition: var(--transition);
+  }
+  .btn-login-gate:hover:not(:disabled) { background: var(--primary-hover); }
+  .btn-login-gate:disabled { opacity: 0.6; cursor: not-allowed; }
+  .gate-links { font-size: 0.85rem; color: var(--text-light); display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
+  .gate-link { color: var(--primary); text-decoration: none; font-weight: 600; }
+  .gate-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+  /* Reset / primera vez */
+  .reset-section { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; border-top: 1px solid var(--gray-200); padding-top: 1rem; }
+
+  .btn-forgot {
+    background: none; border: none; color: var(--primary);
+    font-size: 0.85rem; font-weight: 600; cursor: pointer;
+    font-family: inherit; text-decoration: underline; text-underline-offset: 3px;
+    transition: color 0.15s;
+  }
+  .btn-forgot:hover { color: var(--primary-hover); }
+
+  .reset-form-wrap { width: 100%; }
+  .reset-form-inner { display: flex; gap: 0.5rem; }
+  .reset-form-inner input {
+    flex: 1; padding: 0.7rem 0.9rem;
+    border: 1px solid var(--gray-300); border-radius: var(--radius-md);
+    font-family: inherit; font-size: 0.9rem;
+    transition: border-color 0.15s;
+  }
+  .reset-form-inner input:focus { outline: none; border-color: var(--primary); }
+
+  .btn-reset-submit {
+    padding: 0.7rem 1.1rem;
+    background: var(--accent); color: white; border: none;
+    border-radius: var(--radius-md); font-family: inherit;
+    font-weight: 700; font-size: 0.85rem; cursor: pointer;
+    transition: var(--transition); white-space: nowrap;
+  }
+  .btn-reset-submit:hover:not(:disabled) { opacity: 0.88; }
+  .btn-reset-submit:disabled { opacity: 0.55; cursor: not-allowed; }
+
+  .reset-msg { font-size: 0.82rem; font-weight: 600; padding: 0.6rem 0.85rem; border-radius: 8px; text-align: left; }
+  .reset-msg-error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+  .reset-msg-ok    { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+
+  /* Main content */
+  .page-content { padding: 3rem 0 5rem; display: flex; flex-direction: column; gap: 2.5rem; }
+
+  .account-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding-bottom: 2rem; border-bottom: 2px solid var(--gray-200);
+  }
+  .section-label { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--primary); display: block; margin-bottom: 0.5rem; }
+  .account-header h1 { font-size: 1.8rem; color: var(--accent); margin: 0 0 0.4rem; }
+  .account-header p { color: var(--text-light); margin: 0; font-size: 0.95rem; }
+  .estado-inline.activo { color: #166534; font-weight: 700; }
+  .estado-inline.inactivo { color: #991b1b; font-weight: 700; }
+  .btn-logout {
+    background: var(--gray-100); border: 1px solid var(--gray-300); color: var(--text-main);
+    padding: 0.6rem 1.2rem; border-radius: var(--radius-md); font-weight: 600;
+    cursor: pointer; font-size: 0.9rem; white-space: nowrap; transition: var(--transition);
+  }
+  .btn-logout:hover { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+
+  .banner-verify {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.85rem 1.25rem; background: #fef3c7;
+    border: 1px solid #f59e0b; border-radius: var(--radius-md);
+    font-size: 0.9rem;
+  }
+  .banner-verify p { color: #92400e; margin: 0; flex: 1; line-height: 1.5; }
+  .btn-resend-verify {
+    background: #d97706; color: white; border: none;
+    padding: 0.45rem 1rem; border-radius: 6px; font-weight: 700;
+    cursor: pointer; white-space: nowrap; font-family: inherit; font-size: 0.82rem;
+    transition: var(--transition);
+  }
+  .btn-resend-verify:hover:not(:disabled) { background: #b45309; }
+  .btn-resend-verify:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .alert-inactive {
+    display: flex; align-items: center; gap: 1rem; padding: 1rem 1.5rem;
+    background: #fff7ed; border: 1px solid #fed7aa; border-radius: var(--radius-md);
+  }
+  .alert-inactive p { color: #9a3412; font-size: 0.9rem; margin: 0; flex: 1; }
+  .btn-contact-inline { background: #ea580c; color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 700; cursor: pointer; white-space: nowrap; font-family: inherit; }
+
+  /* Two columns */
+  .two-col-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start; }
+  .col-title {
+    display: flex; align-items: center; gap: 0.6rem; font-size: 1.2rem;
+    color: var(--accent); margin-bottom: 1.5rem;
+  }
+
+  /* Pay cards */
+  .col-left { display: flex; flex-direction: column; gap: 1.5rem; }
+  .pay-card {
+    padding: 1.75rem; border-radius: var(--radius-lg);
+    border: 1px solid var(--gray-200); background: var(--white);
+  }
+  .pay-card-header { display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1.25rem; }
+  .pay-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; }
+  .pay-icon.blue { background: #eff6ff; }
+  .pay-icon.green { background: #f0fdf4; }
+  .pay-icon.gray { background: var(--gray-100); }
+  .pay-card-header h3 { font-size: 1rem; color: var(--accent); margin: 0 0 0.25rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .pay-desc { font-size: 0.8rem; color: var(--text-light); margin: 0; }
+  .promo-badge { background: #fde68a; color: #92400e; font-size: 0.65rem; font-weight: 800; padding: 0.2rem 0.5rem; border-radius: 20px; text-transform: uppercase; }
+  .pay-amount { font-size: 2rem; font-weight: 800; color: var(--primary); margin-bottom: 1rem; }
+  .btn-pay {
+    display: flex; align-items: center; gap: 0.5rem; justify-content: center;
+    width: 100%; padding: 0.8rem; background: var(--accent); color: white;
+    border: none; border-radius: var(--radius-md); font-weight: 700;
+    cursor: pointer; transition: var(--transition); font-family: inherit; font-size: 0.95rem;
+  }
+  .btn-pay:hover:not(:disabled) { opacity: 0.9; transform: translateY(-2px); }
+  .btn-pay:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-pay-green { background: var(--primary); }
+  .estado-badge { margin-left: auto; font-size: 0.7rem; font-weight: 800; padding: 0.3rem 0.7rem; border-radius: 20px; white-space: nowrap; }
+  .estado-badge.al-dia { background: #dcfce7; color: #166534; }
+  .estado-badge.con-deuda { background: #fee2e2; color: #991b1b; }
+
+  /* Historial */
+  .hist-loading, .hist-empty { font-size: 0.85rem; color: var(--text-light); text-align: center; padding: 1rem 0; }
+  .hist-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid var(--gray-100); }
+  .hist-row:last-child { border-bottom: none; }
+  .hist-info { flex: 1; display: flex; flex-direction: column; }
+  .hist-concepto { font-size: 0.85rem; font-weight: 600; color: var(--text-main); }
+  .hist-fecha { font-size: 0.75rem; color: var(--text-light); }
+  .hist-monto { font-size: 0.9rem; font-weight: 700; color: var(--primary); }
+  .hist-badge { font-size: 0.8rem; color: #166534; }
+
+  /* Cert cards */
+  .col-right { display: flex; flex-direction: column; gap: 1.5rem; }
+  .cert-card {
+    padding: 1.75rem; border-radius: var(--radius-lg);
+    border: 1px solid var(--gray-200); background: var(--white);
+    display: flex; flex-direction: column; gap: 1rem;
+  }
+  .cert-header { display: flex; gap: 1rem; align-items: flex-start; }
+  .cert-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0; }
+  .green-bg { background: #f0fdf4; }
+  .blue-bg { background: #eff6ff; }
+  .cert-header h3 { font-size: 1rem; color: var(--accent); margin: 0 0 0.4rem; }
+  .cert-desc { font-size: 0.82rem; color: var(--text-light); line-height: 1.5; margin: 0; }
+  .cert-use { font-size: 0.8rem; color: var(--text-light); background: var(--gray-50); padding: 0.6rem 0.9rem; border-radius: 8px; line-height: 1.5; }
+  .use-label { font-weight: 700; color: var(--accent); }
+  .btn-cert {
+    display: flex; align-items: center; gap: 0.5rem; justify-content: center;
+    padding: 0.8rem; background: var(--primary); color: white;
+    border: none; border-radius: var(--radius-md); font-weight: 700;
+    cursor: pointer; transition: var(--transition); font-family: inherit;
+  }
+  .btn-cert:hover:not(:disabled) { background: var(--primary-hover); transform: translateY(-2px); }
+  .btn-cert:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-cert-blue { background: #1d4ed8; }
+  .btn-cert-blue:hover:not(:disabled) { background: #1e40af; }
+  .cert-msg { padding: 0.75rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600; }
+  .cert-msg-error { background: #fee2e2; color: #991b1b; }
+  .cert-note { font-size: 0.8rem; color: var(--text-light); display: flex; align-items: center; gap: 0.4rem; }
+
+  .btn-primary { background: var(--primary); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; transition: var(--transition); font-family: inherit; }
+  .btn-outline { background: transparent; color: var(--primary); border: 2px solid var(--primary); padding: 0.75rem 1.5rem; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; transition: var(--transition); font-family: inherit; }
+
+  @media (max-width: 1024px) {
+    .two-col-layout { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 640px) {
+    .account-header { flex-direction: column; gap: 1rem; }
+  }
+</style>

@@ -1,8 +1,17 @@
 ---
 import MainLayout from '../layouts/MainLayout.astro';
+import { sanityClient } from 'sanity:client';
+
+const config = await sanityClient.fetch(`*[_type == "configuracionCobros"][0]`);
+const aranceles = await sanityClient.fetch(`*[_type == "arancelProfesional"] | order(valorEstimado asc)`);
 ---
 
 <MainLayout title="Pagos y Aranceles" showBack={true}>
+  <div id="pagos-config"
+       data-cuota={config?.valorCuotaMensual || 0}
+       data-anual={config?.valorMatriculaAnual || 0}
+       class="hidden">
+  </div>
 	<div class="container page-content">
 		<header class="section-header">
 			<span class="sub-title">Administración</span>
@@ -26,8 +35,8 @@ import MainLayout from '../layouts/MainLayout.astro';
 				<div class="deuda-summary-large">
 					<div class="amount-card primary-card">
 						<span class="label">Próximo Vencimiento (Cuota May-26)</span>
-						<span class="value">$12.500</span>
-						<button class="btn-pay-now">Pagar Cuota Mensual</button>
+						<span class="value">${config?.valorCuotaMensual?.toLocaleString('es-AR')}</span>
+						<button id="pay-monthly-btn" class="btn-pay-now">Pagar Cuota Mensual</button>
 					</div>
 					
 					<div class="amount-card highlight-card">
@@ -35,9 +44,9 @@ import MainLayout from '../layouts/MainLayout.astro';
 							<span class="label">Matrícula Anual 2026</span>
 							<span class="discount-badge">¡Ahorrá 20%!</span>
 						</div>
-						<span class="value">$120.000</span>
+						<span class="value">${config?.valorMatriculaAnual?.toLocaleString('es-AR')}</span>
 						<p class="card-info">Pago único con bonificación por pago adelantado.</p>
-						<button class="btn-primary-large">PAGO MATRÍCULA ANUAL</button>
+						<button id="pay-annual-btn" class="btn-primary-large">PAGO MATRÍCULA ANUAL</button>
 					</div>
 				</div>
 
@@ -65,26 +74,13 @@ import MainLayout from '../layouts/MainLayout.astro';
 						</tr>
 					</thead>
 					<tbody>
-						<tr>
-							<td>Peritaje Accidentológico Standard</td>
-							<td>10</td>
-							<td>$125.000</td>
-						</tr>
-						<tr>
-							<td>Estudio Caligráfico (Cotejo Firma)</td>
-							<td>8</td>
-							<td>$100.000</td>
-						</tr>
-						<tr>
-							<td>Levantamiento Papiloscópico</td>
-							<td>12</td>
-							<td>$150.000</td>
-						</tr>
-						<tr>
-							<td>Informes Técnicos Particulares</td>
-							<td>5</td>
-							<td>$62.500</td>
-						</tr>
+						{aranceles.map((item) => (
+							<tr>
+								<td>{item.servicio}</td>
+								<td>{item.unidadesCP}</td>
+								<td>${item.valorEstimado?.toLocaleString('es-AR')}</td>
+							</tr>
+						))}
 					</tbody>
 				</table>
 				<div class="panel-footer">
@@ -286,3 +282,61 @@ import MainLayout from '../layouts/MainLayout.astro';
 		}
 	</style>
 </MainLayout>
+
+<script>
+	import { auth } from '../lib/firebase';
+	import { onAuthStateChanged } from 'firebase/auth';
+
+	const configEl = document.getElementById('pagos-config') as HTMLElement;
+	const valorCuota = Number(configEl?.dataset.cuota || 0);
+	const valorAnual = Number(configEl?.dataset.anual || 0);
+
+	const payMonthlyBtn = document.getElementById('pay-monthly-btn') as HTMLButtonElement;
+	const payAnnualBtn = document.getElementById('pay-annual-btn') as HTMLButtonElement;
+
+	let userEmail: string | null = null;
+
+	onAuthStateChanged(auth, (user) => {
+		userEmail = user?.email || null;
+	});
+
+	async function handlePayment(btn: HTMLButtonElement, amount: number, title: string) {
+		if (!userEmail) {
+			window.location.href = '/login';
+			return;
+		}
+		const originalText = btn.innerHTML;
+		btn.disabled = true;
+		btn.textContent = 'Procesando...';
+		try {
+			const res = await fetch('/api/create-preference', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ amount, title, email: userEmail }),
+			});
+			const data = await res.json();
+			if (data.init_point) {
+				window.location.href = data.init_point;
+			} else {
+				throw new Error('Sin init_point');
+			}
+		} catch (err) {
+			console.error('[pagos] Error pago:', err);
+			alert('Error al iniciar el pago. Por favor reintente.');
+			btn.disabled = false;
+			btn.innerHTML = originalText;
+		}
+	}
+
+	payMonthlyBtn?.addEventListener('click', () =>
+		handlePayment(payMonthlyBtn, valorCuota, 'Cuota Social Mensual CPC CTM')
+	);
+
+	payAnnualBtn?.addEventListener('click', () =>
+		handlePayment(payAnnualBtn, valorAnual, 'Matrícula Anual CPC CTM')
+	);
+
+	document.querySelector('.btn-download')?.addEventListener('click', () => {
+		window.location.href = '/aranceles';
+	});
+</script>
