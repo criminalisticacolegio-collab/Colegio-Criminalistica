@@ -40,6 +40,10 @@ export const POST = async ({ request }) => {
 };
 
 async function processPayment(mpPaymentId) {
+  if (!import.meta.env.MP_ACCESS_TOKEN) {
+    console.warn('[webhook] MP_ACCESS_TOKEN no configurado, pago ignorado:', mpPaymentId);
+    return;
+  }
   // ── 1. Idempotencia: verificar si ya procesamos este pago ──
   const pagoRef = doc(collection(db, 'pagos'), `mp_${mpPaymentId}`);
   const existing = await getDoc(pagoRef);
@@ -68,7 +72,7 @@ async function processPayment(mpPaymentId) {
   // ── Pago de cuota/matrícula (flujo existente) ─────────────
   const payerEmail = payment.payer?.email || extRef || '';
   const monto = payment.transaction_amount;
-  const concepto = payment.description || payment.additional_info?.items?.[0]?.title || 'Cuota/Matrícula CPC CTM';
+  const concepto = payment.description || payment.additional_info?.items?.[0]?.title || 'Cuota/Matrícula CPCC';
   const fecha = new Date(payment.date_approved || payment.date_created);
 
   let matriculado = null;
@@ -133,7 +137,7 @@ async function processCoursePayment(mpPaymentId, payment, extRef) {
   }
 
   // Buscar datos del curso en Sanity
-  let cursoTitulo = 'Curso CPC CTM';
+  let cursoTitulo = 'Curso CPCC';
   try {
     const config = await sanity.fetch(
       `*[_type == "capacitacionConfig"][0]{ "curso": cursos[_key == $key][0]{ titulo } }`,

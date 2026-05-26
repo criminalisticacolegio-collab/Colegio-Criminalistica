@@ -2,7 +2,7 @@ import { defineField, defineType } from 'sanity'
 
 export default defineType({
     name: 'capacitacionConfig',
-    title: 'Capacitaciones',
+    title: 'Formación Profesional',
     type: 'document',
     __experimental_actions: ['update', 'publish'],
     fields: [
@@ -147,13 +147,11 @@ export default defineType({
                             name: 'tipoAcceso',
                             title: 'Tipo de Acceso',
                             type: 'string',
-                            initialValue: 'gratuito_publico',
+                            initialValue: 'gratuito',
                             options: {
                                 list: [
-                                    { title: '🌐 Gratuito — público', value: 'gratuito_publico' },
-                                    { title: '🎓 Gratuito — solo matriculados', value: 'gratuito_matriculados' },
-                                    { title: '💳 Pago — público', value: 'pago_publico' },
-                                    { title: '💳 Pago — con descuento matriculados', value: 'pago_matriculados' },
+                                    { title: 'Gratuito', value: 'gratuito' },
+                                    { title: 'Pago', value: 'pago' },
                                 ],
                                 layout: 'radio',
                             },
@@ -188,6 +186,76 @@ export default defineType({
                             type: 'url',
                             description: 'Si se ingresa, el botón "Inscribirse" redirige directamente a este link (ej: link.mercadopago.com.ar/...). Tiene prioridad sobre el pago automático por API.',
                         },
+                        {
+                            name: 'linkPagoMatriculado',
+                            title: 'Link de pago — Matriculados',
+                            type: 'url',
+                            description: 'Link de MercadoPago con precio especial para matriculados del CPCC.',
+                        },
+                        {
+                            name: 'linkPagoPublico',
+                            title: 'Link de pago — Público general',
+                            type: 'url',
+                            description: 'Link de MercadoPago con precio de lista para el público en general.',
+                        },
+                        {
+                            name: 'linkClassroom',
+                            title: 'Link de acceso — Google Classroom',
+                            type: 'url',
+                            description: 'Pegá el enlace de invitación del curso en Google Classroom. Se envía automáticamente al inscripto.',
+                        },
+                        {
+                            name: 'codigoClassroom',
+                            title: 'Código del aula (Google Classroom)',
+                            type: 'string',
+                            description: 'Código de 6-7 caracteres del aula (ej: abc1234). Alternativa al link para unirse a la clase.',
+                        },
+                        {
+                            name: 'fechaInicio',
+                            title: 'Fecha de inicio',
+                            type: 'date',
+                            options: { dateFormat: 'DD/MM/YYYY' },
+                        },
+                        {
+                            name: 'fechaCierre',
+                            title: 'Fecha de cierre de inscripción (opcional)',
+                            type: 'date',
+                            options: { dateFormat: 'DD/MM/YYYY' },
+                        },
+                        {
+                            name: 'proximamente',
+                            title: 'Próximamente (aún no disponible)',
+                            type: 'boolean',
+                            initialValue: false,
+                            description: 'Si está activo, muestra badge "PRÓXIMAMENTE" y solo permite pre-inscripción.',
+                        },
+                        {
+                            name: 'inscriptosActivos',
+                            title: 'Inscriptos activos (contador)',
+                            type: 'number',
+                            readOnly: true,
+                            initialValue: 0,
+                        },
+                    ],
+                },
+            ],
+        }),
+
+        // ── Centros Criminalísticos de Referencia ─────────────────
+        defineField({
+            name: 'centrosForenses',
+            title: 'Centros Criminalísticos de Referencia',
+            type: 'array',
+            description: 'Links externos a instituciones de referencia para ampliar la formación profesional.',
+            of: [
+                {
+                    type: 'object',
+                    preview: { select: { title: 'nombre', subtitle: 'url' } },
+                    fields: [
+                        { name: 'nombre',      title: 'Nombre de la institución', type: 'string', validation: R => R.required() },
+                        { name: 'descripcion', title: 'Descripción breve',        type: 'string' },
+                        { name: 'url',         title: 'URL del sitio',            type: 'url', validation: R => R.required() },
+                        { name: 'icono',       title: 'Ícono (emoji)',            type: 'string', initialValue: '🔬' },
                     ],
                 },
             ],

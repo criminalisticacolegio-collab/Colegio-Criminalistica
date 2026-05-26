@@ -31,6 +31,16 @@ export default defineType({
             type: 'string',
         }),
         defineField({
+            name: 'numeroMatricula',
+            title: 'Número de Matrícula',
+            type: 'string',
+            description: 'Asignar al aprobar la solicitud. Formato: MP-001. Al publicar con este campo completo se crea el matriculado automáticamente.',
+            validation: Rule => Rule.custom(val => {
+                if (!val) return true;
+                return /^MP-\d{3}$/.test(val) || 'Formato inválido. Use MP-001, MP-002, etc.';
+            }).warning(),
+        }),
+        defineField({
             name: 'documentacion',
             title: 'Documentación',
             type: 'file',
@@ -64,14 +74,9 @@ export default defineType({
             title: 'Documento: DNI'
         }),
         defineField({
-            name: 'archivoCertificado',
+            name: 'certificadoAntecedentes',
             type: 'file',
-            title: 'Documento: Certificado de Antecedentes'
-        }),
-        defineField({
-            name: 'archivoAntecedentes',
-            type: 'file',
-            title: 'Documento: Antecedentes Nacionales'
+            title: 'Documento: Certificado de Antecedentes Penales'
         }),
         defineField({
             name: 'archivoComprobante',

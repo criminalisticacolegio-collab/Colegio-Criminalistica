@@ -3,6 +3,12 @@ import { MercadoPagoConfig, Preference } from 'mercadopago';
 export const prerender = false;
 
 export const POST = async ({ request }) => {
+  if (!import.meta.env.MP_ACCESS_TOKEN) {
+    return new Response(
+      JSON.stringify({ error: 'Los pagos estarán disponibles próximamente. Contacte al colegio: criminalisticacolegio@gmail.com' }),
+      { status: 503, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
   const body = await request.json();
   const { amount, email, title } = body;
 

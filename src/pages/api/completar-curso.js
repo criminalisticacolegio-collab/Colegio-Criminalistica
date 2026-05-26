@@ -45,7 +45,7 @@ export const POST = async ({ request }) => {
     await enviarCertificadoCurso({
       nombre: data.nombre || email,
       email,
-      cursoTitulo: data.cursoTitulo || 'Curso CPC CTM',
+      cursoTitulo: data.cursoTitulo || 'Curso CPCC',
       fecha: new Date(fechaCompletado),
     });
   } catch (err) {

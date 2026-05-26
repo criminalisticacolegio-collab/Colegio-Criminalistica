@@ -7,10 +7,10 @@ export default defineType({
     __experimental_actions: ['update', 'publish'],
     fields: [
         defineField({
-            name: 'telefonos',
-            title: 'Teléfonos de Contacto',
-            type: 'array',
-            of: [{ type: 'string' }],
+            name: 'telefonoOficial',
+            title: 'Teléfono Oficial',
+            type: 'string',
+            description: 'Número de teléfono de contacto del colegio',
         }),
         defineField({
             name: 'whatsapp',
@@ -33,6 +33,12 @@ export default defineType({
             title: 'Horario de Atención',
             type: 'string',
             description: 'Ej: Lunes a Viernes · 8:00 a 14:00 hs',
+        }),
+        defineField({
+            name: 'linkMaps',
+            title: 'Link de Google Maps',
+            type: 'url',
+            description: 'Pegá el link de Google Maps de la ubicación del Colegio',
         }),
         defineField({
             name: 'redesSociales',

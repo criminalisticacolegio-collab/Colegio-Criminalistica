@@ -5,6 +5,7 @@ interface Props {
   direccion?: string;
   horarios?: string;
   whatsapp?: string;
+  linkMaps?: string;
 }
 
 const {
@@ -13,6 +14,7 @@ const {
   direccion = 'San Fernando del Valle de Catamarca',
   horarios = 'Lunes a Viernes · 8:00 a 14:00 hs',
   whatsapp = '',
+  linkMaps = '',
 } = Astro.props;
 
 const waNumber = whatsapp.replace(/\D/g, '');
@@ -56,6 +58,11 @@ const waNumber = whatsapp.replace(/\D/g, '');
           <span>{horarios}</span>
         </div>
       </div>
+      {linkMaps && (
+        <a href={linkMaps} target="_blank" rel="noopener noreferrer" class="btn-maps">
+          📍 Ver ubicación en Google Maps
+        </a>
+      )}
     </div>
 
     <!-- Tabs -->
@@ -240,6 +247,27 @@ const waNumber = whatsapp.replace(/\D/g, '');
   .info-item span {
     font-size: 0.9rem;
     color: var(--text-light);
+  }
+
+  .btn-maps {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1rem;
+    background: var(--primary);
+    color: white;
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.9rem;
+    transition: var(--transition);
+    justify-content: center;
+    margin-top: 0.25rem;
+  }
+
+  .btn-maps:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
   }
 
   /* Tabs */
@@ -466,7 +494,7 @@ const waNumber = whatsapp.replace(/\D/g, '');
     let text = '';
     if (nombre) text += `Hola, soy ${nombre}. `;
     if (msg) text += msg;
-    else text += 'Hola, me comunico desde el sitio web del CPC CTM.';
+    else text += 'Hola, me comunico desde el sitio web del CPCC.';
     waLink.href = `${base}?text=${encodeURIComponent(text)}`;
   }
 

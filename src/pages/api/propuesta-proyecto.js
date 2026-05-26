@@ -12,7 +12,7 @@ const sanity = createClient({
 });
 
 const resend = new Resend(import.meta.env.RESEND_API_KEY);
-const FROM = import.meta.env.EMAIL_FROM || 'CPC CTM <onboarding@resend.dev>';
+const FROM = import.meta.env.EMAIL_FROM || 'CPCC <onboarding@resend.dev>';
 const ADMIN = 'criminalisticacolegio@gmail.com';
 
 const tipoLabels = {
@@ -97,7 +97,7 @@ export async function POST({ request }) {
             <p style="margin-top: 20px; font-size: 13px; color: #666; line-height: 1.5;">La propuesta fue guardada en Sanity con estado <strong>Recibido</strong>. Podés gestionarla desde el panel de administración.</p>
           </div>
           <div style="background: #1b5e20; padding: 14px 40px; text-align: center;">
-            <p style="color: rgba(255,255,255,0.65); font-size: 11px; margin: 0;">CPC CTM — Portal Institucional</p>
+            <p style="color: rgba(255,255,255,0.65); font-size: 11px; margin: 0;">CPCC — Portal Institucional</p>
           </div>
         </div>
       `,
@@ -107,7 +107,7 @@ export async function POST({ request }) {
     await resend.emails.send({
       from: FROM,
       to: [email.trim()],
-      subject: 'CPC CTM — Recibimos tu propuesta',
+      subject: 'CPCC — Recibimos tu propuesta',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; border-radius: 12px; overflow: hidden;">
           <div style="background: #1b5e20; padding: 32px 40px; text-align: center;">
@@ -135,7 +135,7 @@ export async function POST({ request }) {
           </div>
           <div style="background: #1b5e20; padding: 20px 40px; text-align: center;">
             <p style="color: rgba(255,255,255,0.7); font-size: 12px; margin: 0;">
-              CPC CTM · San Fernando del Valle de Catamarca · criminalisticacolegio@gmail.com
+              CPCC · San Fernando del Valle de Catamarca · criminalisticacolegio@gmail.com
             </p>
           </div>
         </div>

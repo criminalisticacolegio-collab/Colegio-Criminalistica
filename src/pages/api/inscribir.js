@@ -146,6 +146,9 @@ export const POST = async ({ request }) => {
   }
 
   // Crear preferencia de MercadoPago
+  if (!import.meta.env.MP_ACCESS_TOKEN) {
+    return json({ error: 'Los pagos estarán disponibles próximamente. Contacte al colegio: criminalisticacolegio@gmail.com' }, 503);
+  }
   const origin = new URL(request.url).origin;
   const preference = new Preference(mpClient);
 

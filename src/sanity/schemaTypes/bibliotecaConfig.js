@@ -13,22 +13,7 @@ export default defineType({
             rows: 3,
         }),
 
-        defineField({
-            name: 'tituloBuscador',
-            title: 'Título del Buscador de Leyes',
-            type: 'string',
-            initialValue: 'Buscador de Legislación',
-        }),
-
-        defineField({
-            name: 'categoriasLeyes',
-            title: 'Categorías del Buscador de Leyes',
-            type: 'array',
-            of: [{ type: 'string' }],
-            description: 'Ej: "Procesal Penal", "Civil", "Peritos"',
-        }),
-
-        // Recursos descargables organizados por categoría
+        // Recursos descargables
         defineField({
             name: 'recursos',
             title: 'Recursos y Documentos',
@@ -40,14 +25,14 @@ export default defineType({
                         select: { title: 'titulo', subtitle: 'categoria' },
                     },
                     fields: [
-                        { name: 'titulo', title: 'Título del recurso', type: 'string', validation: Rule => Rule.required() },
-                        { name: 'descripcion', title: 'Descripción breve', type: 'string' },
+                        { name: 'titulo',       title: 'Título del recurso',   type: 'string', validation: Rule => Rule.required() },
+                        { name: 'descripcion',  title: 'Descripción breve',    type: 'string' },
                         {
                             name: 'extracto',
-                            title: 'Contenido para IA (extracto o resumen del documento)',
+                            title: 'Contenido para IA (resumen del documento)',
                             type: 'text',
                             rows: 5,
-                            description: 'Pegá aquí un resumen o los puntos clave del documento. La IA usará esto para responder consultas sobre su contenido.',
+                            description: 'Pegá aquí un resumen o puntos clave. La IA usará esto para responder consultas.',
                         },
                         {
                             name: 'categoria',
@@ -55,24 +40,57 @@ export default defineType({
                             type: 'string',
                             options: {
                                 list: [
-                                    { title: 'Legislación', value: 'Legislacion' },
-                                    { title: 'Protocolos', value: 'Protocolos' },
-                                    { title: 'Formularios', value: 'Formularios' },
-                                    { title: 'Guías Técnicas', value: 'Guias' },
-                                    { title: 'Jurisprudencia', value: 'Jurisprudencia' },
-                                    { title: 'Bibliografía', value: 'Bibliografia' },
+                                    { title: 'Legislación Provincial',      value: 'LegislacionProvincial' },
+                                    { title: 'Legislación Nacional',        value: 'LegislacionNacional' },
+                                    { title: 'Código Penal y Procesal',     value: 'CodigoPenal' },
+                                    { title: 'Peritos y Prueba Judicial',   value: 'PeritosYPrueba' },
+                                    { title: 'Ética y Disciplina',          value: 'EticaYDisciplina' },
+                                    { title: 'Especialidades Forenses',     value: 'EspecialidadesForenses' },
+                                    { title: 'Medicina Legal',              value: 'MedicinaLegal' },
+                                    { title: 'Criminología',                value: 'Criminologia' },
+                                    { title: 'Decretos y Reglamentaciones', value: 'Decretos' },
                                 ],
                             },
                         },
-                        { name: 'icono', title: 'Ícono (emoji)', type: 'string', initialValue: '📄' },
-                        { name: 'archivo', title: 'Archivo (PDF, DOCX, etc.)', type: 'file' },
+                        {
+                            name: 'tipoRecurso',
+                            title: 'Tipo de recurso',
+                            type: 'string',
+                            options: {
+                                list: [
+                                    { title: '📄 Archivo PDF descargable', value: 'pdf' },
+                                    { title: '🔗 Link externo',            value: 'enlace' },
+                                    { title: '📚 Libro digital',           value: 'libro' },
+                                ],
+                                layout: 'radio',
+                            },
+                            initialValue: 'pdf',
+                        },
+                        {
+                            name: 'colorCategoria',
+                            title: 'Color de categoría',
+                            type: 'string',
+                            options: {
+                                list: [
+                                    { title: 'Azul — Legislación',       value: '#1a2d4a' },
+                                    { title: 'Verde — Ética/Reglamentos', value: '#1a5c2a' },
+                                    { title: 'Rojo — Disciplina',        value: '#8B1A1A' },
+                                    { title: 'Dorado — General',         value: '#8B7355' },
+                                    { title: 'Celeste — Criminología',   value: '#2c5f8a' },
+                                ],
+                                layout: 'radio',
+                            },
+                            initialValue: '#8B7355',
+                        },
+                        { name: 'icono',       title: 'Ícono representativo (emoji)', type: 'string', initialValue: '📄', description: 'Ej: 📋 ⚖️ 📖 🔍' },
+                        { name: 'destacado',   title: 'Mostrar como recurso destacado (arriba)', type: 'boolean', initialValue: false },
+                        { name: 'archivo',     title: 'Archivo (PDF, DOCX, etc.)',    type: 'file' },
                         {
                             name: 'linkExterno',
-                            title: 'Enlace externo (si no es archivo propio)',
+                            title: 'URL del recurso externo',
                             type: 'url',
-                            description: 'Usar en lugar de archivo para links a SAIJ, Infoleg, etc.',
+                            description: 'Si el recurso está en otro sitio (SAIJ, InfoLEG, etc.)',
                         },
-                        { name: 'destacado', title: 'Destacar en la página', type: 'boolean', initialValue: false },
                     ],
                 },
             ],

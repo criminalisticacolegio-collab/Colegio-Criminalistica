@@ -18,7 +18,7 @@ export const POST = async ({ request }) => {
 
   const accessToken = import.meta.env.MP_ACCESS_TOKEN;
   if (!accessToken) {
-    return res({ error: 'MercadoPago no configurado (MP_ACCESS_TOKEN vacío)' }, 503);
+    return res({ error: 'Los pagos estarán disponibles próximamente. Contacte al colegio: criminalisticacolegio@gmail.com' }, 503);
   }
 
   const origin = new URL(request.url).origin;
@@ -31,7 +31,7 @@ export const POST = async ({ request }) => {
       body: {
         items: [
           {
-            title: 'Mantenimiento Web — CPC CTM',
+            title: 'Mantenimiento Web — CPCC',
             unit_price: Number(total),
             quantity: 1,
             currency_id: 'ARS',

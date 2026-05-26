@@ -41,7 +41,7 @@ const configPayload = JSON.stringify({ valorJUS: VALOR_JUS, vigenciaDesde, items
     <header class="section-header">
       <span class="sub-title">Honorarios Periciales</span>
       <h1>Aranceles y Honorarios</h1>
-      <p>Tabla de aranceles sugeridos y calculadora de honorarios del CPC CTM.</p>
+      <p>Tabla de aranceles sugeridos y calculadora de honorarios del CPCC.</p>
     </header>
 
     {aranceles.length === 0 ? (
@@ -425,258 +425,54 @@ const configPayload = JSON.stringify({ valorJUS: VALOR_JUS, vigenciaDesde, items
       caratula: (document.getElementById('causa-caratula')?.value || '').trim(),
     };
 
-    var mod   = await import('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm');
-    var jsPDF = mod.jsPDF || mod.default;
-    var doc   = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-
-    var hoy = new Date();
-    var fmtD = function(d) { return pad2(d.getDate()) + '/' + pad2(d.getMonth()+1) + '/' + d.getFullYear(); };
-    var preNum = 'PRE-' + hoy.getFullYear() + pad2(hoy.getMonth()+1) + pad2(hoy.getDate()) +
-                 '-' + pad2(hoy.getHours()) + pad2(hoy.getMinutes()) + pad2(hoy.getSeconds());
-
-    // Vigencia formateada
-    var vigStr = '';
-    if (vigencia) {
-      var vp = vigencia.split('-');
-      vigStr = pad2(parseInt(vp[2])) + '/' + pad2(parseInt(vp[1])) + '/' + vp[0];
-    }
-
-    // Logo
-    var logoB64 = null;
+    // ── Enviar al servidor ────────────────────────────────────
+    if (btnPdf) { btnPdf.disabled = true; btnPdf.textContent = 'Generando...'; }
     try {
-      var lr   = await fetch('/LOGO-CENTRAL.jpg');
-      var lbuf = await lr.arrayBuffer();
-      var lbytes = new Uint8Array(lbuf);
-      var lbin = '';
-      for (var li = 0; li < lbytes.length; li += 8192)
-        lbin += String.fromCharCode.apply(null, lbytes.subarray(li, li + 8192));
-      logoB64 = btoa(lbin);
-    } catch(e) {}
-
-    var y = 0;
-
-    // ── ENCABEZADO verde ──
-    doc.setFillColor(27, 94, 32);
-    doc.rect(0, 0, 210, 40, 'F');
-    if (logoB64) doc.addImage(logoB64, 'JPEG', 14, 7, 26, 26);
-    doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(11.5);
-    doc.text('COLEGIO DE PROFESIONALES EN CIENCIAS CRIMINALÍSTICAS', 105, 14, { align: 'center' });
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
-    doc.text('Provincia de Catamarca · Ley Provincial N° 5.595/19', 105, 22, { align: 'center' });
-
-    // ── TÍTULO ──
-    doc.setTextColor(27, 94, 32);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(13.5);
-    doc.text('PRESUPUESTO DE HONORARIOS PERICIALES', 105, 50, { align: 'center' });
-    doc.setDrawColor(27, 94, 32); doc.setLineWidth(0.7); doc.line(15, 54, 195, 54);
-
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(90, 90, 90);
-    doc.text('N° ' + preNum, 15, 60);
-    doc.text('Fecha de emisión: ' + fmtD(hoy), 195, 60, { align: 'right' });
-
-    y = 68;
-
-    // ── DATOS PERITO + CAUSA ──
-    var hayDatos = perito.nombre || perito.matricula || perito.especialidad || perito.contacto ||
-                   causa.numero  || causa.juzgado    || causa.caratula;
-    if (hayDatos) {
-      doc.setFillColor(245, 248, 245);
-      doc.roundedRect(15, y - 2, 84, 40, 2, 2, 'F');
-      doc.roundedRect(103, y - 2, 92, 40, 2, 2, 'F');
-
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(27, 94, 32);
-      doc.text('DATOS DEL PERITO', 20, y + 4);
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(40, 40, 40);
-      if (perito.nombre)       { doc.setFont('helvetica','bold'); doc.text(perito.nombre, 20, y + 11); doc.setFont('helvetica','normal'); }
-      if (perito.matricula)    doc.text('Matrícula N° ' + perito.matricula, 20, y + 18);
-      if (perito.especialidad) doc.text(perito.especialidad, 20, y + 25);
-      if (perito.contacto)     { doc.setFontSize(7.5); doc.text(perito.contacto, 20, y + 32); }
-
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(27, 94, 32);
-      doc.text('DATOS DE LA CAUSA', 108, y + 4);
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(40, 40, 40);
-      if (causa.numero)   doc.text(causa.numero,  108, y + 11);
-      if (causa.juzgado)  doc.text(causa.juzgado, 108, y + 18);
-      if (causa.caratula) {
-        var cl = doc.splitTextToSize(causa.caratula, 84);
-        doc.text(cl, 108, y + 25);
-      }
-      y += 46;
+      var res = await fetch('/api/pdf-presupuesto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: seleccionados,
+          perito: perito,
+          causa: causa,
+          valorJUS: valorJUS,
+          vigenciaDesde: vigencia,
+          totalJus:   totals.totalJus,
+          totalPesos: totals.totalPesos,
+        }),
+      });
+      if (!res.ok) { alert('Error al generar el presupuesto. Intentá de nuevo.'); return; }
+      var blob = await res.blob();
+      var url  = URL.createObjectURL(blob);
+      var a    = document.createElement('a');
+      a.href = url;
+      a.download = 'presupuesto-cpcc.pdf';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch(e) {
+      alert('Error de conexión. Verificá tu internet e intentá de nuevo.');
+    } finally {
+      if (btnPdf) { btnPdf.disabled = false; btnPdf.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Generar Presupuesto PDF'; }
     }
-
-    // ── TABLA DE CONCEPTOS ──
-    // Cabecera
-    doc.setFillColor(27, 94, 32); doc.rect(15, y, 180, 8, 'F');
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(255, 255, 255);
-    doc.text('N°',          18, y + 5.5);
-    doc.text('Concepto',    28, y + 5.5);
-    doc.text('Cant.',      124, y + 5.5, { align: 'right' });
-    doc.text('JUS Unit.',  146, y + 5.5, { align: 'right' });
-    doc.text('Sub JUS',    168, y + 5.5, { align: 'right' });
-    doc.text('Sub $',      195, y + 5.5, { align: 'right' });
-    y += 9;
-
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(40, 40, 40);
-    seleccionados.forEach(function(s, si) {
-      if (y > 242) { doc.addPage(); y = 20; }
-      var bg = si % 2 === 0 ? [255, 255, 255] : [245, 249, 245];
-      var lines = doc.splitTextToSize(s.concepto, 88);
-      var rowH  = Math.max(lines.length * 5, 8);
-      doc.setFillColor(bg[0], bg[1], bg[2]); doc.rect(15, y, 180, rowH, 'F');
-      doc.text(String(s.num),  18, y + 5.5);
-      doc.text(lines,          28, y + (lines.length > 1 ? 4 : 5.5));
-      doc.text(s.cant.toLocaleString('es-AR'),   124, y + 5.5, { align: 'right' });
-      doc.text(fmtJUS(s.jus),                    146, y + 5.5, { align: 'right' });
-      doc.text(fmtJUS(s.subtotalJus),            168, y + 5.5, { align: 'right' });
-      doc.text(fmtPesos(s.subtotalPes),          195, y + 5.5, { align: 'right' });
-      doc.setDrawColor(200, 220, 200); doc.setLineWidth(0.15);
-      y += rowH;
-      doc.line(15, y, 195, y);
-    });
-    y += 6;
-
-    // ── TOTALES ──
-    // Subtotal JUS
-    doc.setFillColor(235, 246, 235); doc.rect(15, y, 180, 8, 'F');
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(60, 60, 60);
-    doc.text('Subtotal en JUS:', 100, y + 5.5);
-    doc.setFont('helvetica', 'bold');
-    doc.text(fmtJUS(totals.totalJus) + ' JUS', 195, y + 5.5, { align: 'right' });
-    y += 9;
-
-    // Valor JUS
-    doc.setFillColor(255, 255, 255); doc.rect(15, y, 180, 8, 'F');
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(110, 110, 110);
-    doc.text('Valor 1 JUS vigente' + (vigStr ? ' al ' + vigStr : '') + ':', 100, y + 5.5);
-    doc.setFont('helvetica', 'bold'); doc.setTextColor(40, 40, 40);
-    doc.text(fmtPesos(valorJUS), 195, y + 5.5, { align: 'right' });
-    y += 10;
-
-    // TOTAL (barra verde)
-    if (y > 250) { doc.addPage(); y = 20; }
-    doc.setFillColor(27, 94, 32); doc.rect(15, y, 180, 12, 'F');
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(255, 255, 255);
-    doc.text('TOTAL A COBRAR:', 100, y + 8);
-    doc.setFontSize(11);
-    doc.text(fmtPesos(totals.totalPesos), 195, y + 8, { align: 'right' });
-    y += 15;
-
-    // En letras
-    doc.setFont('helvetica', 'italic'); doc.setFontSize(8); doc.setTextColor(60, 60, 60);
-    var letrasLines = doc.splitTextToSize(pesosALetras(totals.totalPesos), 174);
-    doc.text(letrasLines, 15, y + 4);
-    y += letrasLines.length * 5 + 10;
-
-    // ── NOTA LEGAL ──
-    if (y > 235) { doc.addPage(); y = 20; }
-    doc.setDrawColor(27, 94, 32); doc.setLineWidth(0.4); doc.line(15, y, 195, y);
-    y += 5;
-    var notaLegal = 'Los honorarios consignados son sugeridos conforme la tabla de aranceles del Colegio de Profesionales en Ciencias Criminalísticas de la Provincia de Catamarca' +
-      (vigStr ? ', vigente desde el ' + vigStr : '') +
-      '. El profesional puede fijar un monto mayor según la complejidad de la tarea. Valor del JUS sujeto a actualización por resolución de la Comisión Directiva.';
-    doc.setFont('helvetica', 'italic'); doc.setFontSize(7.5); doc.setTextColor(130, 130, 130);
-    var notaLines = doc.splitTextToSize(notaLegal, 180);
-    doc.text(notaLines, 15, y);
-    y += notaLines.length * 4 + 8;
-
-    // ── FIRMA ──
-    var sigY = Math.max(y + 15, 228);
-    doc.setDrawColor(80, 80, 80); doc.setLineWidth(0.4);
-    doc.line(112, sigY, 193, sigY);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(90, 90, 90);
-    doc.text('Firma y sello del profesional', 152, sigY + 5, { align: 'center' });
-    if (perito.nombre) { doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.text(perito.nombre, 152, sigY + 11, { align: 'center' }); }
-    if (perito.matricula) { doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.text('Mat. N° ' + perito.matricula, 152, sigY + 17, { align: 'center' }); }
-
-    // ── PIE DE PÁGINA ──
-    doc.setFillColor(27, 94, 32); doc.rect(0, 274, 210, 23, 'F');
-    doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5);
-    doc.text('Avenida América Latina 1672 — San Fernando del Valle de Catamarca', 105, 281, { align: 'center' });
-    doc.text('criminalísticacolegio@gmail.com  ·  Ley Provincial N° 5.595/19', 105, 288, { align: 'center' });
-    doc.setFontSize(6.5); doc.setTextColor(190, 225, 190);
-    doc.text('Emitido el ' + fmtD(hoy) + ' · ' + preNum, 105, 294, { align: 'center' });
-
-    doc.save('presupuesto-' + preNum + '.pdf');
   });
 
-  // ── Descargar tabla completa PDF ─────────────────────────────
+  // ── Descargar tabla completa PDF (server-side) ──────────────
   document.getElementById('btn-dl-tabla')?.addEventListener('click', async function() {
-    var mod   = await import('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm');
-    var jsPDF = mod.jsPDF || mod.default;
-    var doc   = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    var hoy   = new Date();
-    var fmtD  = function(d) { return pad2(d.getDate()) + '/' + pad2(d.getMonth()+1) + '/' + d.getFullYear(); };
-
-    // Logo
-    var logoB64 = null;
+    var btn = document.getElementById('btn-dl-tabla');
+    if (btn) { btn.disabled = true; btn.textContent = 'Generando...'; }
     try {
-      var lr = await fetch('/LOGO-CENTRAL.jpg');
-      var lb = await lr.arrayBuffer();
-      var lby = new Uint8Array(lb);
-      var lbin = '';
-      for (var li = 0; li < lby.length; li += 8192)
-        lbin += String.fromCharCode.apply(null, lby.subarray(li, li + 8192));
-      logoB64 = btoa(lbin);
-    } catch(e) {}
-
-    // Header
-    doc.setFillColor(27, 94, 32); doc.rect(0, 0, 210, 40, 'F');
-    if (logoB64) doc.addImage(logoB64, 'JPEG', 14, 7, 26, 26);
-    doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
-    doc.text('TABLA DE ARANCELES PERICIALES', 105, 14, { align: 'center' });
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
-    doc.text('CPC CTM · Catamarca · 1 JUS = ' + fmtPesos(valorJUS), 105, 22, { align: 'center' });
-
-    var y = 48;
-
-    function seccion(titulo) {
-      if (y > 260) { doc.addPage(); y = 20; }
-      doc.setFillColor(235, 246, 235); doc.rect(15, y - 4, 180, 10, 'F');
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(27, 94, 32);
-      doc.text(titulo, 18, y + 2);
-      doc.setTextColor(100, 100, 100); doc.setFontSize(7.5);
-      doc.text('N°',       18, y + 7);
-      doc.text('Concepto', 30, y + 7);
-      doc.text('JUS',     162, y + 7, { align: 'right' });
-      doc.text('Pesos ($)', 192, y + 7, { align: 'right' });
-      y += 13;
+      var res = await fetch('/api/pdf-aranceles');
+      if (!res.ok) { alert('Error al generar la tabla. Intentá de nuevo.'); return; }
+      var blob = await res.blob();
+      var url  = URL.createObjectURL(blob);
+      var a    = document.createElement('a');
+      a.href = url; a.download = 'tabla-aranceles-cpcc.pdf';
+      a.click(); URL.revokeObjectURL(url);
+    } catch(e) {
+      alert('Error de conexión. Verificá tu internet e intentá de nuevo.');
+    } finally {
+      if (btn) { btn.disabled = false; btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Descargar tabla PDF'; }
     }
-
-    function fila(item, i, startNum) {
-      if (y > 268) { doc.addPage(); y = 20; }
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(40, 40, 40);
-      var num   = String((startNum || 1) + i);
-      var texto = item.servicio || '';
-      var lines = doc.splitTextToSize(texto, 122);
-      var rowH  = Math.max(lines.length * 4.5, 7);
-      doc.text(num,   18, y + 5);
-      doc.text(lines, 30, y + (lines.length > 1 ? 3 : 5));
-      doc.text(fmtJUS(item.unidadesCP || 0),                     162, y + 5, { align: 'right' });
-      doc.text(fmtPesos((item.unidadesCP || 0) * valorJUS),      192, y + 5, { align: 'right' });
-      doc.setDrawColor(220, 235, 220); doc.setLineWidth(0.2); doc.line(15, y + rowH, 195, y + rowH);
-      y += rowH + 1;
-    }
-
-    if (cobertura.length) {
-      seccion('COBERTURA DE GASTOS');
-      cobertura.forEach(function(it, i) { fila(it, i, 1); });
-      y += 5;
-    }
-    if (honorarios.length) {
-      seccion('HONORARIOS PERICIALES');
-      honorarios.forEach(function(it, i) { fila(it, i, cobertura.length + 1); });
-    }
-
-    doc.setFillColor(27, 94, 32); doc.rect(0, 274, 210, 23, 'F');
-    doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5);
-    doc.text('Avenida América Latina 1672 — San Fernando del Valle de Catamarca', 105, 281, { align: 'center' });
-    doc.text('criminalísticacolegio@gmail.com  ·  Ley Provincial N° 5.595/19', 105, 288, { align: 'center' });
-    doc.setFontSize(6.5); doc.setTextColor(190, 225, 190);
-    doc.text('Emitida el ' + fmtD(hoy), 105, 294, { align: 'center' });
-
-    doc.save('tabla-aranceles-cpc-ctm.pdf');
   });
 </script>
 

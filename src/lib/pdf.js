@@ -241,7 +241,7 @@ export function generarCartaAspirante({ nombre, apellido, dni, email, tituloProf
   doc.setFont('helvetica', 'bold');
   doc.text('Secretaría del Colegio', 15, y);
   doc.setFont('helvetica', 'normal');
-  doc.text('CPC CTM', 15, y + 5);
+  doc.text('CPCC', 15, y + 5);
 
   doc.setFillColor(27, 94, 32);
   doc.rect(0, 279, 210, 18, 'F');
@@ -327,31 +327,36 @@ export function generarCertificadoCurso({ nombreCompleto, cursoTitulo, fecha }) 
   doc.text(`Catamarca, ${fechaStr}`, 148, 152, { align: 'center' });
 
   // ── Firmas ──────────────────────────────────────────────────
-  doc.setDrawColor(100, 100, 100);
-  doc.setLineWidth(0.4);
-  doc.line(48, 175, 128, 175);
-  doc.line(169, 175, 249, 175);
+  // Izquierdo: Sello
+  doc.setDrawColor(180, 180, 180); doc.setLineWidth(0.3);
+  doc.rect(20, 163, 65, 25, 'S');
+  doc.setFont('helvetica', 'italic'); doc.setFontSize(7); doc.setTextColor(200, 200, 200);
+  doc.text('Sello', 52.5, 177, { align: 'center' });
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.setTextColor(44, 62, 80);
-  doc.text('Secretaría', 88, 181, { align: 'center' });
-  doc.text('Presidencia', 209, 181, { align: 'center' });
+  // Derecho: Presidente
+  doc.setDrawColor(120, 120, 120); doc.setLineWidth(0.4);
+  doc.line(175, 172, 235, 172);
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(140, 140, 140);
-  doc.text('CPC CTM', 88, 187, { align: 'center' });
-  doc.text('CPC CTM', 209, 187, { align: 'center' });
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(44, 62, 80);
+  doc.text('Lic. Diego Tapia', 235, 177, { align: 'right' });
+
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(80, 80, 80);
+  doc.text('Licenciado en Criminalística', 235, 182, { align: 'right' });
+
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(44, 62, 80);
+  doc.text('Presidente', 235, 187, { align: 'right' });
+
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(80, 80, 80);
+  doc.text('Colegio de Profesionales en Ciencias Criminalísticas', 235, 192, { align: 'right' });
+  doc.text('Provincia de Catamarca', 235, 197, { align: 'right' });
 
   // ── Pie ─────────────────────────────────────────────────────
   doc.setFillColor(27, 94, 32);
-  doc.rect(0, 197, 297, 13, 'F');
+  doc.rect(0, 200, 297, 10, 'F');
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-  doc.text(FOOTER_LINE1, 148, 203, { align: 'center' });
-  doc.text(FOOTER_LINE2, 148, 208, { align: 'center' });
+  doc.setFontSize(6.5);
+  doc.text(`${FOOTER_LINE1}  ·  ${FOOTER_LINE2}  ·  Ley N° 5.595/19`, 148, 206, { align: 'center' });
 
   return Buffer.from(doc.output('arraybuffer'));
 }

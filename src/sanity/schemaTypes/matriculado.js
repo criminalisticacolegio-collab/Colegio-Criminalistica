@@ -31,7 +31,7 @@ export default defineType({
             options: {
                 list: [
                     { title: 'Activo', value: 'Activo' },
-                    { title: 'Suspendido', value: 'Suspendido' },
+                    { title: 'Inactivo / Suspendido', value: 'Suspendido' },
                     { title: 'Baja', value: 'Baja' },
                 ],
             },
@@ -73,6 +73,84 @@ export default defineType({
             type: 'date',
             description: 'Fecha en que se envió el email de bienvenida con el link de acceso.',
             readOnly: true,
+        }),
+
+        // ── Historial de Pagos ────────────────────────────────
+        defineField({
+            name: 'historialPagos',
+            title: 'Historial de Pagos',
+            description: 'Registro mensual de cuotas. Al cargar 3 meses pendientes consecutivos el sistema suspende la matrícula automáticamente.',
+            type: 'array',
+            of: [
+                {
+                    type: 'object',
+                    preview: {
+                        select: { title: 'mes', subtitle: 'anio', media: 'estado' },
+                        prepare({ title, subtitle }) {
+                            return { title: `${title} ${subtitle}` };
+                        },
+                    },
+                    fields: [
+                        {
+                            name: 'anio',
+                            title: 'Año',
+                            type: 'number',
+                            description: 'Ej: 2025',
+                            validation: R => R.required().integer().min(2020).max(2099),
+                        },
+                        {
+                            name: 'mes',
+                            title: 'Mes',
+                            type: 'string',
+                            options: {
+                                list: [
+                                    'Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                                    'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre',
+                                ],
+                            },
+                            validation: R => R.required(),
+                        },
+                        {
+                            name: 'estado',
+                            title: 'Estado',
+                            type: 'string',
+                            initialValue: 'pendiente',
+                            options: {
+                                list: [
+                                    { title: '✅ Pagado', value: 'pagado' },
+                                    { title: '⏳ Pendiente', value: 'pendiente' },
+                                ],
+                                layout: 'radio',
+                            },
+                            validation: R => R.required(),
+                        },
+                        {
+                            name: 'fechaPago',
+                            title: 'Fecha de pago',
+                            type: 'date',
+                            description: 'Completar solo si el estado es "Pagado".',
+                            options: { dateFormat: 'DD/MM/YYYY' },
+                        },
+                        {
+                            name: 'montoAbonado',
+                            title: 'Monto abonado ($)',
+                            type: 'number',
+                        },
+                        {
+                            name: 'comprobante',
+                            title: 'Comprobante (URL)',
+                            type: 'url',
+                            description: 'Link al comprobante de pago (opcional).',
+                        },
+                        {
+                            name: 'nota',
+                            title: 'Nota interna',
+                            type: 'string',
+                            description: 'Aclaración para uso administrativo.',
+                        },
+                    ],
+                },
+            ],
         }),
     ],
     preview: {

@@ -2,10 +2,11 @@
 import MainLayout from '../layouts/MainLayout.astro';
 import { sanityClient } from 'sanity:client';
 
-const [matriculadosActivos, capacitacionesCount] = await Promise.all([
+const [matriculadosActivos, cursosArray] = await Promise.all([
   sanityClient.fetch(`count(*[_type == "matriculado" && estado == "Activo"])`).catch(() => 0),
-  sanityClient.fetch(`count(*[_type == "capacitacionConfig"])`).catch(() => 0),
+  sanityClient.fetch(`*[_type == "capacitacionConfig"][0].cursos[activo != false]`).catch(() => []),
 ]);
+const capacitacionesCount = cursosArray?.length || 0;
 
 const data = await sanityClient.fetch(`*[_type == "gestionConfig"][0]{
   textoInstitucional,

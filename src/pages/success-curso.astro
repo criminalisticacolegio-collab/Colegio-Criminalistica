@@ -1,452 +1,171 @@
 ---
 import MainLayout from '../layouts/MainLayout.astro';
-import { sanityClient } from 'sanity:client';
 
-// MercadoPago redirige con estos parámetros en la URL
-const params    = Astro.url.searchParams;
-const paymentId = params.get('payment_id') || params.get('collection_id') || '';
-const status    = params.get('status') || params.get('collection_status') || '';
-const extRef    = params.get('external_reference') || '';
-
-// external_reference tiene el formato "curso:{cursoKey}:{email}"
-let cursoKey = '';
-let emailPagador = '';
-if (extRef.startsWith('curso:')) {
-  const sin = extRef.slice('curso:'.length);
-  const idx = sin.indexOf(':');
-  cursoKey     = sin.slice(0, idx);
-  emailPagador = sin.slice(idx + 1);
-}
-
-// Título del curso para mostrarlo en la página
-let cursoTitulo = '';
-if (cursoKey) {
-  const config = await sanityClient
-    .fetch(
-      `*[_type == "capacitacionConfig"][0]{ "c": cursos[_key == $k][0]{ titulo } }`,
-      { k: cursoKey }
-    )
-    .catch(() => null);
-  cursoTitulo = config?.c?.titulo || '';
-}
-
+// MercadoPago agrega estos parámetros al redirigir de vuelta
+const params  = Astro.url.searchParams;
+const status  = params.get('status') || params.get('collection_status') || '';
 const aprobado = status === 'approved';
 const pendiente = status === 'pending' || status === 'in_process';
 ---
 
-<MainLayout title={aprobado ? 'Pago Confirmado — Inscripción' : 'Estado del Pago'} showBack={true}>
+<MainLayout title={aprobado ? 'Pago Confirmado' : 'Estado del Pago'} showBack={true}>
   <div class="container page-content">
 
     {aprobado ? (
-      <>
-        <!-- ══ ENCABEZADO DE ÉXITO ══════════════════════════════ -->
-        <div class="result-header">
-          <div class="result-icon">✅</div>
-          <h1>¡Pago confirmado!</h1>
-          {cursoTitulo && (
-            <p class="result-curso">
-              Acceso al curso: <strong>{cursoTitulo}</strong>
-            </p>
-          )}
-          <p class="result-hint">Completá el formulario para finalizar tu inscripción.</p>
-        </div>
-
-        <!-- ══ CARD PRINCIPAL ═══════════════════════════════════ -->
-        <div class="enroll-card glass">
-
-          <!-- PASO 1: Descargar comprobante -->
-          <section class="card-section">
-            <div class="step-label">
-              <span class="step-num">1</span>
-              <h2>Descargá tu comprobante</h2>
-            </div>
-            <p class="step-hint">
-              Este PDF es el comprobante oficial de tu pago. Descargalo y
-              luego adjuntalo en el formulario de inscripción que está más abajo.
-            </p>
-            <button id="btn-descargar" class="btn-download">
-              <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
-                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 20h14v-2H5v2z"/>
-              </svg>
-              Descargar Comprobante PDF
-            </button>
-            <p id="dl-status" class="dl-status"></p>
-          </section>
-
-          <div class="divider"></div>
-
-          <!-- PASO 2: Formulario de inscripción -->
-          <section class="card-section">
-            <div class="step-label">
-              <span class="step-num">2</span>
-              <h2>Completá tu inscripción</h2>
-            </div>
-            <p class="step-hint">
-              Completá tus datos y adjuntá el comprobante de pago descargado.
-              El Colegio recibirá tu solicitud con toda la información.
-            </p>
-
-            <form id="enroll-form" class="enroll-form" enctype="multipart/form-data">
-              <!-- Campos ocultos -->
-              <input type="hidden" name="cursoKey"   value={cursoKey} />
-              <input type="hidden" name="paymentId"  value={paymentId} />
-              <input type="hidden" name="email"      value={emailPagador} />
-
-              <div class="form-grid">
-                <div class="form-group">
-                  <label for="ef-nombre">Nombre completo <span class="req">*</span></label>
-                  <input type="text" id="ef-nombre" name="nombre" required
-                    placeholder="Tu nombre y apellido" autocomplete="name" />
-                </div>
-
-                <div class="form-group">
-                  <label for="ef-dni">DNI <span class="req">*</span></label>
-                  <input type="text" id="ef-dni" name="dni" required
-                    placeholder="Sin puntos ni guiones"
-                    pattern="[0-9]{7,8}" title="Ingresá el número de DNI sin puntos" />
-                </div>
-
-                <div class="form-group">
-                  <label for="ef-email">Email de contacto</label>
-                  <input type="email" id="ef-email" name="email_visible"
-                    value={emailPagador} readonly class="readonly" />
-                </div>
-
-                <div class="form-group">
-                  <label for="ef-matricula">N° de Matrícula <span class="optional">(si sos matriculado)</span></label>
-                  <input type="text" id="ef-matricula" name="matricula"
-                    placeholder="Ej: MP-0042" autocomplete="off" />
-                </div>
-              </div>
-
-              <!-- Upload del comprobante -->
-              <div class="form-group form-group-full">
-                <label for="ef-comprobante">
-                  Comprobante de pago <span class="req">*</span>
-                </label>
-                <div class="file-zone" id="file-zone">
-                  <input type="file" id="ef-comprobante" name="comprobante"
-                    accept=".pdf,.jpg,.jpeg,.png" required />
-                  <div class="file-zone-ui" id="file-ui">
-                    <span class="file-icon">📎</span>
-                    <p>
-                      Arrastrá el archivo aquí o
-                      <button type="button" class="file-link" id="file-trigger">
-                        hacé clic para seleccionar
-                      </button>
-                    </p>
-                    <p class="file-types">PDF, JPG o PNG · Máximo 5 MB</p>
-                  </div>
-                  <div class="file-selected" id="file-selected" style="display:none">
-                    <span class="file-ok-icon">✅</span>
-                    <span id="file-name"></span>
-                    <button type="button" class="file-remove" id="file-remove">✕</button>
-                  </div>
-                </div>
-              </div>
-
-              <div class="form-footer">
-                <p id="form-error" class="form-error" style="display:none"></p>
-                <button type="submit" id="btn-enviar" class="btn-submit">
-                  Enviar inscripción
-                </button>
-              </div>
-            </form>
-
-            <!-- Estado de éxito del formulario -->
-            <div id="form-success" class="form-success" style="display:none">
-              <div class="fs-icon">🎓</div>
-              <h3>¡Inscripción completada!</h3>
-              <p>
-                Recibiste un email de confirmación.<br/>
-                El Colegio fue notificado con tus datos y el comprobante adjunto.
-              </p>
-              <a href="/capacitacion" class="btn-back">← Volver a Capacitación</a>
-            </div>
-          </section>
-
-        </div><!-- /enroll-card -->
-      </>
+      <!-- ══ PAGO APROBADO: auto-procesa desde sessionStorage ═══ -->
+      <div class="result-card glass" id="result-card">
+        <div class="result-icon" id="result-icon">⏳</div>
+        <h1 id="result-title">Procesando tu inscripción…</h1>
+        <p id="result-msg" class="result-msg">Estamos registrando tu acceso al campus. Un momento.</p>
+        <div id="spinner" class="spinner"></div>
+        <a href="/capacitacion" id="btn-volver" class="btn-back" style="display:none">← Volver a Formación Profesional</a>
+      </div>
 
     ) : pendiente ? (
-      <div class="result-header result-pending">
+      <div class="result-card glass result-pending">
         <div class="result-icon">⏳</div>
         <h1>Pago en proceso</h1>
-        <p>Tu pago está siendo verificado. Te notificaremos por email cuando se confirme.</p>
-        <a href="/capacitacion" class="btn-back">← Volver a Capacitación</a>
+        <p class="result-msg">Tu pago está siendo verificado por MercadoPago.<br/>Te notificaremos por email cuando se confirme.</p>
+        <a href="/capacitacion" class="btn-back">← Volver a Formación Profesional</a>
       </div>
 
     ) : (
-      <div class="result-header result-error">
+      <div class="result-card glass result-error">
         <div class="result-icon">❌</div>
         <h1>Pago no completado</h1>
-        <p>Hubo un inconveniente con el pago. Podés intentarlo nuevamente desde la página de Capacitación.</p>
-        <a href="/capacitacion" class="btn-back">← Volver a Capacitación</a>
+        <p class="result-msg">Hubo un inconveniente con el pago. Podés intentarlo nuevamente desde la página de Formación Profesional.</p>
+        <a href="/capacitacion" class="btn-back">← Volver a Formación Profesional</a>
       </div>
     )}
 
   </div>
 </MainLayout>
 
-<!-- ════════════════════════════════════════════════════════ -->
-<script define:vars={{ paymentId, cursoKey, emailPagador }}>
+{aprobado && (
+  <script>
+    (async () => {
+      const iconEl  = document.getElementById('result-icon')!;
+      const titleEl = document.getElementById('result-title')!;
+      const msgEl   = document.getElementById('result-msg')!;
+      const spinner = document.getElementById('spinner')!;
+      const btnVolver = document.getElementById('btn-volver') as HTMLAnchorElement;
 
-  // ── Descargar comprobante ─────────────────────────────────
-  const btnDl   = document.getElementById('btn-descargar');
-  const dlStatus = document.getElementById('dl-status');
-
-  btnDl?.addEventListener('click', async () => {
-    btnDl.disabled = true;
-    btnDl.textContent = 'Generando PDF…';
-    dlStatus.textContent = '';
-
-    try {
-      const url = `/api/comprobante-pago-curso?paymentId=${encodeURIComponent(paymentId)}&cursoKey=${encodeURIComponent(cursoKey)}&email=${encodeURIComponent(emailPagador)}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('error');
-
-      const blob = await res.blob();
-      const a    = document.createElement('a');
-      a.href     = URL.createObjectURL(blob);
-      a.download = `Comprobante_Pago_${paymentId}.pdf`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-
-      dlStatus.textContent = '✅ Comprobante descargado. Ahora adjuntalo en el formulario.';
-      dlStatus.style.color = '#166534';
-    } catch {
-      dlStatus.textContent = '⚠️ No se pudo generar el PDF. Intentá de nuevo.';
-      dlStatus.style.color = '#dc2626';
-    } finally {
-      btnDl.disabled = false;
-      btnDl.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 20h14v-2H5v2z"/></svg> Descargar Comprobante PDF`;
-    }
-  });
-
-  // ── File upload UI ────────────────────────────────────────
-  const fileInput   = document.getElementById('ef-comprobante');
-  const fileZone    = document.getElementById('file-zone');
-  const fileUI      = document.getElementById('file-ui');
-  const fileSelected = document.getElementById('file-selected');
-  const fileName    = document.getElementById('file-name');
-
-  document.getElementById('file-trigger')?.addEventListener('click', () => fileInput?.click());
-
-  fileInput?.addEventListener('change', () => showFile(fileInput.files?.[0]));
-
-  document.getElementById('file-remove')?.addEventListener('click', () => {
-    fileInput.value = '';
-    fileUI.style.display   = '';
-    fileSelected.style.display = 'none';
-  });
-
-  // Drag & drop
-  fileZone?.addEventListener('dragover',  (e) => { e.preventDefault(); fileZone.classList.add('drag-over'); });
-  fileZone?.addEventListener('dragleave', ()  => fileZone.classList.remove('drag-over'));
-  fileZone?.addEventListener('drop', (e) => {
-    e.preventDefault();
-    fileZone.classList.remove('drag-over');
-    const file = e.dataTransfer?.files?.[0];
-    if (file) {
-      const dt = new DataTransfer();
-      dt.items.add(file);
-      fileInput.files = dt.files;
-      showFile(file);
-    }
-  });
-
-  function showFile(file) {
-    if (!file) return;
-    const kb = (file.size / 1024).toFixed(0);
-    fileName.textContent = `${file.name}  (${kb} KB)`;
-    fileUI.style.display      = 'none';
-    fileSelected.style.display = '';
-  }
-
-  // ── Submit del formulario ─────────────────────────────────
-  const form       = document.getElementById('enroll-form');
-  const btnEnviar  = document.getElementById('btn-enviar');
-  const formError  = document.getElementById('form-error');
-  const formSuccess = document.getElementById('form-success');
-
-  form?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    btnEnviar.disabled   = true;
-    btnEnviar.textContent = 'Enviando…';
-    formError.style.display = 'none';
-
-    try {
-      const fd  = new FormData(form);
-      const res = await fetch('/api/inscripcion-completa', { method: 'POST', body: fd });
-      const data = await res.json();
-
-      if (data.error) {
-        formError.textContent   = data.error;
-        formError.style.display = '';
-        btnEnviar.disabled      = false;
-        btnEnviar.textContent   = 'Enviar inscripción';
-        return;
+      function showSuccess(msg: string) {
+        spinner.style.display = 'none';
+        iconEl.textContent   = '✅';
+        titleEl.textContent  = '¡Pago confirmado!';
+        msgEl.innerHTML      = msg;
+        btnVolver.style.display = '';
       }
 
-      form.style.display        = 'none';
-      formSuccess.style.display = '';
-    } catch {
-      formError.textContent   = 'Error al enviar el formulario. Intentá de nuevo.';
-      formError.style.display = '';
-      btnEnviar.disabled      = false;
-      btnEnviar.textContent   = 'Enviar inscripción';
-    }
-  });
-</script>
+      function showError(msg: string) {
+        spinner.style.display = 'none';
+        iconEl.textContent   = '⚠️';
+        titleEl.textContent  = 'Pago recibido';
+        msgEl.innerHTML      = msg;
+        btnVolver.style.display = '';
+      }
+
+      try {
+        const stored = sessionStorage.getItem('mpCursoData');
+        if (!stored) {
+          showSuccess('Pago confirmado. <br/>Si no recibís el email de acceso en los próximos minutos, contactanos a <strong>criminalisticacolegio@gmail.com</strong>.');
+          return;
+        }
+
+        const { cursoKey, email, nombreAlumno, ts } = JSON.parse(stored);
+
+        // Ignorar datos con más de 2 horas (sesión expirada)
+        if (Date.now() - ts > 2 * 60 * 60 * 1000) {
+          sessionStorage.removeItem('mpCursoData');
+          showSuccess('Pago confirmado. Revisá tu email — te enviamos el acceso al campus.');
+          return;
+        }
+
+        const res = await fetch('/api/enviar-acceso-curso', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, cursoId: cursoKey, nombreAlumno }),
+        });
+
+        sessionStorage.removeItem('mpCursoData');
+
+        if (res.ok) {
+          showSuccess(`✅ Pago confirmado. <br/>Revisá tu email <strong>${email}</strong> — te enviamos el acceso al campus.`);
+        } else {
+          showError(`Pago registrado.<br/>Si no recibís el email en minutos, escribinos a <strong>criminalisticacolegio@gmail.com</strong> con el email <em>${email}</em>.`);
+        }
+      } catch {
+        showError('Pago registrado. Revisá tu email o contactanos si no recibís el acceso en los próximos minutos.');
+      }
+    })();
+  </script>
+)}
 
 <style>
-  .page-content { padding: 5rem 0 6rem; }
+  .page-content {
+    padding: 6rem 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+  }
 
-  /* ── Encabezado ──────────────────────────────────────────── */
-  .result-header { text-align: center; margin-bottom: 3rem; }
-  .result-icon { font-size: 3rem; margin-bottom: 1rem; }
-  .result-header h1 { font-size: clamp(1.8rem, 4vw, 2.5rem); margin-bottom: 0.75rem; color: var(--primary); }
-  .result-curso { font-size: 1rem; color: var(--text-light); margin-bottom: 0.4rem; }
-  .result-hint  { font-size: 0.95rem; color: var(--text-light); }
+  .result-card {
+    max-width: 560px;
+    width: 100%;
+    margin: 0 auto;
+    text-align: center;
+    padding: 3.5rem 2.5rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--gray-200);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  .result-icon { font-size: 3.5rem; line-height: 1; }
+
+  .result-card h1 {
+    font-size: clamp(1.6rem, 3.5vw, 2rem);
+    color: var(--primary);
+    margin: 0;
+  }
+
   .result-pending h1 { color: #d97706; }
   .result-error h1   { color: #dc2626; }
 
-  /* ── Card principal ──────────────────────────────────────── */
-  .enroll-card {
-    max-width: 820px;
-    margin: 0 auto;
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--gray-200);
-    overflow: hidden;
+  .result-msg {
+    color: var(--text-light);
+    font-size: 1rem;
+    line-height: 1.65;
+    margin: 0;
   }
 
-  .card-section { padding: 2.5rem; background: var(--white); }
-  .divider       { height: 1px; background: var(--gray-200); }
-
-  /* ── Steps ───────────────────────────────────────────────── */
-  .step-label { display: flex; align-items: center; gap: 0.85rem; margin-bottom: 0.75rem; }
-  .step-label h2 { font-size: 1.2rem; color: var(--accent); margin: 0; }
-  .step-num {
-    width: 30px; height: 30px; flex-shrink: 0;
-    background: var(--primary); color: white;
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--gray-200);
+    border-top-color: var(--primary);
     border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 700; font-size: 0.85rem;
+    animation: spin 0.75s linear infinite;
   }
-  .step-hint { color: var(--text-light); font-size: 0.88rem; line-height: 1.6; margin: 0 0 1.5rem; }
-
-  /* ── Botón descargar ─────────────────────────────────────── */
-  .btn-download {
-    display: inline-flex; align-items: center; gap: 0.6rem;
-    background: var(--accent); color: white;
-    border: none; padding: 0.85rem 1.75rem;
-    border-radius: var(--radius-md);
-    font-weight: 700; font-size: 0.95rem;
-    cursor: pointer; transition: var(--transition);
-  }
-  .btn-download:hover { background: var(--primary); transform: translateY(-2px); box-shadow: var(--shadow-md); }
-  .btn-download:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-  .dl-status { font-size: 0.85rem; margin-top: 0.75rem; font-weight: 600; min-height: 1.2em; }
-
-  /* ── Formulario ──────────────────────────────────────────── */
-  .enroll-form { display: flex; flex-direction: column; gap: 1.25rem; }
-  .form-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.25rem;
-  }
-  .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
-  .form-group-full { grid-column: 1 / -1; }
-
-  .form-group label {
-    font-size: 0.82rem; font-weight: 700;
-    color: var(--accent); text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-  .req      { color: var(--primary); }
-  .optional { font-weight: 400; text-transform: none; color: var(--text-light); font-size: 0.8rem; }
-
-  .form-group input {
-    padding: 0.7rem 0.9rem;
-    border: 1.5px solid var(--gray-300);
-    border-radius: 8px;
-    font-size: 0.9rem;
-    font-family: inherit;
-    color: var(--text-main);
-    background: var(--white);
-    transition: border-color 0.15s;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  .form-group input:focus { outline: none; border-color: var(--primary); }
-  .readonly { background: var(--gray-50) !important; color: var(--text-light) !important; cursor: default; }
-
-  /* ── Zona de archivo ─────────────────────────────────────── */
-  .file-zone {
-    border: 2px dashed var(--gray-300);
-    border-radius: 10px;
-    padding: 1.5rem;
-    text-align: center;
-    transition: border-color 0.2s, background 0.2s;
-    cursor: default;
-  }
-  .file-zone.drag-over { border-color: var(--primary); background: #f0fdf4; }
-  .file-zone input[type="file"] { display: none; }
-
-  .file-zone-ui p { font-size: 0.88rem; color: var(--text-light); margin: 0.35rem 0; }
-  .file-icon  { font-size: 2rem; display: block; margin-bottom: 0.4rem; }
-  .file-link  { background: none; border: none; color: var(--primary); font-weight: 700; cursor: pointer; text-decoration: underline; padding: 0; font-size: inherit; }
-  .file-types { font-size: 0.75rem !important; color: var(--text-light) !important; opacity: 0.7; }
-
-  .file-selected {
-    display: flex; align-items: center; gap: 0.75rem;
-    background: #f0fdf4; border-radius: 8px;
-    padding: 0.75rem 1rem; font-size: 0.88rem; font-weight: 600; color: var(--accent);
-  }
-  .file-ok-icon { font-size: 1.1rem; }
-  .file-remove {
-    margin-left: auto; background: none; border: none;
-    color: var(--text-light); cursor: pointer; font-size: 1rem; padding: 0;
-  }
-  .file-remove:hover { color: #dc2626; }
-
-  /* ── Footer del form ─────────────────────────────────────── */
-  .form-footer { display: flex; flex-direction: column; align-items: flex-start; gap: 0.75rem; }
-  .form-error {
-    font-size: 0.85rem; color: #dc2626;
-    background: #fef2f2; border: 1px solid #fecaca;
-    border-radius: 6px; padding: 0.55rem 0.8rem; margin: 0;
-    width: 100%; box-sizing: border-box;
-  }
-  .btn-submit {
-    background: var(--primary); color: white;
-    border: none; padding: 0.9rem 2.5rem;
-    border-radius: var(--radius-md);
-    font-weight: 700; font-size: 1rem;
-    cursor: pointer; transition: var(--transition);
-  }
-  .btn-submit:hover    { background: var(--primary-hover); transform: translateY(-2px); box-shadow: var(--shadow-md); }
-  .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-
-  /* ── Éxito del formulario ────────────────────────────────── */
-  .form-success { text-align: center; padding: 2rem 0; }
-  .fs-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
-  .form-success h3 { color: var(--primary); font-size: 1.4rem; margin: 0 0 0.6rem; }
-  .form-success p  { color: var(--text-light); font-size: 0.95rem; line-height: 1.6; margin: 0 0 1.5rem; }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
   .btn-back {
-    display: inline-flex; align-items: center;
-    background: var(--primary); color: white;
-    border: none; padding: 0.7rem 1.5rem;
+    display: inline-flex;
+    align-items: center;
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.8rem 1.75rem;
     border-radius: var(--radius-md);
-    font-weight: 700; font-size: 0.9rem;
-    text-decoration: none; transition: var(--transition);
+    font-weight: 700;
+    font-size: 0.95rem;
+    text-decoration: none;
+    transition: var(--transition);
+    margin-top: 0.5rem;
   }
-  .btn-back:hover { background: var(--primary-hover); }
-
-  /* ── Responsive ──────────────────────────────────────────── */
-  @media (max-width: 640px) {
-    .card-section { padding: 1.75rem; }
-    .form-grid    { grid-template-columns: 1fr; }
-  }
+  .btn-back:hover { background: var(--primary-hover); transform: translateY(-2px); }
 </style>

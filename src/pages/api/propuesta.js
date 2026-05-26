@@ -3,7 +3,7 @@ export const prerender = false;
 import { Resend } from 'resend';
 
 const resend = new Resend(import.meta.env.RESEND_API_KEY);
-const FROM = import.meta.env.EMAIL_FROM || 'CPC CTM <onboarding@resend.dev>';
+const FROM = import.meta.env.EMAIL_FROM || 'CPCC <onboarding@resend.dev>';
 const TO = 'criminalisticacolegio@gmail.com';
 
 export async function POST({ request }) {
@@ -43,7 +43,7 @@ export async function POST({ request }) {
             ${attachments.length > 0 ? '<p style="margin-top: 20px; font-size: 13px; color: #666;">📎 Se adjuntó un archivo PDF.</p>' : ''}
           </div>
           <div style="background: #1b5e20; padding: 14px 40px; text-align: center;">
-            <p style="color: rgba(255,255,255,0.65); font-size: 11px; margin: 0;">CPC CTM — Portal Institucional</p>
+            <p style="color: rgba(255,255,255,0.65); font-size: 11px; margin: 0;">CPCC — Portal Institucional</p>
           </div>
         </div>
       `,

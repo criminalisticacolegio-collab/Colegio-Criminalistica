@@ -1,5 +1,17 @@
 export const prerender = false;
 
+import { createClient } from '@sanity/client';
+
+const sanity = createClient({
+  projectId: '8q7vz6co',
+  dataset: 'production',
+  useCdn: false,
+  apiVersion: '2023-05-03',
+  token: import.meta.env.SANITY_API_WRITE_TOKEN,
+});
+
+const MSG_IA_INACTIVA = 'Servicio de análisis temporalmente no disponible. Consultá directamente con el Colegio.';
+
 async function fetchBase64(url) {
   try {
     const resp = await fetch(url, { signal: AbortSignal.timeout(10000) });
@@ -35,7 +47,6 @@ function recursosRelevantes(mensaje, recursos) {
     return palabras.some(p => haystack.includes(p));
   });
 
-  // Si no hay match por palabras clave, devolver los primeros 3
   return relevantes.length > 0 ? relevantes.slice(0, 4) : conArchivo.slice(0, 3);
 }
 
@@ -53,9 +64,29 @@ export const POST = async ({ request }) => {
     return json({ error: 'Mensaje vacío' }, 400);
   }
 
-  const apiKey = import.meta.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return json({ error: 'Servicio de IA no configurado' }, 503);
+  // Leer configuración IA desde Sanity
+  let iaConfig = null;
+  try {
+    iaConfig = await sanity.fetch(`*[_type == "configuracionIA"][0]{ activado, apiKey, modelo }`);
+  } catch (err) {
+    console.error('[biblioteca-chat] Error leyendo configuracionIA:', err.message);
+  }
+
+  console.log('=== DEBUG IA [biblioteca-chat] ===');
+  console.log('config:', JSON.stringify(iaConfig));
+  console.log('apiKey primeros 10 chars:', iaConfig?.apiKey?.substring(0, 10));
+  console.log('modelo:', iaConfig?.modelo);
+  console.log('activado:', iaConfig?.activado);
+
+  const activado = iaConfig?.activado !== false;
+  const apiKey   = iaConfig?.apiKey?.trim() || import.meta.env.GEMINI_API_KEY;
+  const GEMINI_KEY = apiKey;
+  const modelo   = 'gemini-2.5-flash';
+
+  console.log(`→ activado=${activado} keyLen=${GEMINI_KEY?.length ?? 0} key10="${GEMINI_KEY?.substring(0, 10)}" modelo="${modelo}"`);
+
+  if (!activado || !apiKey) {
+    return json({ error: MSG_IA_INACTIVA }, 503);
   }
 
   // Catálogo completo como contexto textual
@@ -69,7 +100,7 @@ export const POST = async ({ request }) => {
     catalogoContext = `\n\nBIBLIOTECA DIGITAL (${recursos.length} documentos disponibles):\n${lineas.join('\n')}`;
   }
 
-  const SYSTEM = `Sos LegalBot, el asistente jurídico de la Biblioteca Digital del Colegio de Profesionales en Ciencias Criminalísticas de la Provincia de Catamarca (CPC CTM).
+  const SYSTEM = `Sos LegalBot, el asistente jurídico de la Biblioteca Digital del Colegio de Profesionales en Ciencias Criminalísticas de la Provincia de Catamarca (CPCC).
 
 TU ROL:
 - Respondés consultas sobre normativa profesional, ética pericial, legislación argentina, trámites del Colegio y ciencias criminalísticas.
@@ -84,7 +115,6 @@ ESTILO DE RESPUESTA:
 - Citás normativa específica: ley, artículo, inciso cuando lo conocés con certeza.
 - Usás ejemplos prácticos cuando ayudan a entender.`;
 
-  // Descargar archivos relevantes para adjuntar al mensaje actual
   const docsRelevantes = recursosRelevantes(mensaje, recursos);
   const archivosDescargados = await Promise.all(
     docsRelevantes.map(async r => {
@@ -96,7 +126,6 @@ ESTILO DE RESPUESTA:
     .filter(Boolean)
     .map(a => ({ inlineData: { mimeType: a.mime, data: a.base64 } }));
 
-  // Armar parts del mensaje actual: archivos relevantes + texto
   const userParts = [...partsArchivos, { text: mensaje.trim() }];
 
   const contents = [
@@ -114,7 +143,8 @@ ESTILO DE RESPUESTA:
   });
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
+    console.log(`[biblioteca-chat] URL: https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`);
     let resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: geminiBody });
 
     if (resp.status === 429) {
@@ -123,10 +153,12 @@ ESTILO DE RESPUESTA:
     }
 
     if (!resp.ok) {
-      const err = await resp.text();
-      console.error('[biblioteca-chat] Gemini error:', resp.status, err);
+      const errorText = await resp.text();
+      console.error('[biblioteca-chat] Gemini error response:', resp.status, errorText);
       if (resp.status === 429) return json({ error: 'Servicio de IA saturado. Esperá unos segundos e intentá de nuevo.' }, 429);
-      return json({ error: `Error ${resp.status} del servicio de IA` }, 502);
+      let geminiMsg = `Error ${resp.status}`;
+      try { geminiMsg = JSON.parse(errorText)?.error?.message || geminiMsg; } catch {}
+      return json({ error: `IA: ${geminiMsg}` }, 502);
     }
 
     const data = await resp.json();

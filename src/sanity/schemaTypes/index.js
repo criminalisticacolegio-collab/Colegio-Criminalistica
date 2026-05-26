@@ -19,6 +19,8 @@ import proyectos from './proyectos';
 import bolsaTrabajo from './bolsaTrabajo';
 import arancelesConfig from './arancelesConfig';
 import mantenimientoConfig from './mantenimientoConfig';
+import inscripcionCurso from './inscripcionCurso';
+import configuracionIA from './configuracionIA';
 
 export const schemaTypes = [
   homeConfig,
@@ -42,4 +44,6 @@ export const schemaTypes = [
   bolsaTrabajo,
   arancelesConfig,
   mantenimientoConfig,
+  inscripcionCurso,
+  configuracionIA,
 ];

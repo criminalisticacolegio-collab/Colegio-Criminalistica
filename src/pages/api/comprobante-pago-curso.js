@@ -33,7 +33,7 @@ export const GET = async ({ url }) => {
         numeroMatricula: d.matriculadoId || null,
         email: d.matriculadoEmail || email,
         monto: d.monto || 0,
-        concepto: d.concepto || 'Curso CPC CTM',
+        concepto: d.concepto || 'Curso CPCC',
         mpPaymentId: paymentId,
         fecha: new Date(d.fecha || Date.now()),
       };
@@ -43,7 +43,7 @@ export const GET = async ({ url }) => {
   }
 
   // ── 2. Fallback: consultar MP API (race condition con webhook) ─
-  if (!pdfData) {
+  if (!pdfData && import.meta.env.MP_ACCESS_TOKEN) {
     try {
       const paymentApi = new Payment(mpClient);
       const payment    = await paymentApi.get({ id: paymentId });
@@ -75,7 +75,7 @@ export const GET = async ({ url }) => {
       numeroMatricula: null,
       email,
       monto: 0,
-      concepto: 'Curso CPC CTM',
+      concepto: 'Curso CPCC',
       mpPaymentId: paymentId,
       fecha: new Date(),
     };

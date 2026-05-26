@@ -4,264 +4,565 @@ import { sanityClient } from 'sanity:client';
 
 const data = await sanityClient.fetch(`*[_type == "bibliotecaConfig"][0]{
   descripcionGeneral,
+  "destacados": recursos[destacado == true][0..2]{
+    titulo, descripcion, extracto, categoria, icono, colorCategoria, tipoRecurso,
+    linkExterno, destacado,
+    "archivo": archivo.asset->url
+  },
   recursos[]{
-    titulo, descripcion, extracto, categoria, icono, linkExterno, destacado,
+    titulo, descripcion, extracto, categoria, icono, colorCategoria, tipoRecurso,
+    linkExterno, destacado,
     "archivo": archivo.asset->url
   }
 }`);
 
 const recursos = data?.recursos || [];
 
-const categorias = [
-  { value: 'Legislacion', label: 'Legislación' },
-  { value: 'Protocolos', label: 'Protocolos' },
-  { value: 'Formularios', label: 'Formularios' },
-  { value: 'Guias', label: 'Guías Técnicas' },
-  { value: 'Jurisprudencia', label: 'Jurisprudencia' },
-  { value: 'Bibliografia', label: 'Bibliografía' },
+const CATEGORIAS = [
+  { value: 'LegislacionProvincial',  label: 'Legislación Provincial',      color: '#1a2d4a' },
+  { value: 'LegislacionNacional',    label: 'Legislación Nacional',         color: '#2c5f8a' },
+  { value: 'CodigoPenal',            label: 'Código Penal y Procesal',      color: '#8B1A1A' },
+  { value: 'PeritosYPrueba',         label: 'Peritos y Prueba Judicial',    color: '#1a5c2a' },
+  { value: 'EticaYDisciplina',       label: 'Ética y Disciplina',           color: '#8B7355' },
+  { value: 'EspecialidadesForenses', label: 'Especialidades Forenses',      color: '#2c5f8a' },
+  { value: 'MedicinaLegal',          label: 'Medicina Legal',               color: '#8B1A1A' },
+  { value: 'Criminologia',           label: 'Criminología',                 color: '#1a2d4a' },
+  { value: 'Decretos',               label: 'Decretos y Reglamentaciones',  color: '#8B7355' },
 ];
 
-const destacados = recursos.filter((r: any) => r.destacado);
-const porCategoria = categorias
-  .map(cat => ({
-    ...cat,
-    items: recursos.filter((r: any) => r.categoria === cat.value),
-  }))
-  .filter(c => c.items.length > 0);
+function getCatColor(r: any): string {
+  return r.colorCategoria || CATEGORIAS.find(c => c.value === r.categoria)?.color || '#8B7355';
+}
+
+function getCatLabel(catValue: string): string {
+  return CATEGORIAS.find(c => c.value === catValue)?.label || catValue || '';
+}
+
+function getTipoIcon(r: any): string {
+  if (r.tipoRecurso === 'enlace') return '🔗';
+  if (r.tipoRecurso === 'libro') return '📚';
+  return r.icono || '📄';
+}
+
+function hexToRgba(hex: string, alpha: number): string {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+const destacados: any[] = data?.destacados || recursos.filter((r: any) => r.destacado).slice(0, 3);
 ---
 
 <MainLayout title="Biblioteca Digital" showBack={true}>
   <div class="container page-content">
+
+    <!-- ══════ ENCABEZADO ══════ -->
     <header class="section-header">
       <span class="sub-title">Recursos Legales</span>
       <h1>Biblioteca Digital</h1>
       <p>{data?.descripcionGeneral || 'Accedé a toda la normativa vigente, protocolos y recursos profesionales del colegio.'}</p>
     </header>
 
+    <!-- ══════ ZONA A — DESTACADOS ══════ -->
     {destacados.length > 0 && (
-      <section class="destacados-section">
-        <h2 class="section-title-sm">Recursos Destacados</h2>
-        <div class="destacados-grid">
-          {destacados.map((r: any) => (
-            <a
-              href={r.linkExterno || r.archivo || '#'}
-              target="_blank" rel="noopener"
-              class="destacado-card glass"
-            >
-              <div class="d-icon-big">{r.icono || '📄'}</div>
-              <div class="d-body">
-                <strong>{r.titulo}</strong>
-                {r.descripcion && <span>{r.descripcion}</span>}
-              </div>
-              <span class="d-arrow">→</span>
-            </a>
-          ))}
+      <section class="zona-destacados">
+        <div class="dest-grid">
+          {destacados.map((r: any) => {
+            const color   = getCatColor(r);
+            const icon    = r.icono || getTipoIcon(r);
+            const href    = r.archivo || r.linkExterno || '#';
+            const catLabel = getCatLabel(r.categoria);
+            const bgFrom  = hexToRgba(color, 0.09);
+            return (
+              <a href={href} target={href !== '#' ? '_blank' : undefined} rel="noopener noreferrer"
+                class="dest-card"
+                style={`--cat-color:${color}; background: linear-gradient(140deg, ${bgFrom}, #ffffff);`}>
+                <span class="dest-cat-badge"
+                  style={`background:${hexToRgba(color,0.12)}; color:${color};`}>
+                  {catLabel}
+                </span>
+                <div class="dest-icon">{icon}</div>
+                <div class="dest-content">
+                  <strong>{r.titulo}</strong>
+                  {r.descripcion && <p>{r.descripcion}</p>}
+                </div>
+                <span class="dest-btn">→ Ver recurso</span>
+              </a>
+            );
+          })}
         </div>
       </section>
     )}
 
-    {recursos.length > 0 ? (
-      <div class="biblioteca-sections">
-        {porCategoria.map(({ label, items }) => (
-          <section class="cat-section">
-            <h2 class="cat-title">{label}</h2>
-            <div class="doc-grid">
-              {items.map((r: any) => (
-                <a
-                  href={r.linkExterno || r.archivo || '#'}
-                  target={r.linkExterno || r.archivo ? '_blank' : undefined}
-                  rel="noopener"
-                  class={`doc-card ${r.archivo ? 'doc-card--pdf' : ''} ${r.linkExterno ? 'doc-card--link' : ''} ${!r.linkExterno && !r.archivo ? 'no-link' : ''}`}
-                >
-                  {r.archivo ? (
-                    <div class="d-icon-pdf">
-                      <svg viewBox="0 0 24 24" width="28" height="28" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="#ef4444" opacity=".15" stroke="#ef4444" stroke-width="1.5"/><polyline points="14 2 14 8 20 8" stroke="#ef4444" stroke-width="1.5"/><text x="6" y="19" font-size="6" font-weight="bold" fill="#ef4444" font-family="helvetica">PDF</text></svg>
-                    </div>
-                  ) : r.linkExterno ? (
-                    <div class="d-icon-link">
-                      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                    </div>
-                  ) : (
-                    <div class="d-icon">{r.icono || '📄'}</div>
-                  )}
-                  <div class="d-info">
-                    <strong>{r.titulo}</strong>
-                    {r.descripcion && <span>{r.descripcion}</span>}
-                    {r.archivo && <em class="file-badge">Abrir PDF →</em>}
-                    {r.linkExterno && <em class="link-badge">Ver enlace →</em>}
-                  </div>
-                </a>
-              ))}
-            </div>
-          </section>
-        ))}
-      </div>
-    ) : (
-      <div class="empty-state glass">
-        <span class="empty-icon">📚</span>
-        <h3>Biblioteca en construcción</h3>
-        <p>Los recursos y documentos serán publicados desde el panel de administración.</p>
-      </div>
-    )}
+    <!-- ══════ ZONA B — GRILLA DE RECURSOS ══════ -->
+    <section class="zona-recursos">
 
-    <!-- Chatbot IA funcional -->
-    <section class="chatbot-section glass">
-      <div class="tool-header">
-        <span class="tag-ai">Asistente IA</span>
-        <h3>LegalBot — Consultor Normativo</h3>
-        <p>Asistente virtual especializado en normativa profesional, ética pericial y trámites del Colegio.</p>
+      <div class="filtros-wrap">
+        <!-- Buscador -->
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" placeholder="Buscar en la biblioteca..." autocomplete="off" />
+        </div>
+        <!-- Pills de categoría -->
+        <div class="cat-pills" id="cat-pills">
+          <button class="pill active" data-cat="Todos">Todos</button>
+          {CATEGORIAS.map(c => (
+            <button class="pill" data-cat={c.value} style={`--pill-color:${c.color};`}>
+              {c.label}
+            </button>
+          ))}
+        </div>
       </div>
-      <div class="chat-container">
-        <div id="chat-msgs" class="chat-msgs">
-          <div class="chat-msg bot">¡Hola! Soy LegalBot, el asistente del CPC CTM. Puedo ayudarte con consultas sobre normativa profesional, ética pericial, matrícula y recursos de la biblioteca. ¿En qué te puedo ayudar?</div>
+
+      {recursos.length > 0 ? (
+        <div class="recursos-grid" id="recursos-grid">
+          {recursos.map((r: any) => {
+            const color    = getCatColor(r);
+            const icon     = getTipoIcon(r);
+            const catLabel = getCatLabel(r.categoria);
+            return (
+              <article
+                class="recurso-card"
+                data-cat={r.categoria || ''}
+                data-titulo={(r.titulo || '').toLowerCase()}
+                style={`--cat-color:${color};`}
+              >
+                <div class="rc-top">
+                  <span class="rc-icon">{icon}</span>
+                  {catLabel && (
+                    <span class="rc-cat-badge"
+                      style={`background:${hexToRgba(color,0.12)}; color:${color};`}>
+                      {catLabel}
+                    </span>
+                  )}
+                </div>
+                <div class="rc-body">
+                  <strong class="rc-titulo">{r.titulo}</strong>
+                  {r.descripcion && <p class="rc-desc">{r.descripcion}</p>}
+                </div>
+                <div class="rc-footer">
+                  {r.archivo && (
+                    <a href={r.archivo} target="_blank" rel="noopener" class="rc-btn rc-btn-pdf">
+                      ⬇ Descargar PDF
+                    </a>
+                  )}
+                  {r.linkExterno && (
+                    <a href={r.linkExterno} target="_blank" rel="noopener" class="rc-btn rc-btn-link">
+                      🔗 Ver recurso
+                    </a>
+                  )}
+                  {!r.archivo && !r.linkExterno && (
+                    <span class="rc-no-link">Sin enlace disponible</span>
+                  )}
+                </div>
+              </article>
+            );
+          })}
         </div>
-        <div class="chat-input-area">
-          <input type="text" id="chat-input" placeholder="Escribe tu consulta..." autocomplete="off" />
-          <button id="chat-send" class="btn-send">Enviar</button>
+      ) : (
+        <div class="empty-state glass">
+          <span class="empty-icon">📚</span>
+          <h3>Biblioteca en construcción</h3>
+          <p>Los recursos serán publicados desde el panel de administración.</p>
         </div>
+      )}
+
+      <div id="no-resultados" class="no-resultados hidden">
+        <span>🔍</span>
+        <p>No se encontraron recursos para esta búsqueda.</p>
       </div>
     </section>
-  </div>
 
-  <style>
-    .page-content { padding: 5rem 0; display: flex; flex-direction: column; gap: 4rem; }
+    <!-- ══════ ZONA C — CHATBOT ══════ -->
+    <section class="zona-chatbot glass">
+      <div class="chatbot-inner">
 
-    .section-header { text-align: center; }
-    .sub-title { color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.9rem; display: block; margin-bottom: 1rem; }
-    .section-header h1 { font-size: clamp(2.5rem, 5vw, 3.5rem); margin-bottom: 1.5rem; color: var(--accent); }
-    .section-header p { font-size: 1.25rem; color: var(--text-light); max-width: 800px; margin: 0 auto; }
+        <div class="chatbot-header">
+          <div class="chatbot-title-row">
+            <h3>💬 Consultor Bibliográfico IA</h3>
+            <button id="chat-clear" class="btn-clear">🗑 Nueva consulta</button>
+          </div>
+          <p class="chatbot-subtitle">Preguntame sobre cualquier documento de la biblioteca</p>
+        </div>
 
-    .section-title-sm { font-size: 1.25rem; color: var(--accent); margin-bottom: 1.5rem; }
+        <div id="chat-msgs" class="chat-msgs">
+          <!-- mensajes inyectados por JS -->
+        </div>
 
-    /* Destacados */
-    .destacados-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.25rem; }
-    .destacado-card {
-      display: flex; align-items: center; gap: 1.25rem;
-      padding: 1.5rem; border-radius: var(--radius-lg);
-      border: 1px solid var(--primary); text-decoration: none; color: var(--text-main);
-      transition: var(--transition);
-    }
-    .destacado-card:hover { background: var(--primary-soft); transform: translateY(-3px); box-shadow: var(--shadow-md); }
-    .d-icon-big { font-size: 2rem; flex-shrink: 0; }
-    .d-body { flex: 1; }
-    .d-body strong { display: block; font-size: 1rem; color: var(--accent); margin-bottom: 0.25rem; }
-    .d-body span { font-size: 0.85rem; color: var(--text-light); }
-    .d-arrow { font-size: 1.25rem; color: var(--primary); flex-shrink: 0; }
+        <div class="chat-input-area">
+          <input type="text" id="chat-input" placeholder="Escribí tu consulta..." autocomplete="off" />
+          <button id="chat-send" class="btn-send-chat">Enviar</button>
+        </div>
 
-    /* Categories */
-    .cat-section { display: flex; flex-direction: column; gap: 1.25rem; }
-    .cat-title { font-size: 1.4rem; color: var(--accent); padding-bottom: 0.75rem; border-bottom: 2px solid var(--primary-soft); }
+        <div class="chat-warning">
+          ⚠️ Las respuestas se basan exclusivamente en la bibliografía disponible en esta biblioteca.
+          Para consultas fuera de este alcance, contacte directamente al Colegio.
+        </div>
 
-    .doc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.25rem; }
-    .doc-card {
-      display: flex; align-items: flex-start; gap: 1rem;
-      padding: 1.25rem 1.5rem; background: var(--white);
-      border: 1px solid var(--gray-200); border-radius: 14px;
-      text-decoration: none; color: var(--text-main); transition: var(--transition);
-    }
-    .doc-card:hover { border-color: var(--primary); transform: translateY(-3px); box-shadow: var(--shadow-sm); }
-    .doc-card.no-link { cursor: default; }
-    .doc-card.no-link:hover { transform: none; box-shadow: none; border-color: var(--gray-200); }
-    .d-icon { font-size: 1.75rem; flex-shrink: 0; }
-    .d-icon-pdf { flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; background: #fee2e2; border-radius: 10px; }
-    .d-icon-link { flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; background: #dbeafe; border-radius: 10px; color: #1e40af; }
-    .doc-card--pdf { border-left: 3px solid #ef4444; }
-    .doc-card--link { border-left: 3px solid #3b82f6; }
-    .d-info strong { display: block; font-size: 0.95rem; margin-bottom: 0.25rem; color: var(--accent); }
-    .d-info span { font-size: 0.82rem; color: var(--text-light); display: block; margin-bottom: 0.5rem; }
-    .file-badge, .link-badge { font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 4px; font-style: normal; }
-    .file-badge { background: #fee2e2; color: #991b1b; }
-    .link-badge { background: #dbeafe; color: #1e40af; }
+      </div>
+    </section>
 
-    /* Empty */
-    .empty-state { text-align: center; padding: 5rem 2rem; border-radius: var(--radius-lg); border: 1px dashed var(--gray-300); }
-    .empty-icon { font-size: 3rem; display: block; margin-bottom: 1.5rem; }
-    .empty-state h3 { font-size: 1.5rem; margin-bottom: 1rem; color: var(--accent); }
-    .empty-state p { color: var(--text-light); }
-
-    /* Chatbot */
-    .chatbot-section { padding: 3rem; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); }
-    .tool-header { text-align: center; margin-bottom: 2.5rem; }
-    .tag-ai { background: var(--primary-light); color: var(--primary); padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.8rem; font-weight: 800; text-transform: uppercase; margin-bottom: 1rem; display: inline-block; }
-    .tool-header h3 { font-size: 1.8rem; margin-bottom: 0.75rem; }
-    .tool-header p { color: var(--text-light); font-size: 1.1rem; }
-
-    .chat-container { background: var(--gray-900); border-radius: 20px; overflow: hidden; max-width: 900px; margin: 0 auto; }
-    .chat-msgs { padding: 2rem; display: flex; flex-direction: column; gap: 1.25rem; min-height: 200px; max-height: 400px; overflow-y: auto; }
-    .chat-msg { padding: 1rem 1.5rem; border-radius: 15px; font-size: 0.95rem; line-height: 1.5; max-width: 80%; white-space: pre-wrap; }
-    .chat-msg.bot { background: rgba(255,255,255,0.1); color: white; align-self: flex-start; }
-    .chat-msg.user { background: var(--primary); color: white; align-self: flex-end; }
-    .chat-msg.thinking { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.5); align-self: flex-start; font-style: italic; }
-    .chat-input-area { padding: 1.5rem; background: rgba(0,0,0,0.2); display: flex; gap: 1rem; }
-    .chat-input-area input { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 1rem; border-radius: 10px; color: white; font-family: inherit; }
-    .chat-input-area input:focus { outline: none; border-color: var(--primary); }
-    .btn-send { background: var(--primary); color: white; border: none; padding: 0 1.5rem; border-radius: 10px; font-weight: 700; cursor: pointer; transition: var(--transition); }
-    .btn-send:hover:not(:disabled) { background: var(--primary-hover); }
-    .btn-send:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    @media (max-width: 768px) {
-      .chatbot-section { padding: 1.5rem; }
-    }
-  </style>
-
-  <script define:vars={{ recursosPayload: JSON.stringify(recursos) }}>
-    const msgsEl = document.getElementById('chat-msgs');
-    const inputEl = document.getElementById('chat-input');
-    const sendBtn = document.getElementById('chat-send');
-
-    const historial = [];
-    const recursosData = JSON.parse(recursosPayload);
-
-    function appendMsg(texto, tipo) {
-      const div = document.createElement('div');
-      div.className = `chat-msg ${tipo}`;
-      div.textContent = texto;
-      msgsEl.appendChild(div);
-      msgsEl.scrollTop = msgsEl.scrollHeight;
-      return div;
-    }
-
-    async function enviar() {
-      const msg = inputEl.value.trim();
-      if (!msg) return;
-      inputEl.value = '';
-      sendBtn.disabled = true;
-
-      appendMsg(msg, 'user');
-      historial.push({ role: 'user', content: msg });
-
-      const thinking = appendMsg('LegalBot está redactando...', 'thinking');
-
-      try {
-        const res = await fetch('/api/biblioteca-chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mensaje: msg, historial: historial.slice(0, -1), recursos: recursosData }),
-        });
-        const data = await res.json();
-        thinking.remove();
-        if (data.error) {
-          const errDiv = appendMsg('Error al conectar con el asistente. ' + data.error, 'bot');
-          errDiv.style.cssText = 'background:rgba(239,68,68,0.18);border:1px solid rgba(239,68,68,0.4);';
-        } else {
-          const respuesta = data.respuesta || 'No se pudo obtener respuesta.';
-          appendMsg(respuesta, 'bot');
-          historial.push({ role: 'assistant', content: respuesta });
-        }
-      } catch {
-        thinking.textContent = 'Error al conectar con el asistente. Intentá de nuevo.';
-      } finally {
-        sendBtn.disabled = false;
-        inputEl.focus();
-      }
-    }
-
-    sendBtn.addEventListener('click', enviar);
-    inputEl.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        enviar();
-      }
-    });
-  </script>
+  </div><!-- /container -->
 </MainLayout>
+
+<style>
+  /* ── Layout ─────────────────────────────────────────────── */
+  .page-content { padding: 5rem 0 6rem; display: flex; flex-direction: column; gap: 5rem; }
+
+  /* ── Header ──────────────────────────────────────────────── */
+  .section-header { text-align: center; }
+  .sub-title { color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.9rem; display: block; margin-bottom: 1rem; }
+  .section-header h1 { font-size: clamp(2.5rem, 5vw, 3.5rem); margin-bottom: 1.5rem; color: var(--accent); }
+  .section-header p { font-size: 1.2rem; color: var(--text-light); max-width: 800px; margin: 0 auto; line-height: 1.6; }
+
+  /* ══════ ZONA A — DESTACADOS ═══════════════════════════════ */
+  .dest-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+
+  .dest-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    padding: 1.75rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--gray-200);
+    border-top: 4px solid var(--cat-color, #8B7355);
+    text-decoration: none;
+    color: var(--text-main);
+    min-height: 180px;
+    transition: var(--transition);
+    position: relative;
+  }
+  .dest-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); }
+
+  .dest-cat-badge {
+    display: inline-block;
+    align-self: flex-start;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.2rem 0.7rem;
+    border-radius: 20px;
+  }
+
+  .dest-icon { font-size: 2.25rem; line-height: 1; }
+
+  .dest-content { flex: 1; }
+  .dest-content strong { display: block; font-size: 1rem; font-weight: 800; color: var(--accent); margin-bottom: 0.4rem; line-height: 1.4; }
+  .dest-content p { font-size: 0.85rem; color: var(--text-light); line-height: 1.6; margin: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+  .dest-btn {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    background: var(--primary);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    transition: var(--transition);
+  }
+  .dest-card:hover .dest-btn { background: var(--primary-hover); }
+
+  /* ══════ ZONA B — RECURSOS ══════════════════════════════════ */
+  .zona-recursos { display: flex; flex-direction: column; gap: 2rem; }
+
+  /* Filtros */
+  .filtros-wrap { display: flex; flex-direction: column; gap: 1.25rem; }
+
+  .search-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--white);
+    border: 1.5px solid var(--gray-300);
+    border-radius: 12px;
+    padding: 0.6rem 1rem;
+    max-width: 480px;
+    transition: border-color 0.15s;
+  }
+  .search-wrap:focus-within { border-color: var(--primary); }
+  .search-icon { font-size: 1.1rem; flex-shrink: 0; }
+  .search-wrap input { flex: 1; border: none; outline: none; font-size: 0.95rem; font-family: inherit; color: var(--text-main); background: transparent; }
+
+  .cat-pills { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .pill {
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    border: 1.5px solid var(--gray-300);
+    background: var(--white);
+    color: var(--text-main);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+  }
+  .pill:hover { border-color: var(--pill-color, var(--primary)); color: var(--pill-color, var(--primary)); }
+  .pill.active { background: var(--pill-color, var(--primary)); border-color: var(--pill-color, var(--primary)); color: white; }
+
+  /* Grid */
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .recursos-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+
+  .recurso-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--gray-200);
+    border-top: 3px solid var(--cat-color, #8B7355);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    transition: var(--transition);
+    animation: fadeIn 0.25s ease;
+  }
+  .recurso-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+
+  .rc-top { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+  .rc-icon { font-size: 1.4rem; flex-shrink: 0; }
+  .rc-cat-badge { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 0.2rem 0.6rem; border-radius: 20px; }
+
+  .rc-body { flex: 1; display: flex; flex-direction: column; gap: 0.4rem; }
+  .rc-titulo { font-size: 0.95rem; font-weight: 700; color: var(--accent); line-height: 1.4; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .rc-desc { font-size: 0.82rem; color: var(--text-light); line-height: 1.6; margin: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+
+  .rc-footer { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: auto; padding-top: 0.5rem; }
+  .rc-btn { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.45rem 0.9rem; border-radius: 8px; font-size: 0.78rem; font-weight: 700; text-decoration: none; transition: var(--transition); }
+  .rc-btn-pdf { background: #fee2e2; color: #991b1b; }
+  .rc-btn-pdf:hover { background: #fecaca; }
+  .rc-btn-link { background: #dbeafe; color: #1e40af; }
+  .rc-btn-link:hover { background: #bfdbfe; }
+  .rc-no-link { font-size: 0.75rem; color: var(--text-light); font-style: italic; }
+
+  .no-resultados { text-align: center; padding: 4rem 2rem; color: var(--text-light); }
+  .no-resultados span { font-size: 2.5rem; display: block; margin-bottom: 1rem; }
+  .no-resultados p { font-size: 1rem; }
+  .hidden { display: none !important; }
+
+  /* Empty state */
+  .empty-state { text-align: center; padding: 5rem 2rem; border-radius: var(--radius-lg); border: 1px dashed var(--gray-300); }
+  .empty-icon { font-size: 3rem; display: block; margin-bottom: 1.5rem; }
+  .empty-state h3 { font-size: 1.5rem; margin-bottom: 1rem; color: var(--accent); }
+  .empty-state p { color: var(--text-light); }
+
+  /* ══════ ZONA C — CHATBOT ══════════════════════════════════ */
+  .zona-chatbot { border-radius: var(--radius-lg); overflow: hidden; background: var(--white); border: 1px solid var(--gray-200); }
+  .chatbot-inner { display: flex; flex-direction: column; }
+
+  /* Solo el header es verde */
+  .chatbot-header { padding: 1.5rem 2rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.2); background: #1a5c2a; }
+  .chatbot-title-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.3rem; }
+  .chatbot-title-row h3 { font-size: 1.3rem; color: #ffffff; margin: 0; }
+  .chatbot-subtitle { color: rgba(255,255,255,0.8); font-size: 0.88rem; margin: 0; }
+
+  .btn-clear { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.35); color: #ffffff; padding: 0.4rem 0.9rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: var(--transition); white-space: nowrap; }
+  .btn-clear:hover { background: rgba(255,255,255,0.28); }
+
+  /* Área de mensajes: fondo blanco */
+  .chat-msgs { height: 400px; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; background: var(--white); }
+
+  .chat-bubble { display: flex; flex-direction: column; max-width: 82%; }
+  .chat-bubble.bot     { align-self: flex-start; }
+  .chat-bubble.user    { align-self: flex-end; }
+  .chat-bubble.thinking { align-self: flex-start; }
+
+  .bubble-text { padding: 14px 16px; border-radius: 8px; font-size: 0.9rem; line-height: 1.6; white-space: pre-wrap; }
+
+  /* IA: gris claro con borde dorado */
+  .chat-bubble.bot .bubble-text {
+    background: #f0f4f8;
+    color: #1a2d4a;
+    border-left: 3px solid #8B7355;
+  }
+  /* Usuario: verde muy claro, texto azul oscuro, alineado a la derecha */
+  .chat-bubble.user .bubble-text {
+    background: #e8f5e9;
+    color: #1a2d4a;
+    border-left: none;
+  }
+  /* Pensando */
+  .chat-bubble.thinking .bubble-text {
+    background: #f0f4f8;
+    color: #1a2d4a;
+    border-left: 3px solid #8B7355;
+    font-style: italic;
+    opacity: 0.75;
+  }
+
+  .bubble-ts { font-size: 0.7rem; color: var(--text-light); margin-top: 0.3rem; padding: 0 4px; }
+  .chat-bubble.user .bubble-ts { text-align: right; }
+
+  /* Puntos animados */
+  .dot-anim span { display: inline-block; animation: dotBlink 1.4s infinite; }
+  .dot-anim span:nth-child(2) { animation-delay: 0.2s; }
+  .dot-anim span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes dotBlink { 0%,80%,100% { opacity: 0.2; } 40% { opacity: 1; } }
+
+  /* Input area: fondo blanco, borde gris */
+  .chat-input-area { display: flex; gap: 0.75rem; padding: 1rem 1.5rem; background: var(--white); border-top: 1px solid var(--gray-200); align-items: center; }
+  .chat-input-area input { flex: 1; border: 1.5px solid var(--gray-300); border-radius: 10px; padding: 0.7rem 1rem; font-size: 0.9rem; font-family: inherit; color: var(--text-main); background: var(--white); transition: border-color 0.15s; }
+  .chat-input-area input::placeholder { color: var(--text-light); }
+  .chat-input-area input:focus { outline: none; border-color: #1a5c2a; box-shadow: 0 0 0 3px rgba(26,92,42,0.08); }
+  .btn-send-chat { background: #1a5c2a; color: white; border: none; padding: 0.7rem 1.5rem; border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: var(--transition); white-space: nowrap; }
+  .btn-send-chat:hover:not(:disabled) { background: #2d7a3a; }
+  .btn-send-chat:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Nota de advertencia */
+  .chat-warning { padding: 0.75rem 1.5rem; background: #fff5f5; border-top: 1px solid #ffcccc; color: #cc0000; font-size: 0.78rem; line-height: 1.6; }
+
+  /* ── Responsive ───────────────────────────────────────────── */
+  @media (max-width: 1024px) {
+    .dest-grid { grid-template-columns: repeat(2, 1fr); }
+    .recursos-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 768px) {
+    .dest-grid { grid-template-columns: 1fr; }
+    .recursos-grid { grid-template-columns: 1fr; }
+    .chatbot-title-row { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+    .chatbot-header { padding: 1.25rem; }
+    .chat-msgs { height: 300px; }
+    .chat-input-area { padding: 0.75rem 1rem; }
+    .chat-warning { padding: 0.75rem 1rem; }
+  }
+</style>
+
+<script define:vars={{ recursosPayload: JSON.stringify(recursos) }}>
+  // ── ZONA B: Filtros ───────────────────────────────────────
+  const grid       = document.getElementById('recursos-grid');
+  const noResults  = document.getElementById('no-resultados');
+  const searchInput = document.getElementById('search-input');
+  const pills      = document.querySelectorAll('.pill');
+  let activeCat    = 'Todos';
+
+  function filtrar() {
+    if (!grid) return;
+    const query = (searchInput?.value || '').trim().toLowerCase();
+    const cards = grid.querySelectorAll('.recurso-card');
+    let visible = 0;
+
+    cards.forEach(card => {
+      const cat   = card.dataset.cat || '';
+      const titulo = card.dataset.titulo || '';
+      const matchCat  = activeCat === 'Todos' || cat === activeCat;
+      const matchText = !query || titulo.includes(query);
+      const show = matchCat && matchText;
+      card.style.display = show ? '' : 'none';
+      card.style.animation = show ? 'fadeIn 0.25s ease' : '';
+      if (show) visible++;
+    });
+
+    noResults?.classList.toggle('hidden', visible > 0);
+  }
+
+  pills.forEach(btn => {
+    btn.addEventListener('click', () => {
+      pills.forEach(b => { b.classList.remove('active'); });
+      btn.classList.add('active');
+      activeCat = btn.dataset.cat || 'Todos';
+      filtrar();
+    });
+  });
+
+  searchInput?.addEventListener('input', filtrar);
+
+  // ── ZONA C: Chatbot ───────────────────────────────────────
+  const msgsEl    = document.getElementById('chat-msgs');
+  const inputEl   = document.getElementById('chat-input');
+  const sendBtn   = document.getElementById('chat-send');
+  const clearBtn  = document.getElementById('chat-clear');
+  const recursosData = JSON.parse(recursosPayload);
+
+  let historial = [];
+
+  function nowTime() {
+    return new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function appendMsg(texto, tipo) {
+    const bubble = document.createElement('div');
+    bubble.className = `chat-bubble ${tipo}`;
+
+    const textEl = document.createElement('div');
+    textEl.className = 'bubble-text';
+
+    if (tipo === 'thinking') {
+      textEl.innerHTML = 'Consultando biblioteca <span class="dot-anim"><span>•</span><span>•</span><span>•</span></span>';
+    } else {
+      textEl.textContent = texto;
+    }
+
+    const ts = document.createElement('span');
+    ts.className = 'bubble-ts';
+    ts.textContent = nowTime();
+
+    bubble.appendChild(textEl);
+    bubble.appendChild(ts);
+    msgsEl.appendChild(bubble);
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+    return bubble;
+  }
+
+  // Mensaje de bienvenida inicial
+  appendMsg('¡Hola! Soy el Consultor Bibliográfico IA del CPCC. Preguntame sobre cualquier documento, ley o recurso de la biblioteca.', 'bot');
+
+  async function enviar() {
+    const msg = inputEl.value.trim();
+    if (!msg) return;
+    inputEl.value = '';
+    sendBtn.disabled = true;
+
+    appendMsg(msg, 'user');
+    historial.push({ role: 'user', content: msg });
+
+    const thinking = appendMsg('', 'thinking');
+
+    try {
+      const res = await fetch('/api/biblioteca-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mensaje: msg, historial: historial.slice(0, -1), recursos: recursosData }),
+      });
+      const data = await res.json();
+      thinking.remove();
+
+      if (data.error) {
+        const errBubble = appendMsg('Error al conectar con el asistente. ' + data.error, 'bot');
+        errBubble.querySelector('.bubble-text').style.cssText = 'background:#fee2e2;color:#991b1b;border-left:3px solid #ef4444;padding:16px;border-radius:8px;';
+      } else {
+        const respuesta = data.respuesta || 'No se pudo obtener respuesta.';
+        appendMsg(respuesta, 'bot');
+        historial.push({ role: 'assistant', content: respuesta });
+      }
+    } catch {
+      thinking.querySelector('.bubble-text').textContent = 'Error de conexión. Intentá de nuevo.';
+    } finally {
+      sendBtn.disabled = false;
+      inputEl.focus();
+    }
+  }
+
+  clearBtn?.addEventListener('click', () => {
+    historial = [];
+    msgsEl.innerHTML = '';
+    appendMsg('¡Hola! Soy el Consultor Bibliográfico IA del CPCC. Preguntame sobre cualquier documento de la biblioteca.', 'bot');
+    inputEl.focus();
+  });
+
+  sendBtn.addEventListener('click', enviar);
+  inputEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar(); }
+  });
+</script>

@@ -27,7 +27,6 @@ export const POST = async ({ request }) => {
     const tituloFile = data.get('titulo_file');
     const dniFile = data.get('dni_file');
     const certificadoFile = data.get('certificado_file');
-    const antecedentesFile = data.get('antecedentes_file');
     const comprobanteFile = data.get('comprobante_file');
 
     if (!nombre || !apellido || !dni || !email) {
@@ -50,7 +49,6 @@ export const POST = async ({ request }) => {
     const tituloId = await uploadAsset(tituloFile, 'Título');
     const dniId = await uploadAsset(dniFile, 'DNI');
     const certId = await uploadAsset(certificadoFile, 'Certificado');
-    const antecedentesId = await uploadAsset(antecedentesFile, 'Antecedentes');
     const comprobanteId = await uploadAsset(comprobanteFile, 'Comprobante');
 
     const doc = {
@@ -65,12 +63,18 @@ export const POST = async ({ request }) => {
       tituloProfesional: degree,
       ...(tituloId && { archivoTitulo: { _type: 'file', asset: { _type: 'reference', _ref: tituloId } } }),
       ...(dniId && { archivoDNI: { _type: 'file', asset: { _type: 'reference', _ref: dniId } } }),
-      ...(certId && { archivoCertificado: { _type: 'file', asset: { _type: 'reference', _ref: certId } } }),
-      ...(antecedentesId && { archivoAntecedentes: { _type: 'file', asset: { _type: 'reference', _ref: antecedentesId } } }),
+      ...(certId && { certificadoAntecedentes: { _type: 'file', asset: { _type: 'reference', _ref: certId } } }),
       ...(comprobanteId && { archivoComprobante: { _type: 'file', asset: { _type: 'reference', _ref: comprobanteId } } }),
     };
 
     const result = await client.create(doc);
+
+    const documentosRecibidos = [
+      tituloFile?.size ? 'Título Profesional' : null,
+      dniFile?.size ? 'DNI' : null,
+      certificadoFile?.size ? 'Certificado de Antecedentes Penales' : null,
+      comprobanteFile?.size ? 'Comprobante de Pago de Matrícula' : null,
+    ].filter(Boolean);
 
     // Enviar email de confirmación — no bloqueamos si falla
     enviarConfirmacionAspirante({
@@ -81,6 +85,7 @@ export const POST = async ({ request }) => {
       tituloProfesional: degree,
       cuil,
       jurisdiccion: jurisdiction,
+      documentosRecibidos,
     }).catch((err) => console.error('[aspirantes] Error enviando email de confirmación:', err));
 
     return new Response(

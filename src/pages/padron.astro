@@ -1,17 +1,24 @@
 ---
 import MainLayout from '../layouts/MainLayout.astro';
-import { sanityClient } from 'sanity:client';
+import { createClient } from '@sanity/client';
+
+const sanityDirect = createClient({
+  projectId: '8q7vz6co',
+  dataset: 'production',
+  useCdn: false,
+  apiVersion: '2023-05-03',
+});
 
 // Vista pública: solo ACTIVOS, sin datos sensibles (sin email, sin estado)
-const matriculados = await sanityClient.fetch(`*[_type == "matriculado" && estado == "Activo"] | order(numeroMatricula asc){
+const matriculados = await sanityDirect.fetch(`*[_type == "matriculado" && estado == "Activo"] | order(numeroMatricula asc){
   numeroMatricula,
   nombreCompleto,
   "especialidad": especialidad->titulo,
   "jurisdiccion": jurisdiccion->titulo
 }`).catch(() => []);
 
-const jurisdicciones = await sanityClient.fetch(`*[_type == "jurisdiccion" && activa == true] | order(numero asc)`).catch(() => []);
-const especialidades = await sanityClient.fetch(`*[_type == "especialidad"] | order(titulo asc)`).catch(() => []);
+const jurisdicciones = await sanityDirect.fetch(`*[_type == "jurisdiccion" && activa == true] | order(numero asc)`).catch(() => []);
+const especialidades = await sanityDirect.fetch(`*[_type == "especialidad"] | order(titulo asc)`).catch(() => []);
 ---
 
 <MainLayout title="Padrón Oficial" showBack={true}>
@@ -330,97 +337,19 @@ const especialidades = await sanityClient.fetch(`*[_type == "especialidad"] | or
     applyFilters();
 
     // ── Descarga PDF Oficial ─────────────────────────────────────────
-    const padronData: any[] = JSON.parse(document.getElementById('padron-data')?.textContent || '[]');
-
     document.getElementById('btn-pdf')?.addEventListener('click', async () => {
       const btn = document.getElementById('btn-pdf') as HTMLButtonElement;
       btn.disabled = true;
-      btn.textContent = 'Generando PDF...';
-
+      btn.innerHTML = '<span class="d-icon">📥</span> Generando...';
       try {
-        const { jsPDF } = await import('jspdf');
-        const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-
-        // Logo
-        let logoData = '';
-        try {
-          const res = await fetch('/LOGO-CENTRAL.jpg');
-          const blob = await res.blob();
-          logoData = await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve((e.target?.result as string) ?? '');
-            reader.readAsDataURL(blob);
-          });
-        } catch { /* logo unavailable */ }
-
-        // Encabezado
-        doc.setFillColor(27, 94, 32);
-        doc.rect(0, 0, 210, 38, 'F');
-        if (logoData) doc.addImage(logoData, 'JPEG', 6, 5, 26, 26);
-        doc.setTextColor(255, 255, 255);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(13);
-        doc.text('COLEGIO DE PROFESIONALES EN CIENCIAS CRIMINALÍSTICAS', 105, 13, { align: 'center' });
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'normal');
-        doc.text('PADRÓN OFICIAL DE MATRICULADOS ACTIVOS — PROVINCIA DE CATAMARCA', 105, 22, { align: 'center' });
-        const fecha = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        doc.setFontSize(8);
-        doc.text(`Emitido el ${fecha}`, 105, 31, { align: 'center' });
-
-        // Cabecera tabla
-        const colX = [11, 40, 118, 168];
-        const headers = ['Matrícula', 'Profesional', 'Especialidad', 'Jurisdicción'];
-
-        let y = 50;
-        doc.setFillColor(27, 94, 32);
-        doc.rect(10, y - 5.5, 190, 8, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8);
-        headers.forEach((h, i) => doc.text(h, colX[i], y));
-        y += 8;
-
-        // Filas de datos
-        padronData.forEach((row: any, idx: number) => {
-          if (y > 274) {
-            doc.addPage();
-            y = 20;
-            doc.setFillColor(27, 94, 32);
-            doc.rect(10, y - 5.5, 190, 8, 'F');
-            doc.setTextColor(255, 255, 255);
-            doc.setFont('helvetica', 'bold');
-            headers.forEach((h, i) => doc.text(h, colX[i], y));
-            y += 8;
-          }
-
-          if (idx % 2 === 0) {
-            doc.setFillColor(240, 253, 244);
-            doc.rect(10, y - 5.5, 190, 8, 'F');
-          }
-
-          doc.setTextColor(0, 0, 0);
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(8);
-          doc.text(String(row.numeroMatricula || ''), colX[0], y);
-          doc.text(String(row.nombreCompleto || '').substring(0, 34), colX[1], y);
-          doc.text(String(row.especialidad || '—').substring(0, 24), colX[2], y);
-          doc.text(String(row.jurisdiccion || '—').substring(0, 14), colX[3], y);
-          y += 8;
-        });
-
-        // Pie de página en última página
-        const pageH = doc.internal.pageSize.getHeight();
-        doc.setFillColor(27, 94, 32);
-        doc.rect(0, pageH - 12, 210, 12, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7);
-        doc.text('criminalisticacolegio@gmail.com  |  San Fernando del Valle de Catamarca', 105, pageH - 4, { align: 'center' });
-
-        const nombreArchivo = `Padron_Oficial_CPC_CTM_${fecha.replace(/\//g, '-')}.pdf`;
-        doc.save(nombreArchivo);
-
+        const res = await fetch('/api/pdf-padron');
+        if (!res.ok) { alert('Error al generar el padrón. Intentá de nuevo.'); return; }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const fecha = new Date().toLocaleDateString('es-AR').replace(/\//g, '-');
+        a.href = url; a.download = `Padron_Oficial_CPCC_${fecha}.pdf`;
+        a.click(); URL.revokeObjectURL(url);
       } catch (err) {
         console.error('[padron] Error generando PDF:', err);
         alert('Error al generar el PDF. Por favor reintente.');

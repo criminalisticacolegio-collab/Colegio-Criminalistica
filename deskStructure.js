@@ -56,7 +56,21 @@ export const deskStructure = (S) =>
             .items([
               singleton(S, 'Configuración del Portal', 'matriculadosConfig', '⚙️'),
               listDocs(S, 'Solicitudes de Aspirantes', 'aspirante', '📋'),
-              singleton(S, 'Configuración de Cobros', 'configuracionCobros', '💳'),
+            ])
+        ),
+
+      S.divider(),
+
+      // ══════════════════════════════════════════════
+      // 💳  MATRICULADOS (Área privada)
+      // ══════════════════════════════════════════════
+      S.listItem()
+        .title('💳  Matriculados')
+        .child(
+          S.list()
+            .title('Matriculados')
+            .items([
+              singleton(S, 'Configuración de Cobros y Pagos', 'configuracionCobros', '💳'),
             ])
         ),
 
@@ -77,19 +91,21 @@ export const deskStructure = (S) =>
       // ══════════════════════════════════════════════
       // 🎓  CAPACITACIONES
       // ══════════════════════════════════════════════
-      singleton(S, '🎓  Capacitaciones y Campus', 'capacitacionConfig', ''),
+      S.listItem()
+        .title('🎓  Formación Profesional')
+        .child(
+          S.list()
+            .title('Formación Profesional')
+            .items([
+              singleton(S, 'Configuración del Campus', 'capacitacionConfig', '⚙️'),
+              listDocs(S, 'Inscriptos por curso', 'inscripcionCurso', '📋'),
+            ])
+        ),
 
       // ══════════════════════════════════════════════
       // 📚  BIBLIOTECA
       // ══════════════════════════════════════════════
       singleton(S, '📚  Biblioteca Digital', 'bibliotecaConfig', ''),
-
-      // ══════════════════════════════════════════════
-      // 📑  TRÁMITES
-      // ══════════════════════════════════════════════
-      singleton(S, '📑  Trámites', 'tramitesConfig', ''),
-
-      S.divider(),
 
       // ══════════════════════════════════════════════
       // ⚖️  GESTIÓN Y TRANSPARENCIA
@@ -162,6 +178,7 @@ export const deskStructure = (S) =>
             .title('Administración Interna')
             .items([
               singleton(S, 'Mantenimiento del Sitio Web', 'mantenimientoConfig', '🛠️'),
+              singleton(S, 'Configuración IA', 'configuracionIA', '🤖'),
             ])
         ),
 

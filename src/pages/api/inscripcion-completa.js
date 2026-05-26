@@ -6,7 +6,7 @@ import { collection, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 export const prerender = false;
 
 const resend = new Resend(import.meta.env.RESEND_API_KEY);
-const FROM   = import.meta.env.EMAIL_FROM || 'CPC CTM <onboarding@resend.dev>';
+const FROM   = import.meta.env.EMAIL_FROM || 'CPCC <onboarding@resend.dev>';
 const ADMIN_EMAIL = import.meta.env.ADMIN_EMAIL || 'criminalisticacolegio@gmail.com';
 
 const sanity = createClient({
@@ -37,7 +37,7 @@ export const POST = async ({ request }) => {
   }
 
   // ── 1. Datos del curso y del matriculado desde Sanity ─────
-  let cursoTitulo  = 'Curso CPC CTM';
+  let cursoTitulo  = 'Curso CPCC';
   let esMatriculado = false;
 
   try {
@@ -115,7 +115,7 @@ export const POST = async ({ request }) => {
       from:     FROM,
       reply_to: email,
       to:       [ADMIN_EMAIL],
-      subject:  `CPC CTM — Nueva inscripción: ${cursoTitulo}`,
+      subject:  `CPCC — Nueva inscripción: ${cursoTitulo}`,
       html: `
         <div style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto;">
           <div style="background:#1b5e20;padding:28px 36px;border-radius:10px 10px 0 0;">
@@ -179,7 +179,7 @@ export const POST = async ({ request }) => {
     await resend.emails.send({
       from:  FROM,
       to:    [email],
-      subject: `CPC CTM — Inscripción confirmada: ${cursoTitulo}`,
+      subject: `CPCC — Inscripción confirmada: ${cursoTitulo}`,
       html: `
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border-radius:12px;overflow:hidden;">
           <div style="background:#1b5e20;padding:32px 40px;text-align:center;">
@@ -213,7 +213,7 @@ export const POST = async ({ request }) => {
           </div>
           <div style="background:#1b5e20;padding:20px 40px;text-align:center;">
             <p style="color:rgba(255,255,255,0.7);font-size:12px;margin:0;">
-              CPC CTM · San Fernando del Valle de Catamarca · criminalisticacolegio@gmail.com
+              CPCC · San Fernando del Valle de Catamarca · criminalisticacolegio@gmail.com
             </p>
           </div>
         </div>

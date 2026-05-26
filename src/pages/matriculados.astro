@@ -2,15 +2,31 @@
 import MainLayout from '../layouts/MainLayout.astro';
 import { sanityClient } from 'sanity:client';
 
-const config = await sanityClient.fetch(`*[_type == "configuracionCobros"][0]`);
-const valorCuota = config?.valorCuotaMensual || 0;
-const valorAnual = config?.valorMatriculaAnual || 0;
-const promoActiva = config?.promocionAnualActiva || false;
+const [config, institucional, tribunal] = await Promise.all([
+  sanityClient.fetch(`*[_type == "configuracionCobros"][0]`),
+  sanityClient.fetch(`*[_type == "institucionalConfig"][0]{ presidente_nombre, presidente_especialidad }`),
+  sanityClient.fetch(`*[_type == "tribunalConfig"][0]{ presidenteTrib_nombre, presidenteTrib_especialidad }`),
+]);
+const valorCuota   = config?.valorCuotaMensual   || 0;
+const valorAnual   = config?.valorMatriculaAnual  || 0;
+const promoActiva  = config?.promocionAnualActiva || false;
+const linkCuota    = config?.linkCuotaMensual     || '';
+const linkAnual    = config?.linkMatriculaAnual   || '';
+const pteColegio       = institucional?.presidente_nombre       || 'Presidente';
+const pteColegioCargo  = institucional?.presidente_especialidad || 'Presidente · CPC CTM';
+const pteTribunal      = tribunal?.presidenteTrib_nombre        || 'Presidente del Tribunal';
+const pteTribunalCargo = tribunal?.presidenteTrib_especialidad  || 'Presidente del Tribunal de Ética · CPC CTM';
 ---
 
 <MainLayout title="Matriculados">
   <!-- Datos de config pasados al cliente -->
-  <div id="cfg" data-cuota={valorCuota} data-anual={valorAnual} data-promo={promoActiva ? 'true' : 'false'} class="hidden"></div>
+  <div id="cfg" data-cuota={valorCuota} data-anual={valorAnual} data-promo={promoActiva ? 'true' : 'false'} data-link-cuota={linkCuota} data-link-anual={linkAnual} class="hidden"></div>
+  <div id="firmas"
+    data-pte-colegio={pteColegio}
+    data-pte-colegio-cargo={pteColegioCargo}
+    data-pte-tribunal={pteTribunal}
+    data-pte-tribunal-cargo={pteTribunalCargo}
+    class="hidden"></div>
 
   <!-- Estado: cargando -->
   <div id="state-loading" class="auth-loading">
@@ -52,6 +68,10 @@ const promoActiva = config?.promocionAnualActiva || false;
           </div>
           <p id="reset-error" class="reset-msg reset-msg-error hidden"></p>
           <p id="reset-success" class="reset-msg reset-msg-ok hidden"></p>
+          <div id="reset-not-padron" class="reset-not-padron hidden">
+            <p>Este email no está registrado en el Colegio.</p>
+            <a href="/nuevos-profesionales" class="btn-matricularse">¿Querés matricularte? →</a>
+          </div>
         </div>
       </div>
 
@@ -93,11 +113,79 @@ const promoActiva = config?.promocionAnualActiva || false;
       <button id="btn-resend-verify" class="btn-resend-verify">Reenviar email</button>
     </div>
 
-    <!-- Alerta si no está activo -->
+    <!-- ══ BANNERS DE MORA ══ -->
+    <!-- 0 meses pendientes -->
+    <div id="banner-al-dia" class="banner-mora banner-verde hidden">
+      <span class="banner-icon">✅</span>
+      <div class="banner-body">
+        <p class="banner-title">Al día</p>
+        <p class="banner-msg">Tu situación de cuotas está al corriente.</p>
+      </div>
+      <button id="btn-pagar-mes" class="btn-mora-pay">Pagar cuota del mes</button>
+    </div>
+
+    <!-- 1 mes pendiente -->
+    <div id="banner-1mes" class="banner-mora banner-amarillo hidden">
+      <span class="banner-icon">⚠️</span>
+      <div class="banner-body">
+        <p class="banner-title">Tenés 1 cuota pendiente</p>
+        <p class="banner-msg">Regularizá tu situación para evitar inconvenientes.</p>
+      </div>
+      <button id="btn-pagar-mora-1" class="btn-mora-pay">Pagar ahora</button>
+    </div>
+
+    <!-- 2 meses pendientes -->
+    <div id="banner-2meses" class="banner-mora banner-naranja hidden">
+      <span class="banner-icon">🔶</span>
+      <div class="banner-body">
+        <p class="banner-title">Tenés 2 cuotas pendientes</p>
+        <p class="banner-msg">Si no regularizás, tu matrícula puede ser suspendida.</p>
+      </div>
+      <button id="btn-pagar-mora-2" class="btn-mora-pay btn-mora-urgente">Pagar ahora</button>
+    </div>
+
+    <!-- 3+ meses → suspendido -->
+    <div id="banner-suspendido" class="banner-mora banner-rojo hidden">
+      <span class="banner-icon">🔴</span>
+      <div class="banner-body">
+        <p class="banner-title">Tu matrícula ha sido SUSPENDIDA</p>
+        <p class="banner-msg">Falta de pago de 3 o más cuotas consecutivas. Para regularizar tu situación contactá a la administración del Colegio.</p>
+      </div>
+      <button id="btn-contactar-admin" class="btn-mora-contacto">Contactar administración</button>
+    </div>
+
+    <!-- Alerta si no está activo (estado distinto de Activo, no mora) -->
     <div id="alert-inactive" class="alert-inactive hidden">
       <span>⚠️</span>
       <p>Tu matrícula no está activa. No podés descargar certificados. Regularizá tu situación contactando al Colegio.</p>
       <button onclick="window.toggleContactDrawer()" class="btn-contact-inline">Contactar</button>
+    </div>
+
+    <!-- ══ MODAL CONTACTAR ADMINISTRACIÓN ══ -->
+    <div id="modal-contacto-admin" class="modal-overlay hidden">
+      <div class="modal-card glass">
+        <div class="modal-header">
+          <h3>Contactar Administración</h3>
+          <button id="btn-cerrar-modal" class="btn-modal-close">✕</button>
+        </div>
+        <p class="modal-desc">Enviá tu solicitud de regularización. La administración te contactará al email registrado.</p>
+        <div class="modal-body">
+          <label class="modal-label">Mensaje</label>
+          <textarea id="modal-mensaje" class="modal-textarea" rows="4">Solicito información para regularizar mis cuotas pendientes.</textarea>
+          <label class="modal-label">Adjuntar comprobante de pago (opcional)</label>
+          <div class="upload-area" id="upload-area">
+            <input type="file" id="modal-comprobante" accept=".pdf,.jpg,.jpeg,.png" class="upload-input" />
+            <p class="upload-hint">📎 PDF, JPG o PNG — hacé clic o arrastrá el archivo aquí</p>
+            <p id="upload-filename" class="upload-filename hidden"></p>
+          </div>
+          <div id="modal-error" class="modal-msg modal-error hidden"></div>
+          <div id="modal-success" class="modal-msg modal-success hidden"></div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-enviar-contacto" class="btn-modal-send">Enviar solicitud</button>
+          <button id="btn-cancelar-modal" class="btn-modal-cancel">Cancelar</button>
+        </div>
+      </div>
     </div>
 
     <div class="two-col-layout">
@@ -148,16 +236,45 @@ const promoActiva = config?.promocionAnualActiva || false;
           </button>
         </div>
 
-        <!-- Card: historial -->
+        <!-- Card: historial de cuotas con selector de año -->
         <div class="pay-card glass">
           <div class="pay-card-header">
             <div class="pay-icon gray">📋</div>
             <div>
-              <h3>Estado de Cuenta</h3>
-              <p class="pay-desc">Últimos 6 pagos registrados</p>
+              <h3>Historial de Cuotas</h3>
+              <p class="pay-desc">Estado mensual de tus pagos</p>
             </div>
             <span id="badge-estado" class="estado-badge al-dia">AL DÍA</span>
           </div>
+
+          <!-- Resumen anual -->
+          <div id="resumen-anual" class="resumen-anual hidden">
+            <span id="resumen-pagas" class="resumen-item resumen-ok">—</span>
+            <span id="resumen-pendientes" class="resumen-item resumen-warn">—</span>
+            <span id="resumen-estado-gral" class="resumen-item">—</span>
+          </div>
+
+          <!-- Selector de año -->
+          <div id="selector-anio-wrap" class="selector-anio-wrap hidden">
+            <label class="selector-label">Año:</label>
+            <select id="selector-anio" class="selector-anio"></select>
+          </div>
+
+          <!-- Tabla 12 meses -->
+          <div id="tabla-meses-wrap" class="hidden">
+            <table class="tabla-meses">
+              <thead>
+                <tr>
+                  <th>Mes</th>
+                  <th>Estado</th>
+                  <th>Fecha pago</th>
+                  <th>Monto</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-meses-body"></tbody>
+            </table>
+          </div>
+
           <div id="historial-container">
             <p class="hist-loading">Cargando historial...</p>
           </div>
@@ -221,10 +338,8 @@ const promoActiva = config?.promocionAnualActiva || false;
 
 <script>
   import { auth } from '../lib/firebase';
-  import { signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+  import { signInWithEmailAndPassword, signOut, onAuthStateChanged, sendEmailVerification } from 'firebase/auth';
   import { createClient } from '@sanity/client';
-  import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
-  import { db } from '../lib/firebase';
 
   const sanity = createClient({
     projectId: '8q7vz6co', dataset: 'production', useCdn: true, apiVersion: '2023-05-03',
@@ -233,6 +348,16 @@ const promoActiva = config?.promocionAnualActiva || false;
   const cfg = document.getElementById('cfg')!;
   const valorCuota = Number(cfg.dataset.cuota) || 0;
   const valorAnual = Number(cfg.dataset.anual) || 0;
+  const linkCuota  = cfg.dataset.linkCuota  || '';
+  const linkAnual  = cfg.dataset.linkAnual  || '';
+
+  const firmasEl = document.getElementById('firmas')!;
+  const firmas = {
+    pteColegio:       firmasEl.dataset.pteColegio       || 'Presidente',
+    pteColegioCargo:  firmasEl.dataset.pteColegioCargo  || 'Presidente · CPC CTM',
+    pteTribunal:      firmasEl.dataset.pteTribunal      || 'Presidente del Tribunal',
+    pteTribunalCargo: firmasEl.dataset.pteTribunalCargo || 'Presidente del Tribunal de Ética · CPC CTM',
+  };
 
   const stateLoading = document.getElementById('state-loading')!;
   const stateLogin   = document.getElementById('state-login')!;
@@ -284,6 +409,8 @@ const promoActiva = config?.promocionAnualActiva || false;
       );
     } catch (e) { console.error(e); }
 
+
+
     if (!mat) {
       (document.getElementById('unlinked-email-text') as HTMLElement).textContent = user.email || '';
       show(stateUnlinked);
@@ -317,26 +444,102 @@ const promoActiva = config?.promocionAnualActiva || false;
     estadoText.textContent = mat.estado || '—';
     estadoText.className = `estado-inline ${mat.estado === 'Activo' ? 'activo' : 'inactivo'}`;
 
-    const esActivo = mat.estado === 'Activo';
+    // Verificar estado de pagos y cargar historial
+    const pagoData = await verificarEstadoPagos(user);
 
-    if (!esActivo) {
+    const estadoFinal = pagoData?.estado || mat.estado;
+    const mesesPendConsec = pagoData?.mesesPendientesConsecutivos ?? 0;
+    const historial: any[] = pagoData?.historialPagos || [];
+
+    // Actualizar texto de estado si cambió (p.ej. suspendido automáticamente)
+    if (estadoFinal !== mat.estado) {
+      estadoText.textContent = estadoFinal;
+      estadoText.className = `estado-inline ${estadoFinal === 'Activo' ? 'activo' : 'inactivo'}`;
+    }
+
+    const esActivo = estadoFinal === 'Activo';
+
+    // Mostrar banner de mora según cantidad de meses
+    mostrarBannerMora(mesesPendConsec, esActivo, linkCuota, pagoData?.mesesPendientes || [], mat, user.email!);
+
+    if (!esActivo && estadoFinal !== 'Suspendido') {
       show(document.getElementById('alert-inactive')!);
-    } else {
-      // Habilitar certificados
-      const btnMat = document.getElementById('btn-cert-matricula') as HTMLButtonElement;
-      const btnEtica = document.getElementById('btn-cert-etica') as HTMLButtonElement;
+    }
+
+    // Habilitar/deshabilitar certificados
+    const btnMat = document.getElementById('btn-cert-matricula') as HTMLButtonElement;
+    const btnEtica = document.getElementById('btn-cert-etica') as HTMLButtonElement;
+    if (esActivo) {
       btnMat.disabled = false;
       btnEtica.disabled = false;
 
-      btnMat.addEventListener('click', () => generarConstanciaMatricula(mat));
-      btnEtica.addEventListener('click', () => generarConstanciaEtica(mat));
+      btnMat.addEventListener('click', async () => {
+        btnMat.disabled = true;
+        btnMat.textContent = 'Generando...';
+        try {
+          const tkn = await user.getIdToken();
+          const res = await fetch('/api/pdf-certificado-matricula', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${tkn}` },
+          });
+          if (!res.ok) {
+            const d = await res.json().catch(() => ({}));
+            alert(d.error || 'No se pudo generar el certificado.');
+            return;
+          }
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = `constancia-matricula-${mat.numeroMatricula}.pdf`;
+          a.click(); URL.revokeObjectURL(url);
+        } catch {
+          alert('Error de conexión. Intentá de nuevo.');
+        } finally {
+          btnMat.disabled = false;
+          btnMat.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Descargar PDF`;
+        }
+      });
+
+      btnEtica.addEventListener('click', async () => {
+        btnEtica.disabled = true;
+        btnEtica.textContent = 'Generando...';
+        const eticaMsg = document.getElementById('etica-msg')!;
+        eticaMsg.className = 'cert-msg hidden';
+        try {
+          const tkn = await user.getIdToken();
+          const res = await fetch('/api/pdf-certificado-etica', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${tkn}` },
+          });
+          if (!res.ok) {
+            const d = await res.json().catch(() => ({}));
+            eticaMsg.textContent = d.error || 'No se pudo generar el certificado.';
+            eticaMsg.className = 'cert-msg cert-msg-error';
+            return;
+          }
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = `constancia-etica-${mat.numeroMatricula}.pdf`;
+          a.click(); URL.revokeObjectURL(url);
+        } catch {
+          eticaMsg.textContent = 'Error de conexión. Intentá de nuevo.';
+          eticaMsg.className = 'cert-msg cert-msg-error';
+        } finally {
+          btnEtica.disabled = false;
+          btnEtica.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Descargar PDF`;
+        }
+      });
+    } else {
+      btnMat.title = 'Matrícula no activa — no se pueden descargar certificados';
+      btnEtica.title = 'Matrícula no activa — no se pueden descargar certificados';
     }
 
-    // Cargar historial Firestore
-    cargarHistorial(user.email!);
+    // Cargar tabla de historial Sanity
+    cargarHistorialSanity(historial);
 
     // Botones de pago
-    setupPagos(user.email!);
+    setupPagos(user.email!, linkCuota, linkAnual);
   });
   } // end if(auth)
 
@@ -373,6 +576,7 @@ const promoActiva = config?.promocionAnualActiva || false;
   const btnResetSubmit  = document.getElementById('btn-reset-submit') as HTMLButtonElement;
   const resetError      = document.getElementById('reset-error')!;
   const resetSuccess    = document.getElementById('reset-success')!;
+  const resetNotPadron  = document.getElementById('reset-not-padron')!;
 
   btnForgot?.addEventListener('click', () => {
     resetFormWrap.classList.toggle('hidden');
@@ -394,6 +598,7 @@ const promoActiva = config?.promocionAnualActiva || false;
 
     resetError.classList.add('hidden');
     resetSuccess.classList.add('hidden');
+    resetNotPadron.classList.add('hidden');
     btnResetSubmit.disabled = true;
     btnResetSubmit.textContent = 'Verificando...';
 
@@ -406,54 +611,31 @@ const promoActiva = config?.promocionAnualActiva || false;
     }
 
     try {
-      // Verificar que el email esté en el padrón antes de enviar
-      const mat = await sanity.fetch(
-        `*[_type == "matriculado" && email == $email][0]{ _id }`,
-        { email }
-      );
-      if (!mat) {
-        resetError.textContent = 'El email no está registrado en el padrón oficial. Contactá a Secretaría para vincular tu legajo.';
-        resetError.classList.remove('hidden');
-        btnResetSubmit.disabled = false;
-        btnResetSubmit.textContent = 'Enviar instrucciones';
-        return;
-      }
-
       btnResetSubmit.textContent = 'Enviando...';
 
-      // Intentar crear cuenta para detectar si ya existe
-      // (Firebase moderno no lanza auth/user-not-found en sendPasswordResetEmail por privacidad)
-      let isNewUser = false;
-      try {
-        const tmp = `Tmp${Math.random().toString(36).slice(2, 10)}!A1`;
-        resettingPassword = true;
-        await createUserWithEmailAndPassword(auth, email, tmp);
-        isNewUser = true;
-        await signOut(auth);
-        resettingPassword = false;
-      } catch (createErr: any) {
-        resettingPassword = false;
-        if (createErr.code !== 'auth/email-already-in-use') {
-          throw createErr;
-        }
+      const res = await fetch('/api/send-reset-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+
+      if (data.redirect) {
+        window.location.href = data.redirect;
+        return;
+      } else if (data.notInPadron) {
+        resetNotPadron.classList.remove('hidden');
+      } else if (!res.ok || data.error) {
+        resetError.textContent = data.error || 'No se pudo enviar el email. Intentá de nuevo.';
+        resetError.classList.remove('hidden');
+      } else {
+        resetSuccess.textContent = `Te enviamos un email a ${email} con el enlace para crear o recuperar tu contraseña. Revisá también la carpeta de spam.`;
+        resetSuccess.classList.remove('hidden');
+        resetEmailInput.value = '';
       }
-
-      await sendPasswordResetEmail(auth, email);
-
-      resetSuccess.textContent = isNewUser
-        ? `Te enviamos un email a ${email} para que puedas crear tu contraseña. Revisá también la carpeta de spam.`
-        : `Te enviamos un email a ${email} con el enlace para recuperar tu contraseña. Revisá también la carpeta de spam.`;
-      resetSuccess.classList.remove('hidden');
-      resetEmailInput.value = '';
     } catch (err: any) {
-      console.error('Reset error:', err.code, err.message);
-      const msg =
-        err.code === 'auth/invalid-email'         ? 'El formato del email no es válido.' :
-        err.code === 'auth/too-many-requests'      ? 'Demasiados intentos. Esperá unos minutos e intentá de nuevo.' :
-        err.code === 'auth/operation-not-allowed'  ? 'Autenticación por email no habilitada. En Firebase Console → Authentication → Sign-in methods, activá Email/Contraseña.' :
-        err.code === 'auth/network-request-failed' ? 'Error de red. Verificá tu conexión e intentá de nuevo.' :
-        `Error (${err.code || 'desconocido'}). Contactá a Secretaría.`;
-      resetError.textContent = msg;
+      console.error('Reset error:', err);
+      resetError.textContent = 'Error de conexión. Verificá tu internet e intentá de nuevo.';
       resetError.classList.remove('hidden');
     } finally {
       resettingPassword = false;
@@ -462,92 +644,284 @@ const promoActiva = config?.promocionAnualActiva || false;
     }
   });
 
-  // ── Historial Firestore ───────────────────────────────────
-  async function cargarHistorial(email: string) {
-    const cont = document.getElementById('historial-container')!;
-    if (!db) {
-      cont.innerHTML = '<p class="hist-empty">Historial no disponible (Firestore no configurado).</p>';
-      return;
-    }
+  // ── Verificar estado de pagos en Sanity ──────────────────
+  async function verificarEstadoPagos(user: any) {
     try {
-      const q = query(
-        collection(db, 'pagos'),
-        where('matriculadoEmail', '==', email),
-        orderBy('fecha', 'desc'),
-        limit(6)
-      );
-      const snap = await getDocs(q);
-      if (snap.empty) {
-        cont.innerHTML = '<p class="hist-empty">Sin pagos registrados aún.</p>';
-        (document.getElementById('badge-estado') as HTMLElement).className = 'estado-badge con-deuda';
-        (document.getElementById('badge-estado') as HTMLElement).textContent = 'SIN PAGOS';
-        return;
-      }
-      const rows = snap.docs.map(d => {
-        const p = d.data();
-        const fecha = p.fecha ? new Date(p.fecha).toLocaleDateString('es-AR') : '—';
-        const monto = p.monto ? `$${Number(p.monto).toLocaleString('es-AR')}` : '—';
-        return `<div class="hist-row">
-          <div class="hist-info"><span class="hist-concepto">${p.concepto || 'Pago'}</span><span class="hist-fecha">${fecha}</span></div>
-          <span class="hist-monto">${monto}</span>
-          <span class="hist-badge">✓</span>
-        </div>`;
-      }).join('');
-      cont.innerHTML = rows;
+      const tkn = await user.getIdToken();
+      const res = await fetch('/api/verificar-estado-pagos', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${tkn}`,
+        },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) return null;
+      return await res.json();
     } catch (e) {
-      console.error('Historial:', e);
-      cont.innerHTML = '<p class="hist-empty">Error cargando historial.</p>';
+      console.error('verificarEstadoPagos:', e);
+      return null;
     }
   }
 
-  // ── Pagos MercadoPago ─────────────────────────────────────
-  function setupPagos(email: string) {
-    const handlePay = async (amount: number, title: string, btn: HTMLButtonElement) => {
+  // ── Banner de mora ────────────────────────────────────────
+  function mostrarBannerMora(mesesPend: number, esActivo: boolean, linkCuota: string, mesesDetalle: any[], mat: any, email: string) {
+    const badge = document.getElementById('badge-estado') as HTMLElement;
+
+    if (!esActivo || mesesPend >= 3) {
+      show(document.getElementById('banner-suspendido')!);
+      badge.className = 'estado-badge con-deuda';
+      badge.textContent = 'SUSPENDIDA';
+      setupModalContacto(mesesDetalle, mat, email);
+    } else if (mesesPend === 2) {
+      show(document.getElementById('banner-2meses')!);
+      badge.className = 'estado-badge mora-naranja';
+      badge.textContent = '2 PENDIENTES';
+      document.getElementById('btn-pagar-mora-2')?.addEventListener('click', () => {
+        if (linkCuota) window.location.href = linkCuota;
+      });
+    } else if (mesesPend === 1) {
+      show(document.getElementById('banner-1mes')!);
+      badge.className = 'estado-badge mora-amarillo';
+      badge.textContent = '1 PENDIENTE';
+      document.getElementById('btn-pagar-mora-1')?.addEventListener('click', () => {
+        if (linkCuota) window.location.href = linkCuota;
+      });
+    } else {
+      show(document.getElementById('banner-al-dia')!);
+      badge.className = 'estado-badge al-dia';
+      badge.textContent = 'AL DÍA';
+      document.getElementById('btn-pagar-mes')?.addEventListener('click', () => {
+        if (linkCuota) window.location.href = linkCuota;
+      });
+    }
+  }
+
+  // ── Modal contactar administración ───────────────────────
+  function setupModalContacto(mesesDetalle: any[], mat: any, email: string) {
+    const btnAbrir   = document.getElementById('btn-contactar-admin') as HTMLButtonElement;
+    const modal      = document.getElementById('modal-contacto-admin')!;
+    const btnCerrar  = document.getElementById('btn-cerrar-modal') as HTMLButtonElement;
+    const btnCancelar = document.getElementById('btn-cancelar-modal') as HTMLButtonElement;
+    const btnEnviar  = document.getElementById('btn-enviar-contacto') as HTMLButtonElement;
+    const fileInput  = document.getElementById('modal-comprobante') as HTMLInputElement;
+    const uploadArea = document.getElementById('upload-area')!;
+    const uploadFilename = document.getElementById('upload-filename')!;
+    const uploadHint = uploadArea.querySelector('.upload-hint') as HTMLElement;
+    const errorEl   = document.getElementById('modal-error')!;
+    const successEl = document.getElementById('modal-success')!;
+
+    const cerrarModal = () => {
+      hide(modal);
+      errorEl.classList.add('hidden');
+      successEl.classList.add('hidden');
+    };
+
+    btnAbrir?.addEventListener('click', () => show(modal));
+    btnCerrar?.addEventListener('click', cerrarModal);
+    btnCancelar?.addEventListener('click', cerrarModal);
+    modal?.addEventListener('click', (e) => { if (e.target === modal) cerrarModal(); });
+
+    // Mostrar nombre de archivo seleccionado
+    fileInput?.addEventListener('change', () => {
+      const file = fileInput.files?.[0];
+      if (file) {
+        uploadHint.classList.add('hidden');
+        uploadFilename.textContent = `📎 ${file.name}`;
+        uploadFilename.classList.remove('hidden');
+      } else {
+        uploadHint.classList.remove('hidden');
+        uploadFilename.classList.add('hidden');
+      }
+    });
+
+    btnEnviar?.addEventListener('click', async () => {
+      const mensaje = (document.getElementById('modal-mensaje') as HTMLTextAreaElement).value.trim()
+        || 'Solicito información para regularizar mis cuotas pendientes.';
+
+      errorEl.classList.add('hidden');
+      successEl.classList.add('hidden');
+      btnEnviar.disabled = true;
+      btnEnviar.textContent = 'Enviando...';
+
+      let comprobanteUrl = '';
+
+      // Si hay comprobante, subirlo como base64 — el servidor lo menciona en el email
+      const file = fileInput?.files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        comprobanteUrl = await new Promise<string>((resolve) => {
+          reader.onload = () => resolve(`[Archivo adjunto: ${file.name}]`);
+          reader.readAsDataURL(file);
+        });
+      }
+
+      try {
+        const res = await fetch('/api/notificar-mora', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nombreCompleto: mat.nombreCompleto,
+            numeroMatricula: mat.numeroMatricula,
+            email,
+            mesesPendientes: mesesDetalle,
+            mensaje,
+            comprobanteUrl: file ? `Comprobante adjunto por el matriculado: ${file.name} (enviado desde el área privada)` : '',
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          errorEl.textContent = data.error || 'No se pudo enviar. Intentá de nuevo.';
+          errorEl.classList.remove('hidden');
+        } else {
+          successEl.textContent = `✅ Tu solicitud fue enviada. La administración te contactará a la brevedad al email ${email}.`;
+          successEl.classList.remove('hidden');
+          btnEnviar.textContent = 'Enviado ✓';
+        }
+      } catch {
+        errorEl.textContent = 'Error de conexión. Verificá tu internet e intentá de nuevo.';
+        errorEl.classList.remove('hidden');
+        btnEnviar.disabled = false;
+        btnEnviar.textContent = 'Enviar solicitud';
+      }
+    });
+  }
+
+  // ── Historial Sanity — tabla 12 meses ────────────────────
+  const MESES_ORDEN = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+  function cargarHistorialSanity(historial: any[]) {
+    const cont = document.getElementById('historial-container')!;
+    const tablaMesesWrap = document.getElementById('tabla-meses-wrap')!;
+    const selectorWrap   = document.getElementById('selector-anio-wrap')!;
+    const resumenAnual   = document.getElementById('resumen-anual')!;
+
+    if (!historial || historial.length === 0) {
+      cont.innerHTML = '<p class="hist-empty">Sin cuotas registradas aún.</p>';
+      return;
+    }
+
+    hide(cont);
+
+    // Obtener años disponibles
+    const aniosSet = new Set<number>(historial.map((h: any) => h.anio));
+    const anios = Array.from(aniosSet).sort((a, b) => b - a);
+    const anioActual = new Date().getFullYear();
+    let anioSeleccionado = anios.includes(anioActual) ? anioActual : anios[0];
+
+    // Poblar selector de año
+    const selector = document.getElementById('selector-anio') as HTMLSelectElement;
+    anios.forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = String(a);
+      opt.textContent = String(a);
+      if (a === anioSeleccionado) opt.selected = true;
+      selector.appendChild(opt);
+    });
+
+    show(selectorWrap);
+    show(tablaMesesWrap);
+    show(resumenAnual);
+
+    const renderTabla = (anio: number) => {
+      const tbody = document.getElementById('tabla-meses-body')!;
+      const mesesDelAnio = historial.filter((h: any) => h.anio === anio);
+
+      // Construir mapa mes → dato
+      const mapaEstados: Record<string, any> = {};
+      mesesDelAnio.forEach((h: any) => { mapaEstados[h.mes] = h; });
+
+      const rows = MESES_ORDEN.map(mes => {
+        const dato = mapaEstados[mes];
+        if (!dato) {
+          // Mes sin registro
+          return `<tr class="fila-sin-dato">
+            <td>${mes}</td>
+            <td><span class="badge-mes badge-sin-dato">—</span></td>
+            <td>—</td><td>—</td>
+          </tr>`;
+        }
+        const esPagado = dato.estado === 'pagado';
+        const fecha = dato.fechaPago
+          ? new Date(dato.fechaPago).toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric' })
+          : '—';
+        const monto = dato.montoAbonado ? `$${Number(dato.montoAbonado).toLocaleString('es-AR')}` : '—';
+        const badge = esPagado
+          ? `<span class="badge-mes badge-pagado">✅ PAGADO</span>`
+          : `<span class="badge-mes badge-pendiente">⏳ PENDIENTE</span>`;
+        return `<tr>
+          <td>${mes}</td>
+          <td>${badge}</td>
+          <td>${fecha}</td>
+          <td>${monto}</td>
+        </tr>`;
+      }).join('');
+
+      tbody.innerHTML = rows;
+
+      // Actualizar resumen
+      const pagas = mesesDelAnio.filter((h: any) => h.estado === 'pagado').length;
+      const pendientes = mesesDelAnio.filter((h: any) => h.estado === 'pendiente').length;
+      const badgeEstado = document.getElementById('badge-estado') as HTMLElement;
+      const estadoGral = pendientes === 0 ? 'Al día ✅' : pendientes >= 3 ? 'Suspendida 🔴' : pendientes === 2 ? 'En mora 🔶' : 'Con pendiente ⚠️';
+
+      document.getElementById('resumen-pagas')!.textContent = `${pagas}/12 pagas`;
+      document.getElementById('resumen-pendientes')!.textContent = `${pendientes} pendiente${pendientes !== 1 ? 's' : ''}`;
+      document.getElementById('resumen-estado-gral')!.textContent = estadoGral;
+    };
+
+    renderTabla(anioSeleccionado);
+
+    selector.addEventListener('change', () => {
+      renderTabla(Number(selector.value));
+    });
+  }
+
+  // ── Pagos ─────────────────────────────────────────────────
+  function setupPagos(email: string, linkCuota: string, linkAnual: string) {
+    const handlePay = async (amount: number, title: string, btn: HTMLButtonElement, linkDirecto: string) => {
       const orig = btn.textContent;
       btn.disabled = true;
       btn.textContent = 'Procesando...';
+
+      // Si hay un enlace directo cargado en Sanity, usarlo sin pasar por la API
+      if (linkDirecto) {
+        window.location.href = linkDirecto;
+        return;
+      }
+
+      // Fallback: generar preferencia vía API de MercadoPago
       try {
         const res = await fetch('/api/create-preference', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ amount, email, title }),
         });
-        const { init_point } = await res.json();
-        window.location.href = init_point;
+        const data = await res.json();
+        if (!res.ok || !data.init_point) {
+          alert(data.error || 'No se pudo iniciar el pago. Contactá al Colegio.');
+          btn.disabled = false;
+          btn.textContent = orig!;
+          return;
+        }
+        window.location.href = data.init_point;
       } catch {
-        alert('Error al iniciar el pago. Reintente.');
+        alert('Error de conexión. Verificá tu internet e intentá de nuevo.');
         btn.disabled = false;
         btn.textContent = orig!;
       }
     };
 
     document.getElementById('btn-pagar-cuota')?.addEventListener('click', function () {
-      handlePay(valorCuota, 'Cuota Social Colegio', this as HTMLButtonElement);
+      handlePay(valorCuota, 'Cuota Social Colegio', this as HTMLButtonElement, linkCuota);
     });
     document.getElementById('btn-pagar-anual')?.addEventListener('click', function () {
-      handlePay(valorAnual, 'Matrícula Anual Colegio', this as HTMLButtonElement);
+      handlePay(valorAnual, 'Matrícula Anual Colegio', this as HTMLButtonElement, linkAnual);
     });
   }
 
-  // ── Logo loader ───────────────────────────────────────────
-  async function getLogoBase64(): Promise<string | null> {
-    try {
-      const res = await fetch('/LOGO-CENTRAL.jpg');
-      if (!res.ok) return null;
-      const blob = await res.blob();
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = () => resolve(null);
-        reader.readAsDataURL(blob);
-      });
-    } catch {
-      return null;
-    }
-  }
-
-  // ── Certificados PDF (jsPDF) ──────────────────────────────
-  async function generarConstanciaMatricula(mat: any) {
+  // certificados: handlers inline en onAuthStateChanged → /api/pdf-certificado-*
+  async function generarConstanciaMatricula(mat: any, firmas: any) {
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const logo = await getLogoBase64();
@@ -602,24 +976,29 @@ const promoActiva = config?.promocionAnualActiva || false;
     campo('Fecha de emisión', fmtFecha(hoy), y0 + 100);
     campo('Vigencia hasta', fmtFecha(vencimiento), y0 + 120);
 
-    // Firma
-    doc.setDrawColor(180, 180, 180); doc.line(45, 255, 115, 255);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(60, 60, 60);
-    doc.text('Presidente CPC CTM', 80, 261, { align: 'center' });
+    // Firma — bloque derecho únicamente (2cm de espacio para firma manuscrita)
+    doc.setDrawColor(120, 120, 120); doc.setLineWidth(0.4);
+    doc.line(115, 260, 195, 260);
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(44, 62, 80);
+    doc.text(firmas.pteColegio, 195, 266, { align: 'right' });
+
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(70, 70, 70);
+    doc.text(firmas.pteColegioCargo || 'Licenciado/a en Criminalística', 195, 272, { align: 'right' });
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(44, 62, 80);
+    doc.text('Presidente CPCC', 195, 278, { align: 'right' });
 
     // Footer
     doc.setFillColor(27, 94, 32);
-    doc.rect(0, 274, 210, 23, 'F');
-    doc.setTextColor(255, 255, 255); doc.setFontSize(7.5); doc.setFont('helvetica', 'normal');
-    doc.text('Avenida América Latina 1672 — San Fernando del Valle de Catamarca', 105, 281, { align: 'center' });
-    doc.text('criminalisticacolegio@gmail.com', 105, 287, { align: 'center' });
-    doc.setFontSize(6.5);
-    doc.text(`Emitido el ${fmtFecha(hoy)} · Matrícula N° ${mat.numeroMatricula}`, 105, 294, { align: 'center' });
+    doc.rect(0, 290, 210, 7, 'F');
+    doc.setTextColor(255, 255, 255); doc.setFontSize(6.5); doc.setFont('helvetica', 'normal');
+    doc.text('Avenida América Latina 1672 — San Fernando del Valle de Catamarca  ·  criminalisticacolegio@gmail.com  ·  Ley N° 5.595/19', 105, 294, { align: 'center' });
 
     doc.save(`constancia-matricula-${mat.numeroMatricula}.pdf`);
   }
 
-  async function generarConstanciaEtica(mat: any) {
+  async function generarConstanciaEtica(mat: any, firmas: any) {
     const eticaMsg = document.getElementById('etica-msg')!;
     const btn = document.getElementById('btn-cert-etica') as HTMLButtonElement;
     btn.disabled = true;
@@ -679,14 +1058,23 @@ const promoActiva = config?.promocionAnualActiva || false;
     campo2('Fecha de emisión', fmtFecha(hoy), 155);
     campo2('Vigencia', '30 días desde la fecha de emisión', 175);
 
-    doc.setDrawColor(180,180,180); doc.line(45, 220, 115, 220);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(60,60,60);
-    doc.text('Presidente del Tribunal de Ética · CPC CTM', 80, 226, { align: 'center' });
+    // Firma — bloque derecho únicamente (2cm de espacio para firma manuscrita)
+    doc.setDrawColor(120, 120, 120); doc.setLineWidth(0.4);
+    doc.line(115, 218, 195, 218);
 
-    doc.setFillColor(27, 94, 32); doc.rect(0, 274, 210, 23, 'F');
-    doc.setTextColor(255,255,255); doc.setFontSize(7.5); doc.setFont('helvetica', 'normal');
-    doc.text('Avenida América Latina 1672 — San Fernando del Valle de Catamarca', 105, 281, { align: 'center' });
-    doc.text('criminalisticacolegio@gmail.com', 105, 287, { align: 'center' });
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(44, 62, 80);
+    doc.text(firmas.pteTribunal, 195, 224, { align: 'right' });
+
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(70, 70, 70);
+    doc.text(firmas.pteTribunalCargo || 'Licenciado/a en Criminalística', 195, 230, { align: 'right' });
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(44, 62, 80);
+    doc.text('Presidente del Tribunal de Ética', 195, 236, { align: 'right' });
+    doc.text('y Disciplina CPCC', 195, 241, { align: 'right' });
+
+    doc.setFillColor(27, 94, 32); doc.rect(0, 290, 210, 7, 'F');
+    doc.setTextColor(255, 255, 255); doc.setFontSize(6.5); doc.setFont('helvetica', 'normal');
+    doc.text('Avenida América Latina 1672 — San Fernando del Valle de Catamarca  ·  criminalisticacolegio@gmail.com  ·  Ley N° 5.595/19', 105, 294, { align: 'center' });
 
     doc.save(`constancia-etica-${mat.numeroMatricula}.pdf`);
     btn.disabled = false;
@@ -774,6 +1162,26 @@ const promoActiva = config?.promocionAnualActiva || false;
   .reset-msg { font-size: 0.82rem; font-weight: 600; padding: 0.6rem 0.85rem; border-radius: 8px; text-align: left; }
   .reset-msg-error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
   .reset-msg-ok    { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+
+  .reset-not-padron {
+    font-size: 0.82rem;
+    background: #fef3c7;
+    border: 1px solid #fcd34d;
+    border-radius: 8px;
+    padding: 0.65rem 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .reset-not-padron p { margin: 0; color: #92400e; font-weight: 600; }
+  .btn-matricularse {
+    display: inline-block;
+    color: var(--primary);
+    font-weight: 700;
+    font-size: 0.82rem;
+    text-decoration: none;
+  }
+  .btn-matricularse:hover { text-decoration: underline; }
 
   /* Main content */
   .page-content { padding: 3rem 0 5rem; display: flex; flex-direction: column; gap: 2.5rem; }
@@ -894,10 +1302,143 @@ const promoActiva = config?.promocionAnualActiva || false;
   .btn-primary { background: var(--primary); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; transition: var(--transition); font-family: inherit; }
   .btn-outline { background: transparent; color: var(--primary); border: 2px solid var(--primary); padding: 0.75rem 1.5rem; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; transition: var(--transition); font-family: inherit; }
 
+  /* ── Banners de mora ──────────────────────────────────── */
+  .banner-mora {
+    display: flex; align-items: center; gap: 1rem;
+    padding: 1rem 1.5rem; border-radius: var(--radius-md);
+    font-size: 0.9rem;
+  }
+  .banner-icon { font-size: 1.5rem; flex-shrink: 0; }
+  .banner-body { flex: 1; }
+  .banner-body .banner-title { font-weight: 700; margin: 0 0 0.2rem; }
+  .banner-body .banner-msg { margin: 0; opacity: 0.9; font-size: 0.85rem; }
+  .banner-verde  { background: #dcfce7; border: 1px solid #86efac; color: #166534; }
+  .banner-amarillo { background: #fef9c3; border: 1px solid #fde047; color: #854d0e; }
+  .banner-naranja  { background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; }
+  .banner-rojo     { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; }
+
+  .btn-mora-pay {
+    background: #1b5e20; color: white; border: none;
+    padding: 0.55rem 1.1rem; border-radius: var(--radius-md);
+    font-weight: 700; cursor: pointer; white-space: nowrap;
+    font-family: inherit; font-size: 0.85rem; transition: var(--transition); flex-shrink: 0;
+  }
+  .btn-mora-pay:hover { opacity: 0.88; }
+  .btn-mora-urgente { background: #ea580c; }
+  .btn-mora-contacto {
+    background: #991b1b; color: white; border: none;
+    padding: 0.55rem 1.1rem; border-radius: var(--radius-md);
+    font-weight: 700; cursor: pointer; white-space: nowrap;
+    font-family: inherit; font-size: 0.85rem; transition: var(--transition); flex-shrink: 0;
+  }
+  .btn-mora-contacto:hover { background: #7f1d1d; }
+
+  .estado-badge.mora-amarillo { background: #fef9c3; color: #854d0e; }
+  .estado-badge.mora-naranja  { background: #fff7ed; color: #9a3412; }
+
+  /* ── Modal contacto admin ─────────────────────────────── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+    z-index: 999; display: flex; align-items: center; justify-content: center;
+    padding: 1.5rem;
+  }
+  .modal-card {
+    width: 100%; max-width: 540px; background: white;
+    border-radius: var(--radius-lg); border: 1px solid var(--gray-200);
+    display: flex; flex-direction: column; gap: 1.25rem;
+    padding: 2rem; max-height: 90vh; overflow-y: auto;
+  }
+  .modal-header {
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .modal-header h3 { color: var(--accent); font-size: 1.2rem; margin: 0; }
+  .modal-desc { color: var(--text-light); font-size: 0.88rem; margin: 0; line-height: 1.5; }
+  .modal-body { display: flex; flex-direction: column; gap: 0.85rem; }
+  .modal-label { font-size: 0.85rem; font-weight: 600; color: var(--accent); }
+  .modal-textarea {
+    resize: vertical; padding: 0.75rem; border: 1px solid var(--gray-300);
+    border-radius: var(--radius-md); font-family: inherit; font-size: 0.9rem;
+    line-height: 1.5; min-height: 100px;
+  }
+  .modal-textarea:focus { outline: none; border-color: var(--primary); }
+  .upload-area {
+    border: 2px dashed var(--gray-300); border-radius: var(--radius-md);
+    padding: 1.25rem; text-align: center; position: relative;
+    cursor: pointer; transition: border-color 0.15s;
+  }
+  .upload-area:hover { border-color: var(--primary); }
+  .upload-input {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .upload-hint { color: var(--text-light); font-size: 0.82rem; margin: 0; }
+  .upload-filename { color: var(--primary); font-size: 0.85rem; font-weight: 600; margin: 0; }
+  .modal-msg { padding: 0.75rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600; }
+  .modal-error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+  .modal-success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+  .modal-footer { display: flex; gap: 0.75rem; }
+  .btn-modal-close {
+    background: none; border: none; font-size: 1.1rem; cursor: pointer;
+    color: var(--text-light); padding: 0.2rem; line-height: 1;
+    transition: color 0.15s;
+  }
+  .btn-modal-close:hover { color: #991b1b; }
+  .btn-modal-send {
+    flex: 1; background: #991b1b; color: white; border: none;
+    padding: 0.8rem; border-radius: var(--radius-md); font-weight: 700;
+    cursor: pointer; font-family: inherit; transition: var(--transition);
+  }
+  .btn-modal-send:hover:not(:disabled) { background: #7f1d1d; }
+  .btn-modal-send:disabled { opacity: 0.6; cursor: not-allowed; }
+  .btn-modal-cancel {
+    background: var(--gray-100); border: 1px solid var(--gray-300);
+    color: var(--text-main); padding: 0.8rem 1.2rem; border-radius: var(--radius-md);
+    font-weight: 600; cursor: pointer; font-family: inherit;
+    transition: var(--transition); white-space: nowrap;
+  }
+  .btn-modal-cancel:hover { background: var(--gray-200); }
+
+  /* ── Historial / tabla de meses ──────────────────────── */
+  .resumen-anual {
+    display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem;
+  }
+  .resumen-item {
+    font-size: 0.78rem; font-weight: 700; padding: 0.3rem 0.7rem;
+    border-radius: 20px;
+  }
+  .resumen-ok   { background: #dcfce7; color: #166534; }
+  .resumen-warn { background: #fee2e2; color: #991b1b; }
+
+  .selector-anio-wrap {
+    display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;
+  }
+  .selector-label { font-size: 0.82rem; font-weight: 700; color: var(--accent); }
+  .selector-anio {
+    padding: 0.35rem 0.75rem; border: 1px solid var(--gray-300);
+    border-radius: var(--radius-md); font-family: inherit; font-size: 0.88rem;
+    cursor: pointer;
+  }
+
+  .tabla-meses { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  .tabla-meses th {
+    text-align: left; padding: 0.5rem 0.6rem;
+    background: var(--gray-50); color: var(--text-light);
+    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em;
+    border-bottom: 2px solid var(--gray-200);
+  }
+  .tabla-meses td { padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--gray-100); }
+  .tabla-meses tr:last-child td { border-bottom: none; }
+  .tabla-meses tr.fila-sin-dato td { color: var(--gray-300); }
+  .badge-mes { font-size: 0.72rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 20px; white-space: nowrap; }
+  .badge-pagado   { background: #dcfce7; color: #166534; }
+  .badge-pendiente { background: #fee2e2; color: #991b1b; }
+  .badge-sin-dato { background: var(--gray-100); color: var(--gray-300); }
+
   @media (max-width: 1024px) {
     .two-col-layout { grid-template-columns: 1fr; }
   }
   @media (max-width: 640px) {
     .account-header { flex-direction: column; gap: 1rem; }
+    .banner-mora { flex-wrap: wrap; }
+    .modal-footer { flex-direction: column; }
   }
 </style>

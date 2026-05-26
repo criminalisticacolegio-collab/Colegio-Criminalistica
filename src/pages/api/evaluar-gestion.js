@@ -1,5 +1,17 @@
 export const prerender = false;
 
+import { createClient } from '@sanity/client';
+
+const sanity = createClient({
+  projectId: '8q7vz6co',
+  dataset: 'production',
+  useCdn: false,
+  apiVersion: '2023-05-03',
+  token: import.meta.env.SANITY_API_WRITE_TOKEN,
+});
+
+const MSG_IA_INACTIVA = 'Servicio de análisis temporalmente no disponible. Consultá directamente con el Colegio.';
+
 const SYSTEM = 'Sos un evaluador institucional especializado en colegios profesionales de Argentina. Analizás documentos de gestión (memorias, balances, resoluciones) y generás evaluaciones objetivas con lenguaje accesible para matriculados. Si se adjunta un archivo, leé su contenido completo para hacer el análisis. Respondés ÚNICAMENTE con un objeto JSON válido, sin markdown, sin bloques de código.';
 
 async function fetchBase64(url) {
@@ -35,9 +47,29 @@ export const POST = async ({ request }) => {
 
   const { anio, memorias, balances, resoluciones } = body;
 
-  const apiKey = import.meta.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return json({ error: 'Servicio de IA no configurado' }, 503);
+  // Leer configuración IA desde Sanity
+  let iaConfig = null;
+  try {
+    iaConfig = await sanity.fetch(`*[_type == "configuracionIA"][0]{ activado, apiKey, modelo }`);
+  } catch (err) {
+    console.error('[evaluar-gestion] Error leyendo configuracionIA:', err.message);
+  }
+
+  console.log('=== DEBUG IA [evaluar-gestion] ===');
+  console.log('config:', JSON.stringify(iaConfig));
+  console.log('apiKey primeros 10 chars:', iaConfig?.apiKey?.substring(0, 10));
+  console.log('modelo:', iaConfig?.modelo);
+  console.log('activado:', iaConfig?.activado);
+
+  const activado = iaConfig?.activado !== false;
+  const apiKey   = iaConfig?.apiKey?.trim() || import.meta.env.GEMINI_API_KEY;
+  const GEMINI_KEY = apiKey;
+  const modelo   = 'gemini-2.5-flash';
+
+  console.log(`→ activado=${activado} keyLen=${GEMINI_KEY?.length ?? 0} key10="${GEMINI_KEY?.substring(0, 10)}" modelo="${modelo}"`);
+
+  if (!activado || !apiKey) {
+    return json({ error: MSG_IA_INACTIVA }, 503);
   }
 
   const contexto = [];
@@ -55,13 +87,12 @@ export const POST = async ({ request }) => {
     return json({ error: 'No hay documentos de gestión para evaluar' }, 400);
   }
 
-  // Intentar adjuntar el archivo del primer documento que lo tenga
   const todosLosDocs = [...(memorias || []), ...(balances || []), ...(resoluciones || [])];
   const docConArchivo = todosLosDocs.find(d => d.archivo);
 
   const periodoMsg = anio ? ` del año ${anio}` : '';
   const tieneArchivo = !!docConArchivo;
-  const promptTexto = `Analizá la gestión${periodoMsg} del CPC CTM con esta información:
+  const promptTexto = `Analizá la gestión${periodoMsg} del CPCC con esta información:
 
 ${contexto.join('\n\n')}
 ${tieneArchivo ? '\n[Se adjunta el documento completo para tu análisis]' : ''}
@@ -89,7 +120,8 @@ Basate en la información provista. Si no hay datos suficientes para una métric
   userParts.push({ text: promptTexto });
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
+    console.log(`[evaluar-gestion] URL: https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`);
     const geminiBody = JSON.stringify({
       systemInstruction: { parts: [{ text: SYSTEM }] },
       contents: [{ role: 'user', parts: userParts }],
@@ -104,10 +136,12 @@ Basate en la información provista. Si no hay datos suficientes para una métric
     }
 
     if (!resp.ok) {
-      const err = await resp.text();
-      console.error('[evaluar-gestion] Gemini error:', resp.status, err);
+      const errorText = await resp.text();
+      console.error('[evaluar-gestion] Gemini error response:', resp.status, errorText);
       if (resp.status === 429) return json({ error: 'Servicio de IA saturado. Esperá unos segundos e intentá de nuevo.' }, 429);
-      return json({ error: `Error ${resp.status} del servicio de IA` }, 502);
+      let geminiMsg = `Error ${resp.status}`;
+      try { geminiMsg = JSON.parse(errorText)?.error?.message || geminiMsg; } catch {}
+      return json({ error: `IA: ${geminiMsg}` }, 502);
     }
 
     const data = await resp.json();
