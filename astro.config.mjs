@@ -19,7 +19,6 @@ export default defineConfig({
     sanity({
       projectId: '8q7vz6co',
       dataset: 'production',
-      studioBasePath: '/admin-colegio',
     }),
   ],
   vite: {
