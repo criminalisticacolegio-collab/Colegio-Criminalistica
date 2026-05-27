@@ -14,7 +14,7 @@ const MSG_IA_INACTIVA = 'Servicio de análisis temporalmente no disponible. Cons
 
 async function fetchBase64(url) {
   try {
-    const resp = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    const resp = await fetch(url, { signal: AbortSignal.timeout(12000) });
     if (!resp.ok) return null;
     const buf = await resp.arrayBuffer();
     const bytes = new Uint8Array(buf);
@@ -37,17 +37,19 @@ function mimeDesdeUrl(url) {
   return 'application/pdf';
 }
 
-function recursosRelevantes(mensaje, recursos) {
+// Selecciona recursos relevantes considerando archivos Y enlaces externos
+function seleccionarRelevantes(mensaje, recursos) {
   const palabras = mensaje.toLowerCase().split(/\s+/).filter(w => w.length > 3);
-  const conArchivo = recursos.filter(r => r.archivo);
-  if (!palabras.length) return conArchivo.slice(0, 3);
+  // Incluye tanto recursos con archivo descargable como con link externo
+  const conAcceso = recursos.filter(r => r.archivo || r.linkExterno);
+  if (!palabras.length) return conAcceso.slice(0, 5);
 
-  const relevantes = conArchivo.filter(r => {
-    const haystack = `${r.titulo} ${r.descripcion || ''} ${r.categoria || ''}`.toLowerCase();
+  const relevantes = conAcceso.filter(r => {
+    const haystack = `${r.titulo} ${r.descripcion || ''} ${r.categoria || ''} ${r.extracto || ''}`.toLowerCase();
     return palabras.some(p => haystack.includes(p));
   });
 
-  return relevantes.length > 0 ? relevantes.slice(0, 4) : conArchivo.slice(0, 3);
+  return relevantes.length > 0 ? relevantes.slice(0, 5) : conAcceso.slice(0, 4);
 }
 
 export const POST = async ({ request }) => {
@@ -64,7 +66,6 @@ export const POST = async ({ request }) => {
     return json({ error: 'Mensaje vacío' }, 400);
   }
 
-  // Leer configuración IA desde Sanity
   let iaConfig = null;
   try {
     iaConfig = await sanity.fetch(`*[_type == "configuracionIA"][0]{ activado, apiKey, modelo }`);
@@ -72,61 +73,84 @@ export const POST = async ({ request }) => {
     console.error('[biblioteca-chat] Error leyendo configuracionIA:', err.message);
   }
 
-  console.log('=== DEBUG IA [biblioteca-chat] ===');
-  console.log('config:', JSON.stringify(iaConfig));
-  console.log('apiKey primeros 10 chars:', iaConfig?.apiKey?.substring(0, 10));
-  console.log('modelo:', iaConfig?.modelo);
-  console.log('activado:', iaConfig?.activado);
-
   const activado = iaConfig?.activado !== false;
   const apiKey   = iaConfig?.apiKey?.trim() || import.meta.env.GEMINI_API_KEY;
-  const GEMINI_KEY = apiKey;
   const modelo   = 'gemini-2.5-flash';
-
-  console.log(`→ activado=${activado} keyLen=${GEMINI_KEY?.length ?? 0} key10="${GEMINI_KEY?.substring(0, 10)}" modelo="${modelo}"`);
 
   if (!activado || !apiKey) {
     return json({ error: MSG_IA_INACTIVA }, 503);
   }
 
-  // Catálogo completo como contexto textual
+  // Catálogo completo con URLs reales para que la IA pueda citarlas
   let catalogoContext = '';
   if (recursos.length > 0) {
     const lineas = recursos.map(r => {
-      const tipo = r.archivo ? '[Archivo]' : r.linkExterno ? '[Enlace externo]' : '[Recurso]';
+      const tipo = r.archivo ? '[PDF descargable]' : r.linkExterno ? '[Enlace externo]' : '[Recurso]';
       const desc = r.descripcion ? ` — ${r.descripcion}` : '';
-      return `• ${tipo} "${r.titulo}"${desc} (Categoría: ${r.categoria || 'General'})`;
+      const url  = r.archivo || r.linkExterno || '';
+      const urlInfo = url ? ` | URL: ${url}` : '';
+      return `• ${tipo} "${r.titulo}"${desc}${urlInfo} (Categoría: ${r.categoria || 'General'})`;
     });
-    catalogoContext = `\n\nBIBLIOTECA DIGITAL (${recursos.length} documentos disponibles):\n${lineas.join('\n')}`;
+    catalogoContext = `\n\nBIBLIOTECA DIGITAL — CATÁLOGO COMPLETO (${recursos.length} documentos):\n${lineas.join('\n')}`;
   }
 
   const SYSTEM = `Sos LegalBot, el asistente jurídico de la Biblioteca Digital del Colegio de Profesionales en Ciencias Criminalísticas de la Provincia de Catamarca (CPCC).
 
 TU ROL:
 - Respondés consultas sobre normativa profesional, ética pericial, legislación argentina, trámites del Colegio y ciencias criminalísticas.
-- Cuando se adjunta un archivo en esta conversación, lo leés y usás su contenido real para responder.
+- Cuando se adjuntan archivos en esta conversación, los leés y usás su contenido real para responder.
+- Si un documento no pudo cargarse automáticamente pero conocés su URL por el catálogo, indicá al usuario que puede accederlo directamente con ese enlace.
+- Si un documento es un enlace externo que no podés leer, indicá al usuario que puede abrirlo en el enlace provisto.
 - Citás artículos específicos de leyes, códigos de ética y normativa vigente cuando es posible.
 - Si no tenés certeza de un dato, lo aclarás y sugerís consultar a la Secretaría.
 - Nunca inventás leyes ni artículos que no existen.
-- Respondés en español técnico pero accesible, máximo 4 párrafos salvo que pidan más detalle.${catalogoContext}
+- Respondés en español técnico pero accesible, máximo 5 párrafos salvo que pidan más detalle.${catalogoContext}
 
 ESTILO DE RESPUESTA:
-- Si usás contenido de un archivo adjunto, indicá de qué documento proviene la información.
+- Si usás contenido de un archivo adjunto, indicá de qué documento proviene.
+- Si referenciás un documento del catálogo que no se adjuntó, incluí su URL para que el usuario pueda abrirlo.
 - Citás normativa específica: ley, artículo, inciso cuando lo conocés con certeza.
 - Usás ejemplos prácticos cuando ayudan a entender.`;
 
-  const docsRelevantes = recursosRelevantes(mensaje, recursos);
-  const archivosDescargados = await Promise.all(
-    docsRelevantes.map(async r => {
+  // Intentar descargar archivos de los recursos relevantes (solo PDFs/imágenes, no links externos)
+  const relevantes = seleccionarRelevantes(mensaje, recursos);
+  const soloConArchivo = relevantes.filter(r => r.archivo);
+
+  const intentosDescarga = await Promise.all(
+    soloConArchivo.map(async r => {
       const base64 = await fetchBase64(r.archivo);
-      return base64 ? { titulo: r.titulo, base64, mime: mimeDesdeUrl(r.archivo) } : null;
+      return { titulo: r.titulo, url: r.archivo, base64 };
     })
   );
-  const partsArchivos = archivosDescargados
-    .filter(Boolean)
-    .map(a => ({ inlineData: { mimeType: a.mime, data: a.base64 } }));
 
-  const userParts = [...partsArchivos, { text: mensaje.trim() }];
+  const cargados    = intentosDescarga.filter(d => d.base64);
+  const noCargados  = intentosDescarga.filter(d => !d.base64);
+  const soloExterno = relevantes.filter(r => r.linkExterno && !r.archivo);
+
+  const partsArchivos = cargados.map(a => ({
+    inlineData: { mimeType: mimeDesdeUrl(a.url), data: a.base64 },
+  }));
+
+  // Nota sobre documentos no accesibles automáticamente
+  const notasAcceso = [];
+  if (noCargados.length > 0) {
+    notasAcceso.push(
+      `Documentos que no pudieron cargarse automáticamente (indicá al usuario que los abra desde estos enlaces):\n` +
+      noCargados.map(d => `- "${d.titulo}": ${d.url}`).join('\n')
+    );
+  }
+  if (soloExterno.length > 0) {
+    notasAcceso.push(
+      `Documentos externos relevantes (no podés leerlos directamente, pero podés indicar el enlace):\n` +
+      soloExterno.map(r => `- "${r.titulo}": ${r.linkExterno}`).join('\n')
+    );
+  }
+
+  const textoMensaje = notasAcceso.length > 0
+    ? `${mensaje.trim()}\n\n[SISTEMA: ${notasAcceso.join('\n')}]`
+    : mensaje.trim();
+
+  const userParts = [...partsArchivos, { text: textoMensaje }];
 
   const contents = [
     ...historial.map(m => ({
@@ -139,12 +163,11 @@ ESTILO DE RESPUESTA:
   const geminiBody = JSON.stringify({
     systemInstruction: { parts: [{ text: SYSTEM }] },
     contents,
-    generationConfig: { maxOutputTokens: 1200, temperature: 0.4 },
+    generationConfig: { maxOutputTokens: 2000, temperature: 0.4 },
   });
 
   try {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
-    console.log(`[biblioteca-chat] URL: https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`);
     let resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: geminiBody });
 
     if (resp.status === 429) {
@@ -154,7 +177,7 @@ ESTILO DE RESPUESTA:
 
     if (!resp.ok) {
       const errorText = await resp.text();
-      console.error('[biblioteca-chat] Gemini error response:', resp.status, errorText);
+      console.error('[biblioteca-chat] Gemini error:', resp.status, errorText);
       if (resp.status === 429) return json({ error: 'Servicio de IA saturado. Esperá unos segundos e intentá de nuevo.' }, 429);
       let geminiMsg = `Error ${resp.status}`;
       try { geminiMsg = JSON.parse(errorText)?.error?.message || geminiMsg; } catch {}
