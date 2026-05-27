@@ -4,6 +4,7 @@
   "installCommand": "npm install",
   "outputDirectory": ".vercel/output",
   "rewrites": [
-    { "source": "/admin-colegio/(.*)", "destination": "/admin-colegio" }
+    { "source": "/admin-colegio", "destination": "/admin-colegio/index.html" },
+    { "source": "/admin-colegio/(.*)", "destination": "/admin-colegio/index.html" }
   ]
 }
