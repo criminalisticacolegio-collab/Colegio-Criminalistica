@@ -812,7 +812,7 @@ export async function enviarAccesoCurso({ nombre, email, cursoNombre, fechaInici
  */
 export async function enviarSuspensionColegio({ nombreCompleto, numeroMatricula, email, especialidad, jurisdiccion, mesesPendientes }) {
   const listaMeses = mesesPendientes.map(m => `${m.mes} ${m.anio}`).join(', ');
-  const sanityUrl = `https://cpcc-catamarca.sanity.studio/admin-colegio`;
+  const sanityUrl = `https://colegio-criminalistica.sanity.studio`;
 
   await transporter.sendMail({
     from: FROM,

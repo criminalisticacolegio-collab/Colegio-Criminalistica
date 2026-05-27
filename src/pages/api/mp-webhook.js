@@ -1,7 +1,7 @@
 import { MercadoPagoConfig, Payment } from 'mercadopago';
 import { db } from '../../lib/firebase-server.js';
 import { collection, doc, getDoc, setDoc } from 'firebase/firestore';
-import { enviarComprobantePago, enviarConfirmacionInscripcion } from '../../lib/email.js';
+import { enviarComprobantePago, enviarAccesoCurso } from '../../lib/email.js';
 import { createClient } from '@sanity/client';
 
 export const prerender = false;
@@ -138,12 +138,18 @@ async function processCoursePayment(mpPaymentId, payment, extRef) {
 
   // Buscar datos del curso en Sanity
   let cursoTitulo = 'Curso CPCC';
+  let linkClassroom = '';
+  let codigoClassroom = '';
+  let fechaInicio = null;
   try {
     const config = await sanity.fetch(
-      `*[_type == "capacitacionConfig"][0]{ "curso": cursos[_key == $key][0]{ titulo } }`,
+      `*[_type == "capacitacionConfig"][0]{ "curso": cursos[_key == $key][0]{ titulo, linkClassroom, codigoClassroom, fechaInicio } }`,
       { key: cursoKey }
     );
     cursoTitulo = config?.curso?.titulo || cursoTitulo;
+    linkClassroom = config?.curso?.linkClassroom || '';
+    codigoClassroom = config?.curso?.codigoClassroom || '';
+    fechaInicio = config?.curso?.fechaInicio || null;
   } catch (err) {
     console.error('[webhook] Error buscando curso:', err);
   }
@@ -153,7 +159,7 @@ async function processCoursePayment(mpPaymentId, payment, extRef) {
   let esMatriculado = false;
   try {
     const mat = await sanity.fetch(
-      `*[_type == "matriculado" && email == $email && estado == "ACTIVO"][0]{ nombreCompleto }`,
+      `*[_type == "matriculado" && email == $email && estado == "Activo"][0]{ nombreCompleto }`,
       { email }
     );
     if (mat) {
@@ -206,8 +212,16 @@ async function processCoursePayment(mpPaymentId, payment, extRef) {
   console.log('[webhook] Inscripción de curso creada:', enrollId);
 
   try {
-    await enviarConfirmacionInscripcion({ nombre, email, cursoTitulo, esMatriculado, tipoAcceso });
+    await enviarAccesoCurso({
+      nombre,
+      email,
+      cursoNombre: cursoTitulo,
+      fechaInicio,
+      linkClassroom,
+      codigoClassroom,
+      precioAbonado: payment.transaction_amount,
+    });
   } catch (err) {
-    console.error('[webhook] Error enviando confirmación de inscripción:', err);
+    console.error('[webhook] Error enviando email de acceso al curso:', err);
   }
 }

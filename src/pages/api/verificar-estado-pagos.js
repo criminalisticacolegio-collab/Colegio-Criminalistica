@@ -1,7 +1,7 @@
 export const prerender = false;
 
 import { createClient } from '@sanity/client';
-import { enviarSuspensionColegio } from '../../lib/email.js';
+import { enviarSuspensionColegio, enviarNotificacionMoraFormal } from '../../lib/email.js';
 import { adminAuth } from '../../lib/firebase-admin.js';
 
 const sanityRead = createClient({
@@ -101,6 +101,17 @@ export const POST = async ({ request }) => {
       });
     } catch (e) {
       console.warn('[verificar-pagos] No se pudo enviar email de suspensión:', e.message);
+    }
+
+    // Email automático al matriculado
+    try {
+      await enviarNotificacionMoraFormal({
+        nombreCompleto: mat.nombreCompleto,
+        email: mat.email,
+        numeroMatricula: mat.numeroMatricula,
+      });
+    } catch (e) {
+      console.warn('[verificar-pagos] No se pudo enviar notificación de mora al matriculado:', e.message);
     }
   }
 
