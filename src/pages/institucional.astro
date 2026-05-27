@@ -66,12 +66,16 @@ const comision = [
     <!-- Misión y Visión -->
     <section class="info-grid">
       <div class="info-card glass">
-        <div class="card-icon">🎯</div>
+        <div class="card-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+        </div>
         <h2>Misión</h2>
         <p>{mision}</p>
       </div>
       <div class="info-card glass">
-        <div class="card-icon">👁️‍🗨️</div>
+        <div class="card-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        </div>
         <h2>Visión</h2>
         <p>{vision}</p>
       </div>
@@ -164,7 +168,15 @@ const comision = [
     .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 2.5rem; margin-bottom: 7rem; }
     .info-card { padding: 3rem; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); transition: var(--transition); }
     .info-card:hover { transform: translateY(-8px); border-color: var(--primary); box-shadow: var(--shadow-lg); }
-    .card-icon { font-size: 2.5rem; margin-bottom: 1.5rem; }
+    .card-icon {
+      width: 58px; height: 58px;
+      background: linear-gradient(135deg, #e6f2ea 0%, #cfe6d6 100%);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 1.5rem;
+      color: var(--primary);
+    }
+    .card-icon svg { width: 28px; height: 28px; }
     .info-card h2 { font-size: 1.75rem; margin-bottom: 1rem; }
     .info-card p { line-height: 1.8; color: var(--text-light); }
 
