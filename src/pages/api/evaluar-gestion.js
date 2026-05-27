@@ -162,14 +162,14 @@ Basate en la información provista. Si no hay datos suficientes para una métric
     const geminiBody = JSON.stringify({
       systemInstruction: { parts: [{ text: SYSTEM }] },
       contents: [{ role: 'user', parts: userParts }],
-      generationConfig: { maxOutputTokens: 1500 },
+      generationConfig: { maxOutputTokens: 2500 },
     });
 
-    let resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: geminiBody });
-
-    if (resp.status === 429) {
-      await new Promise(r => setTimeout(r, 6000));
+    let resp;
+    for (let i = 0; i < 3; i++) {
+      if (i > 0) await new Promise(r => setTimeout(r, i === 1 ? 8000 : 20000));
       resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: geminiBody });
+      if (resp.status !== 429) break;
     }
 
     if (!resp.ok) {

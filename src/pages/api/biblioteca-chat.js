@@ -161,8 +161,11 @@ ESTILO DE RESPUESTA:
 
   const userParts = [...partsArchivos, { text: textoMensaje }];
 
+  // Limitar historial a los últimos 12 mensajes para no exceder tokens
+  const historialReciente = historial.slice(-12);
+
   const contents = [
-    ...historial.map(m => ({
+    ...historialReciente.map(m => ({
       role: m.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: m.content }],
     })),
@@ -172,16 +175,16 @@ ESTILO DE RESPUESTA:
   const geminiBody = JSON.stringify({
     systemInstruction: { parts: [{ text: SYSTEM }] },
     contents,
-    generationConfig: { maxOutputTokens: 2000, temperature: 0.4 },
+    generationConfig: { maxOutputTokens: 4000, temperature: 0.4 },
   });
 
   try {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
-    let resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: geminiBody });
-
-    if (resp.status === 429) {
-      await new Promise(r => setTimeout(r, 6000));
+    let resp;
+    for (let i = 0; i < 3; i++) {
+      if (i > 0) await new Promise(r => setTimeout(r, i === 1 ? 8000 : 20000));
       resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: geminiBody });
+      if (resp.status !== 429) break;
     }
 
     if (!resp.ok) {

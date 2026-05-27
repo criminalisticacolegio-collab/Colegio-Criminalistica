@@ -489,10 +489,92 @@ const destacados: any[] = data?.destacados || recursos.filter((r: any) => r.dest
   const clearBtn  = document.getElementById('chat-clear');
   const recursosData = JSON.parse(recursosPayload);
 
-  let historial = [];
+  let historial  = [];
+  let isBusy     = false;
+  let msgQueue   = [];
 
   function nowTime() {
     return new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function trimHistorial() {
+    if (historial.length > 16) historial = historial.slice(-16);
+  }
+
+  async function countdown(bubble, seconds) {
+    return new Promise(resolve => {
+      let rem = seconds;
+      const el = bubble.querySelector('.bubble-text');
+      el.innerHTML = `⏳ Servicio ocupado, reintentando en <strong>${rem}s</strong>...`;
+      const t = setInterval(() => {
+        rem--;
+        if (rem <= 0) {
+          clearInterval(t);
+          el.innerHTML = 'Consultando biblioteca <span class="dot-anim"><span>•</span><span>•</span><span>•</span></span>';
+          resolve();
+        } else {
+          el.innerHTML = `⏳ Servicio ocupado, reintentando en <strong>${rem}s</strong>...`;
+        }
+      }, 1000);
+    });
+  }
+
+  async function procesarMensaje(msg) {
+    appendMsg(msg, 'user');
+    historial.push({ role: 'user', content: msg });
+    trimHistorial();
+
+    const thinkBubble = appendMsg('', 'thinking');
+    let respondido = false;
+
+    for (let intento = 1; intento <= 3 && !respondido; intento++) {
+      if (intento > 1) await countdown(thinkBubble, intento === 2 ? 12 : 22);
+      try {
+        const res = await fetch('/api/biblioteca-chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mensaje: msg,
+            historial: historial.slice(0, -1).slice(-10),
+            recursos: recursosData,
+          }),
+        });
+        const data = await res.json();
+
+        if (res.status === 429 && intento < 3) continue;
+
+        thinkBubble.remove();
+        respondido = true;
+
+        if (data.error) {
+          const eb = appendMsg('⚠️ ' + (data.error || 'Error al conectar.'), 'bot');
+          eb.querySelector('.bubble-text').style.cssText =
+            'background:#fee2e2;color:#991b1b;border-left:3px solid #ef4444;padding:16px;border-radius:8px;';
+          historial.pop();
+        } else {
+          const respuesta = data.respuesta || 'No se pudo obtener respuesta.';
+          appendMsg(respuesta, 'bot');
+          historial.push({ role: 'assistant', content: respuesta });
+        }
+      } catch {
+        if (intento === 3) {
+          thinkBubble.querySelector('.bubble-text').textContent = 'Error de conexión. Intentá de nuevo.';
+          respondido = true;
+        }
+      }
+    }
+  }
+
+  async function procesarCola() {
+    if (isBusy) return;
+    isBusy = true;
+    sendBtn.disabled = true;
+    while (msgQueue.length > 0) {
+      await procesarMensaje(msgQueue.shift());
+    }
+    isBusy = false;
+    sendBtn.disabled = false;
+    inputEl.focus();
   }
 
   function renderBotText(text) {
@@ -551,44 +633,26 @@ const destacados: any[] = data?.destacados || recursos.filter((r: any) => r.dest
   // Mensaje de bienvenida inicial
   appendMsg('¡Hola! Soy el Consultor Bibliográfico IA del CPCC. Preguntame sobre cualquier documento, ley o recurso de la biblioteca.', 'bot');
 
-  async function enviar() {
+  function enviar() {
     const msg = inputEl.value.trim();
     if (!msg) return;
     inputEl.value = '';
-    sendBtn.disabled = true;
-
-    appendMsg(msg, 'user');
-    historial.push({ role: 'user', content: msg });
-
-    const thinking = appendMsg('', 'thinking');
-
-    try {
-      const res = await fetch('/api/biblioteca-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mensaje: msg, historial: historial.slice(0, -1), recursos: recursosData }),
-      });
-      const data = await res.json();
-      thinking.remove();
-
-      if (data.error) {
-        const errBubble = appendMsg('Error al conectar con el asistente. ' + data.error, 'bot');
-        errBubble.querySelector('.bubble-text').style.cssText = 'background:#fee2e2;color:#991b1b;border-left:3px solid #ef4444;padding:16px;border-radius:8px;';
-      } else {
-        const respuesta = data.respuesta || 'No se pudo obtener respuesta.';
-        appendMsg(respuesta, 'bot');
-        historial.push({ role: 'assistant', content: respuesta });
-      }
-    } catch {
-      thinking.querySelector('.bubble-text').textContent = 'Error de conexión. Intentá de nuevo.';
-    } finally {
-      sendBtn.disabled = false;
-      inputEl.focus();
+    if (isBusy) {
+      msgQueue.push(msg);
+      const qb = appendMsg(`📬 Mensaje en cola (${msgQueue.length})…`, 'bot');
+      qb.querySelector('.bubble-text').style.cssText =
+        'background:#f0f9ff;color:#0369a1;border-left:3px solid #38bdf8;padding:14px;border-radius:8px;font-style:italic;';
+      return;
     }
+    msgQueue.push(msg);
+    procesarCola();
   }
 
   clearBtn?.addEventListener('click', () => {
     historial = [];
+    msgQueue  = [];
+    isBusy    = false;
+    sendBtn.disabled = false;
     msgsEl.innerHTML = '';
     appendMsg('¡Hola! Soy el Consultor Bibliográfico IA del CPCC. Preguntame sobre cualquier documento de la biblioteca.', 'bot');
     inputEl.focus();
