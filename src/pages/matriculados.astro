@@ -535,11 +535,18 @@ const pteTribunalCargo = tribunal?.presidenteTrib_especialidad  || 'Presidente d
       btnEtica.title = 'Matrícula no activa — no se pueden descargar certificados';
     }
 
-    // Cargar tabla de historial Sanity
+    // Cargar tabla de historial Sanity (siempre visible)
     cargarHistorialSanity(historial);
 
-    // Botones de pago
-    setupPagos(user.email!, linkCuota, linkAnual);
+    // Botones de pago — solo para matriculados ACTIVOS
+    if (esActivo) {
+      setupPagos(user.email!, linkCuota, linkAnual);
+    } else {
+      const btnCuota = document.getElementById('btn-pagar-cuota') as HTMLButtonElement;
+      const btnAnual = document.getElementById('btn-pagar-anual') as HTMLButtonElement;
+      if (btnCuota) { btnCuota.disabled = true; btnCuota.title = 'No disponible — regularizá tu situación contactando al Colegio'; }
+      if (btnAnual) { btnAnual.disabled = true; btnAnual.title = 'No disponible — regularizá tu situación contactando al Colegio'; }
+    }
   });
   } // end if(auth)
 
