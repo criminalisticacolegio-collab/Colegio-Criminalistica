@@ -11,199 +11,640 @@ const data = await sanityClient.fetch(`*[_type == "noticiasConfig"][0]{
     categoria,
     link,
     "imagen": imagen.asset->url,
-    "galeria": galeria[].asset->url,
     "archivo": archivo.asset->url
   }
 }`);
 
-const novedades = data?.novedades || [];
+const novedades: any[] = data?.novedades || [];
+const heroNoticias = novedades.slice(0, 3);
+const gridNoticias = novedades.slice(3);
 
 function formatFecha(dateStr: string) {
   if (!dateStr) return '';
   const [y, m, d] = dateStr.split('-').map(Number);
-  const date = new Date(y, m - 1, d);
-  return date.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
+  return new Date(y, m - 1, d).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-const categoriaColors: Record<string, string> = {
-  Institucional: 'var(--primary)',
-  Resolucion: '#7c3aed',
-  Capacitacion: '#0891b2',
-  Convocatoria: '#d97706',
-  General: 'var(--accent)',
+const catColors: Record<string, string> = {
+  Institucional: '#16a34a',
+  Resolucion:    '#7c3aed',
+  Capacitacion:  '#0891b2',
+  Convocatoria:  '#d97706',
+  General:       '#4b5563',
 };
-
-function buildFotos(post: any): string[] {
-  const fotos: string[] = [];
-  if (post.imagen) fotos.push(post.imagen);
-  if (Array.isArray(post.galeria)) {
-    for (const url of post.galeria) {
-      if (url && !fotos.includes(url)) fotos.push(url);
-    }
-  }
-  return fotos.slice(0, 5);
-}
+function cc(cat: string) { return catColors[cat] || '#4b5563'; }
 ---
 
-<MainLayout title="Noticias" showBack={true}>
-  <div class="container page-content">
-    <header class="section-header">
-      <span class="sub-title">Actualidad y Novedades</span>
-      <h1>Noticias del Colegio</h1>
-      <p>{data?.textoPrincipal || 'El canal oficial de comunicación para el profesional y la comunidad científica.'}</p>
-    </header>
+<MainLayout title="Noticias y Novedades">
 
-    {novedades.length > 0 ? (
-      <div class="news-container">
-        <div class="featured-news-grid">
-          {novedades.map((post, idx) => {
-            const color = categoriaColors[post.categoria] || 'var(--primary)';
-            const fotos = buildFotos(post);
-            const hasCarousel = fotos.length > 1;
-            return (
-              <article class="post-card glass">
-                <div class="post-header">
-                  {fotos.length > 0 ? (
-                    hasCarousel ? (
-                      <div class="carousel" data-id={`c${idx}`}>
-                        <div class="carousel-track">
-                          {fotos.map((f, fi) => (
-                            <img src={f} alt={`${post.titulo} - foto ${fi + 1}`} class="carousel-slide" loading="lazy" />
-                          ))}
-                        </div>
-                        <button class="carousel-btn prev" aria-label="Anterior">&#8249;</button>
-                        <button class="carousel-btn next" aria-label="Siguiente">&#8250;</button>
-                        <div class="carousel-dots">
-                          {fotos.map((_, fi) => (
-                            <span class={`dot${fi === 0 ? ' active' : ''}`} data-i={fi}></span>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <img src={fotos[0]} alt={post.titulo} loading="lazy" />
-                    )
-                  ) : (
-                    <div class="post-no-image"><span>📰</span></div>
-                  )}
-                  {post.categoria && (
-                    <span class="category-tag" style={`background: ${color}`}>{post.categoria}</span>
-                  )}
-                </div>
-                <div class="post-body">
-                  <span class="date">{formatFecha(post.fecha)}</span>
-                  <h2>{post.titulo}</h2>
-                  {post.bajada && <p>{post.bajada}</p>}
-                  <div class="post-footer">
-                    {post.link
-                      ? <a href={post.link} target="_blank" rel="noopener" class="btn-read">Leer más →</a>
-                      : post.archivo
-                        ? <a href={post.archivo} target="_blank" rel="noopener" class="btn-read">Ver documento →</a>
-                        : <span></span>
-                    }
-                  </div>
-                </div>
-              </article>
-            );
-          })}
+  {novedades.length === 0 ? (
+
+    <div class="container" style="padding: 7rem 0; text-align: center;">
+      <div class="empty-state">
+        <div class="empty-ico">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="52" height="52"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v4"/><path d="M2 13h10M9 18H2M2 9h6"/></svg>
         </div>
+        <h2>Sin novedades publicadas</h2>
+        <p>{data?.textoPrincipal || 'Las noticias aparecerán aquí cuando sean publicadas desde el panel de administración.'}</p>
       </div>
-    ) : (
-      <div class="empty-state glass">
-        <span class="empty-icon">📰</span>
-        <h3>No hay novedades publicadas</h3>
-        <p>Las noticias aparecerán aquí cuando sean publicadas desde el panel de administración.</p>
+    </div>
+
+  ) : (
+    <>
+
+    <!-- ══════════════════════════════════════════════
+         BLOQUE 1 · HERO SLIDER FULL-WIDTH
+    ══════════════════════════════════════════════ -->
+    <section class="hero-slider" id="hero-slider" aria-label="Noticias destacadas">
+
+      <div class="slider-track" id="slider-track">
+        {heroNoticias.map((post: any, idx: number) => (
+          <article class="hs-slide" aria-hidden={idx !== 0 ? 'true' : 'false'}>
+
+            {post.imagen
+              ? <img src={post.imagen} alt={post.titulo} class="hs-bg-img" loading={idx === 0 ? 'eager' : 'lazy'} />
+              : <div class="hs-bg-fallback" style={`background: linear-gradient(135deg, ${cc(post.categoria)} 0%, #0a1a0d 100%)`}></div>
+            }
+            <div class="hs-overlay"></div>
+
+            <div class="hs-content">
+              <div class="hs-meta">
+                {post.categoria && (
+                  <span class="hs-badge" style={`background: ${cc(post.categoria)}`}>{post.categoria}</span>
+                )}
+                <time class="hs-date" datetime={post.fecha}>{formatFecha(post.fecha)}</time>
+              </div>
+
+              <h2 class="hs-title">{post.titulo}</h2>
+              {post.bajada && <p class="hs-bajada">{post.bajada}</p>}
+
+              <div class="hs-actions">
+                {post.link && (
+                  <a href={post.link} target="_blank" rel="noopener noreferrer" class="hs-btn hs-btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    Leer más
+                  </a>
+                )}
+                {post.archivo && (
+                  <a href={post.archivo} target="_blank" rel="noopener noreferrer" class="hs-btn hs-btn-ghost" download>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Descargar PDF
+                  </a>
+                )}
+              </div>
+            </div>
+
+          </article>
+        ))}
       </div>
+
+      {heroNoticias.length > 1 && (
+        <>
+          <button class="sl-arrow sl-prev" id="slider-prev" aria-label="Noticia anterior">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <button class="sl-arrow sl-next" id="slider-next" aria-label="Siguiente noticia">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          <div class="slider-dots" role="tablist">
+            {heroNoticias.map((_: any, i: number) => (
+              <button
+                class={`sl-dot${i === 0 ? ' active' : ''}`}
+                data-idx={i}
+                role="tab"
+                aria-selected={i === 0 ? 'true' : 'false'}
+                aria-label={`Ir a noticia ${i + 1}`}
+              ></button>
+            ))}
+          </div>
+        </>
+      )}
+
+    </section>
+
+
+    <!-- ══════════════════════════════════════════════
+         BLOQUE 2 · HISTORIAL EN GRILLA DE TARJETAS
+    ══════════════════════════════════════════════ -->
+    {gridNoticias.length > 0 && (
+      <section class="grid-section">
+        <div class="container">
+
+          <header class="grid-header">
+            <h2>Historial de Novedades</h2>
+            <span class="grid-count">{gridNoticias.length} {gridNoticias.length === 1 ? 'novedad' : 'novedades'}</span>
+          </header>
+
+          <div class="news-grid">
+            {gridNoticias.map((post: any) => (
+              <article class="nc">
+
+                <div class="nc-img-wrap">
+                  {post.imagen
+                    ? <img src={post.imagen} alt={post.titulo} class="nc-img" loading="lazy" />
+                    : <div class="nc-img-fallback" style={`background: linear-gradient(135deg, ${cc(post.categoria)}28 0%, ${cc(post.categoria)}50 100%)`}>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="34" height="34" style={`color: ${cc(post.categoria)}`}><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v4"/><path d="M2 13h10M9 18H2M2 9h6"/></svg>
+                      </div>
+                  }
+                  {post.categoria && (
+                    <span class="nc-badge" style={`background: ${cc(post.categoria)}`}>{post.categoria}</span>
+                  )}
+                </div>
+
+                <div class="nc-body">
+                  <time class="nc-date" datetime={post.fecha}>{formatFecha(post.fecha)}</time>
+                  <h3 class="nc-title">{post.titulo}</h3>
+                  {post.bajada && <p class="nc-excerpt">{post.bajada}</p>}
+                  <footer class="nc-footer">
+                    {post.link
+                      ? <a href={post.link} target="_blank" rel="noopener noreferrer" class="nc-btn">
+                          Leer más
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                        </a>
+                      : post.archivo
+                        ? <a href={post.archivo} target="_blank" rel="noopener noreferrer" class="nc-btn nc-btn-pdf" download>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Descargar PDF
+                          </a>
+                        : null
+                    }
+                  </footer>
+                </div>
+
+              </article>
+            ))}
+          </div>
+
+        </div>
+      </section>
     )}
-  </div>
 
+    </>
+  )}
+
+
+  <!-- ══════════════════════════════════════════════
+       SLIDER SCRIPT
+  ══════════════════════════════════════════════ -->
   <script>
-    document.querySelectorAll<HTMLElement>('.carousel').forEach(carousel => {
-      const track = carousel.querySelector<HTMLElement>('.carousel-track')!;
-      const slides = carousel.querySelectorAll<HTMLElement>('.carousel-slide');
-      const dots = carousel.querySelectorAll<HTMLElement>('.dot');
-      const prev = carousel.querySelector<HTMLButtonElement>('.prev')!;
-      const next = carousel.querySelector<HTMLButtonElement>('.next')!;
-      let current = 0;
+    const track   = document.getElementById('slider-track') as HTMLElement | null;
+    const slides  = document.querySelectorAll<HTMLElement>('.hs-slide');
+    const dots    = document.querySelectorAll<HTMLButtonElement>('.sl-dot');
+    const prevBtn = document.getElementById('slider-prev') as HTMLButtonElement | null;
+    const nextBtn = document.getElementById('slider-next') as HTMLButtonElement | null;
+    const slider  = document.getElementById('hero-slider');
 
-      function goTo(i: number) {
-        current = (i + slides.length) % slides.length;
-        track.style.transform = `translateX(-${current * 100}%)`;
-        dots.forEach((d, di) => d.classList.toggle('active', di === current));
+    if (track && slides.length > 1) {
+      let current = 0;
+      let autoTimer: ReturnType<typeof setInterval> | null = null;
+
+      function goTo(idx: number) {
+        current = ((idx % slides.length) + slides.length) % slides.length;
+        track!.style.transform = `translateX(-${current * 100}%)`;
+        slides.forEach((s, i) => s.setAttribute('aria-hidden', String(i !== current)));
+        dots.forEach((d, i) => {
+          d.classList.toggle('active', i === current);
+          d.setAttribute('aria-selected', String(i === current));
+        });
       }
 
-      prev.addEventListener('click', () => goTo(current - 1));
-      next.addEventListener('click', () => goTo(current + 1));
-      dots.forEach((dot, di) => dot.addEventListener('click', () => goTo(di)));
-    });
+      function startAuto() {
+        if (autoTimer) clearInterval(autoTimer);
+        autoTimer = setInterval(() => goTo(current + 1), 5500);
+      }
+
+      prevBtn?.addEventListener('click', () => { goTo(current - 1); startAuto(); });
+      nextBtn?.addEventListener('click', () => { goTo(current + 1); startAuto(); });
+      dots.forEach((dot, i) => dot.addEventListener('click', () => { goTo(i); startAuto(); }));
+
+      slider?.addEventListener('mouseenter', () => { if (autoTimer) clearInterval(autoTimer); });
+      slider?.addEventListener('mouseleave', startAuto);
+
+      let tx = 0;
+      slider?.addEventListener('touchstart', (e) => { tx = (e as TouchEvent).touches[0].clientX; }, { passive: true });
+      slider?.addEventListener('touchend', (e) => {
+        const dx = (e as TouchEvent).changedTouches[0].clientX - tx;
+        if (Math.abs(dx) > 48) { goTo(dx < 0 ? current + 1 : current - 1); startAuto(); }
+      }, { passive: true });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft')  { goTo(current - 1); startAuto(); }
+        if (e.key === 'ArrowRight') { goTo(current + 1); startAuto(); }
+      });
+
+      startAuto();
+    }
   </script>
 
+
   <style>
-    .page-content { padding: 5rem 0; }
+    /* ══════════════════════════════════════════
+       HERO SLIDER
+    ══════════════════════════════════════════ */
+    .hero-slider {
+      position: relative;
+      width: 100%;
+      height: 78vh;
+      min-height: 520px;
+      max-height: 840px;
+      overflow: hidden;
+      background: #0a1a0d;
+    }
 
-    .section-header { text-align: center; margin-bottom: 5rem; }
-    .sub-title { color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.9rem; display: block; margin-bottom: 1rem; }
-    .section-header h1 { font-size: clamp(2.5rem, 5vw, 3.5rem); margin-bottom: 1.5rem; color: var(--accent); }
-    .section-header p { font-size: 1.25rem; color: var(--text-light); max-width: 800px; margin: 0 auto; }
+    .slider-track {
+      display: flex;
+      height: 100%;
+      transition: transform 0.65s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      will-change: transform;
+    }
 
-    .featured-news-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 3rem; }
+    .hs-slide {
+      position: relative;
+      min-width: 100%;
+      height: 100%;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
 
-    .post-card { border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--gray-200); transition: var(--transition); display: flex; flex-direction: column; }
-    .post-card:hover { transform: translateY(-8px); box-shadow: var(--shadow-lg); border-color: var(--primary); }
-
-    .post-header { position: relative; height: 240px; overflow: hidden; }
-    .post-header > img { width: 100%; height: 100%; object-fit: cover; }
-    .post-no-image {
+    .hs-bg-img {
+      position: absolute; inset: 0;
       width: 100%; height: 100%;
-      background: linear-gradient(135deg, var(--primary-soft) 0%, var(--gray-100) 100%);
-      display: flex; align-items: center; justify-content: center; font-size: 4rem;
+      object-fit: cover;
+      object-position: center top;
     }
-    .category-tag { position: absolute; top: 1.25rem; left: 1.25rem; z-index: 2; color: white; padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
 
-    /* Carousel */
-    .carousel { position: relative; width: 100%; height: 100%; overflow: hidden; }
-    .carousel-track { display: flex; height: 100%; transition: transform 0.4s ease; }
-    .carousel-slide { min-width: 100%; height: 100%; object-fit: cover; flex-shrink: 0; }
-
-    .carousel-btn {
-      position: absolute; top: 50%; transform: translateY(-50%); z-index: 3;
-      background: rgba(0,0,0,0.45); color: white; border: none; cursor: pointer;
-      width: 34px; height: 34px; border-radius: 50%; font-size: 1.4rem; line-height: 1;
-      display: flex; align-items: center; justify-content: center;
-      transition: background 0.2s;
+    .hs-bg-fallback {
+      position: absolute; inset: 0;
     }
-    .carousel-btn:hover { background: rgba(0,0,0,0.7); }
-    .carousel-btn.prev { left: 0.6rem; }
-    .carousel-btn.next { right: 0.6rem; }
 
-    .carousel-dots {
-      position: absolute; bottom: 0.6rem; left: 50%; transform: translateX(-50%);
-      display: flex; gap: 6px; z-index: 3;
+    .hs-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(
+        105deg,
+        rgba(0,0,0,0.90) 0%,
+        rgba(0,0,0,0.72) 35%,
+        rgba(0,0,0,0.28) 62%,
+        rgba(0,0,0,0.04) 100%
+      );
     }
-    .dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: rgba(255,255,255,0.5); cursor: pointer; transition: background 0.2s;
+
+    .hs-content {
+      position: absolute;
+      left: clamp(1.5rem, 8vw, 7rem);
+      top: 50%;
+      transform: translateY(-50%);
+      max-width: min(600px, 58vw);
+      color: #fff;
+      z-index: 2;
     }
-    .dot.active { background: white; }
 
-    .post-body { padding: 2.25rem; display: flex; flex-direction: column; flex: 1; }
-    .date { font-size: 0.85rem; color: var(--primary); font-weight: 700; margin-bottom: 0.75rem; }
-    .post-body h2 { font-size: 1.4rem; margin-bottom: 1rem; line-height: 1.3; color: var(--accent); }
-    .post-body p { color: var(--text-light); line-height: 1.6; font-size: 1rem; margin-bottom: 2rem; }
+    .hs-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.2rem;
+      flex-wrap: wrap;
+    }
 
-    .post-footer { margin-top: auto; }
-    .btn-read { color: var(--primary); text-decoration: none; font-weight: 700; border-bottom: 2px solid var(--primary); padding-bottom: 2px; transition: var(--transition); }
-    .btn-read:hover { letter-spacing: 0.5px; }
+    .hs-badge {
+      display: inline-block;
+      padding: 0.28rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: #fff;
+    }
 
+    .hs-date {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: rgba(255,255,255,0.65);
+      letter-spacing: 0.02em;
+    }
+
+    .hs-title {
+      font-size: clamp(1.65rem, 3.8vw, 2.9rem);
+      font-weight: 700;
+      line-height: 1.18;
+      margin: 0 0 1rem;
+      color: #fff;
+      text-shadow: 0 2px 16px rgba(0,0,0,0.45);
+    }
+
+    .hs-bajada {
+      font-size: clamp(0.88rem, 1.4vw, 1.05rem);
+      line-height: 1.65;
+      color: rgba(255,255,255,0.80);
+      margin-bottom: 2rem;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .hs-actions {
+      display: flex;
+      gap: 0.9rem;
+      flex-wrap: wrap;
+    }
+
+    .hs-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.68rem 1.45rem;
+      border-radius: 7px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .hs-btn-primary {
+      background: var(--primary, #1a5c2a);
+      color: #fff;
+      border: 2px solid var(--primary, #1a5c2a);
+    }
+    .hs-btn-primary:hover {
+      background: transparent;
+      color: #fff;
+    }
+
+    .hs-btn-ghost {
+      background: rgba(255,255,255,0.10);
+      color: #fff;
+      border: 2px solid rgba(255,255,255,0.40);
+      backdrop-filter: blur(6px);
+    }
+    .hs-btn-ghost:hover {
+      background: rgba(255,255,255,0.20);
+      border-color: rgba(255,255,255,0.75);
+    }
+
+    /* ── Flechas ── */
+    .sl-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 10;
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.38);
+      background: rgba(0,0,0,0.32);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(6px);
+    }
+    .sl-arrow:hover {
+      background: rgba(0,0,0,0.62);
+      border-color: #fff;
+    }
+    .sl-prev { left: 1.25rem; }
+    .sl-next { right: 1.25rem; }
+
+    /* ── Indicadores tipo línea ── */
+    .slider-dots {
+      position: absolute;
+      bottom: 1.6rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 6px;
+      z-index: 10;
+    }
+
+    .sl-dot {
+      width: 28px; height: 4px;
+      border-radius: 2px;
+      border: none;
+      background: rgba(255,255,255,0.32);
+      cursor: pointer;
+      padding: 0;
+      transition: width 0.28s ease, background 0.28s ease;
+    }
+    .sl-dot.active {
+      width: 52px;
+      background: #fff;
+    }
+
+
+    /* ══════════════════════════════════════════
+       GRILLA DE TARJETAS
+    ══════════════════════════════════════════ */
+    .grid-section {
+      padding: 4.5rem 0 6rem;
+    }
+
+    .grid-header {
+      display: flex;
+      align-items: baseline;
+      gap: 0.9rem;
+      margin-bottom: 2.25rem;
+      padding-bottom: 1.2rem;
+      border-bottom: 2px solid var(--gray-200, #e5e7eb);
+    }
+
+    .grid-header h2 {
+      font-size: clamp(1.3rem, 2.5vw, 1.75rem);
+      font-weight: 700;
+      color: var(--accent, #1a2e1d);
+    }
+
+    .grid-count {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-light, #6b7280);
+      background: var(--gray-100, #f3f4f6);
+      padding: 0.22rem 0.7rem;
+      border-radius: 20px;
+    }
+
+    .news-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.75rem;
+    }
+
+    /* ── Card ── */
+    .nc {
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--gray-200, #e5e7eb);
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+    }
+    .nc:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 14px 40px rgba(0,0,0,0.10);
+      border-color: var(--primary, #1a5c2a);
+    }
+
+    .nc-img-wrap {
+      position: relative;
+      height: 200px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .nc-img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      object-position: center;
+      transition: transform 0.38s ease;
+    }
+    .nc:hover .nc-img { transform: scale(1.05); }
+
+    .nc-img-fallback {
+      width: 100%; height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nc-badge {
+      position: absolute;
+      top: 0.75rem; left: 0.75rem;
+      color: #fff;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0.24rem 0.68rem;
+      border-radius: 20px;
+    }
+
+    .nc-body {
+      padding: 1.4rem 1.5rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    .nc-date {
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: var(--primary, #1a5c2a);
+      margin-bottom: 0.45rem;
+      display: block;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .nc-title {
+      font-size: 1rem;
+      font-weight: 700;
+      line-height: 1.35;
+      color: var(--accent, #1a2e1d);
+      margin-bottom: 0.65rem;
+    }
+
+    .nc-excerpt {
+      font-size: 0.87rem;
+      line-height: 1.58;
+      color: var(--text-light, #6b7280);
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      flex: 1;
+      margin-bottom: 1.2rem;
+    }
+
+    .nc-footer {
+      margin-top: auto;
+    }
+
+    .nc-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.38rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--primary, #1a5c2a);
+      text-decoration: none;
+      border-bottom: 2px solid transparent;
+      padding-bottom: 1px;
+      transition: border-color 0.18s ease, gap 0.18s ease;
+    }
+    .nc-btn:hover {
+      border-color: var(--primary, #1a5c2a);
+      gap: 0.6rem;
+    }
+
+    .nc-btn-pdf {
+      color: #7c3aed;
+    }
+    .nc-btn-pdf:hover {
+      border-color: #7c3aed;
+    }
+
+
+    /* ══════════════════════════════════════════
+       EMPTY STATE
+    ══════════════════════════════════════════ */
     .empty-state {
-      text-align: center; padding: 5rem 2rem;
-      border-radius: var(--radius-lg); border: 1px dashed var(--gray-300);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.25rem;
     }
-    .empty-icon { font-size: 3rem; display: block; margin-bottom: 1.5rem; }
-    .empty-state h3 { font-size: 1.5rem; margin-bottom: 1rem; color: var(--accent); }
-    .empty-state p { color: var(--text-light); }
+    .empty-ico {
+      width: 84px; height: 84px;
+      background: var(--primary-soft, #e8f4ed);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary, #1a5c2a);
+    }
+    .empty-state h2 { font-size: 1.5rem; color: var(--accent, #1a2e1d); font-weight: 700; }
+    .empty-state p  { color: var(--text-light, #6b7280); max-width: 480px; line-height: 1.6; }
 
-    @media (max-width: 768px) {
-      .featured-news-grid { grid-template-columns: 1fr; }
+
+    /* ══════════════════════════════════════════
+       RESPONSIVE
+    ══════════════════════════════════════════ */
+    @media (max-width: 1100px) {
+      .news-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 820px) {
+      .hero-slider { height: 68vh; min-height: 480px; }
+      .hs-content {
+        left: 1.5rem;
+        right: 1.5rem;
+        max-width: none;
+        top: auto;
+        bottom: 5.5rem;
+        transform: none;
+      }
+      .hs-title { font-size: 1.55rem; }
+      .sl-arrow { width: 40px; height: 40px; }
+    }
+
+    @media (max-width: 640px) {
+      .news-grid { grid-template-columns: 1fr; gap: 1.25rem; }
+      .grid-section { padding: 3rem 0 4rem; }
+      .nc-img-wrap { height: 180px; }
+    }
+
+    @media (max-width: 480px) {
+      .hero-slider { height: 80vh; }
+      .hs-bajada { display: none; }
+      .sl-prev { left: 0.6rem; }
+      .sl-next { right: 0.6rem; }
+      .hs-actions { gap: 0.6rem; }
+      .hs-btn { font-size: 0.82rem; padding: 0.58rem 1.1rem; }
     }
   </style>
+
 </MainLayout>
