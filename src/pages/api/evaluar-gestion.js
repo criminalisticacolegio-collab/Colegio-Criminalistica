@@ -190,9 +190,9 @@ Basate en la información provista. Si no hay datos suficientes para una métric
       }
     }
 
-    // 3. Extracción manual campo por campo — infalible
-    const num = k => { const m = raw.match(new RegExp('"' + k + '"\\s*:\\s*(\\d+)')); return m ? Number(m[1]) : 50; };
-    const str = k => { const m = raw.match(new RegExp('"' + k + '"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"')); return m ? m[1].replace(/\\n/g, '\n') : ''; };
+    // 3. Extracción manual campo por campo — toma el último match para ignorar el pensamiento de Gemini
+    const num = k => { const ms = [...raw.matchAll(new RegExp('"' + k + '"\\s*:\\s*(\\d+)', 'g'))]; return ms.length ? Number(ms[ms.length - 1][1]) : 50; };
+    const str = k => { const ms = [...raw.matchAll(new RegExp('"' + k + '"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"', 'g'))]; return ms.length ? ms[ms.length - 1][1].replace(/\\n/g, '\n') : ''; };
     return {
       transparencia: num('transparencia'),
       eficiencia:    num('eficiencia'),
@@ -210,7 +210,7 @@ Basate en la información provista. Si no hay datos suficientes para una métric
     const geminiBody = JSON.stringify({
       systemInstruction: { parts: [{ text: SYSTEM }] },
       contents: [{ role: 'user', parts: userParts }],
-      generationConfig: { maxOutputTokens: 2500 },
+      generationConfig: { maxOutputTokens: 2500, thinkingConfig: { thinkingBudget: 0 } },
     });
 
     let resp;

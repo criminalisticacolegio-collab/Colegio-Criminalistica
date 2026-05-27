@@ -61,17 +61,23 @@ const metricasPayload = JSON.stringify({ matriculadosActivos, capacitacionesCoun
       </div>
       <div class="metricas-row">
         <div class="mc-card">
-          <span class="mc-icon">👥</span>
+          <span class="mc-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </span>
           <span class="mc-num" data-target={matriculadosActivos} data-format="num">0</span>
           <span class="mc-label">Matriculados Activos</span>
         </div>
         <div class="mc-card">
-          <span class="mc-icon">🎓</span>
+          <span class="mc-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+          </span>
           <span class="mc-num" data-target={capacitacionesCount} data-format="num">0</span>
           <span class="mc-label">Capacitaciones Realizadas</span>
         </div>
         <div class="mc-card">
-          <span class="mc-icon">📊</span>
+          <span class="mc-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
+          </span>
           <span class="mc-num" data-target={resultadoEjercicio} data-format="ars">$ 0</span>
           <span class="mc-label">Resultado Ejercicio</span>
           {descripcionEjercicio && <span class="mc-sublabel">{descripcionEjercicio}</span>}
@@ -362,7 +368,8 @@ const metricasPayload = JSON.stringify({ matriculadosActivos, capacitacionesCoun
       align-items: center;
       gap: 0.5rem;
     }
-    .mc-icon { font-size: 2rem; line-height: 1; }
+    .mc-icon { display: flex; align-items: center; justify-content: center; }
+    .mc-icon svg { width: 2.5rem; height: 2.5rem; stroke: rgba(255,255,255,0.92); }
     .mc-num {
       font-size: clamp(1.8rem, 3.5vw, 2.6rem);
       font-weight: 800;

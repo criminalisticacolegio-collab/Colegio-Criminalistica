@@ -4,6 +4,30 @@ import { schemaTypes } from './src/sanity/schemaTypes';
 import { deskStructure } from './deskStructure';
 import { useState } from 'react';
 
+function ReenviarBienvenidaAction({ id, onComplete }) {
+  return {
+    label: '📧 Reenviar bienvenida',
+    onHandle: async () => {
+      try {
+        const res = await fetch('/api/bienvenida-matriculado', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ _id: id, forzar: true }),
+        });
+        const d = await res.json();
+        if (res.ok) {
+          alert(`✅ Email de bienvenida enviado a ${d.email}`);
+        } else {
+          alert(`❌ ${d.error || 'Error al enviar'}`);
+        }
+      } catch {
+        alert('❌ Error de conexión al enviar el email');
+      }
+      if (onComplete) onComplete();
+    },
+  };
+}
+
 function OtorgarMatriculaAction(props) {
   const [isLoading, setIsLoading] = useState(false);
   const doc = props.draft || props.published;
@@ -63,6 +87,9 @@ export default defineConfig({
     actions: (prev, context) => {
       if (context.schemaType === 'aspirante') {
         return [...prev, OtorgarMatriculaAction];
+      }
+      if (context.schemaType === 'matriculado') {
+        return [ReenviarBienvenidaAction, ...prev];
       }
       return prev;
     },
