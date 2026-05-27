@@ -422,6 +422,10 @@ const destacados: any[] = data?.destacados || recursos.filter((r: any) => r.dest
   /* Nota de advertencia */
   .chat-warning { padding: 0.75rem 1.5rem; background: #fff5f5; border-top: 1px solid #ffcccc; color: #cc0000; font-size: 0.78rem; line-height: 1.6; }
 
+  /* Links en respuestas del bot */
+  .bubble-text .chat-link { color: #1a5c2a; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; word-break: break-word; }
+  .bubble-text .chat-link:hover { color: #2d7a3a; }
+
   /* ── Responsive ───────────────────────────────────────────── */
   @media (max-width: 1024px) {
     .dest-grid { grid-template-columns: repeat(2, 1fr); }
@@ -491,6 +495,33 @@ const destacados: any[] = data?.destacados || recursos.filter((r: any) => r.dest
     return new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
   }
 
+  function renderBotText(text) {
+    const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const mdLink = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+    const parts = [];
+    let last = 0, m;
+    while ((m = mdLink.exec(text)) !== null) {
+      parts.push({ type: 'text', value: text.slice(last, m.index) });
+      parts.push({ type: 'link', href: m[2], label: m[1] });
+      last = m.index + m[0].length;
+    }
+    parts.push({ type: 'text', value: text.slice(last) });
+
+    let html = '';
+    for (const p of parts) {
+      if (p.type === 'link') {
+        html += `<a href="${esc(p.href)}" target="${p.href.startsWith('http') ? '_blank' : '_self'}" rel="noopener" class="chat-link">${esc(p.label)}</a>`;
+      } else {
+        let t = esc(p.value);
+        t = t.replace(/(https?:\/\/[^\s&<>"]+)/g, u => `<a href="${u}" target="_blank" rel="noopener" class="chat-link">${u}</a>`);
+        t = t.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+        t = t.replace(/\n/g, '<br>');
+        html += t;
+      }
+    }
+    return html;
+  }
+
   function appendMsg(texto, tipo) {
     const bubble = document.createElement('div');
     bubble.className = `chat-bubble ${tipo}`;
@@ -500,6 +531,8 @@ const destacados: any[] = data?.destacados || recursos.filter((r: any) => r.dest
 
     if (tipo === 'thinking') {
       textEl.innerHTML = 'Consultando biblioteca <span class="dot-anim"><span>•</span><span>•</span><span>•</span></span>';
+    } else if (tipo === 'bot') {
+      textEl.innerHTML = renderBotText(texto);
     } else {
       textEl.textContent = texto;
     }

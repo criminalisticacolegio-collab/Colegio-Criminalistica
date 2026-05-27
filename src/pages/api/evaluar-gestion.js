@@ -142,6 +142,21 @@ Basate en la información provista. Si no hay datos suficientes para una métric
   });
   userParts.push({ text: promptTexto });
 
+  function sanitizarJSON(str) {
+    let inStr = false, escaped = false, result = '';
+    for (let i = 0; i < str.length; i++) {
+      const c = str[i];
+      if (escaped) { result += c; escaped = false; continue; }
+      if (c === '\\') { result += c; escaped = true; continue; }
+      if (c === '"') { inStr = !inStr; result += c; continue; }
+      if (inStr && c === '\n') { result += '\\n'; continue; }
+      if (inStr && c === '\r') { result += '\\r'; continue; }
+      if (inStr && c === '\t') { result += '\\t'; continue; }
+      result += c;
+    }
+    return result;
+  }
+
   try {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
     const geminiBody = JSON.stringify({
@@ -178,10 +193,10 @@ Basate en la información provista. Si no hay datos suficientes para una métric
     let evaluacion;
     try {
       const clean = texto.replace(/^```(?:json)?\s*/im, '').replace(/\s*```\s*$/im, '').trim();
-      evaluacion = JSON.parse(clean);
+      evaluacion = JSON.parse(sanitizarJSON(clean));
     } catch {
       const m = texto.match(/\{[\s\S]*\}/);
-      if (m) { try { evaluacion = JSON.parse(m[0]); } catch {} }
+      if (m) { try { evaluacion = JSON.parse(sanitizarJSON(m[0])); } catch {} }
     }
     if (!evaluacion) {
       evaluacion = { transparencia: 50, eficiencia: 50, crecimiento: 50, respuesta: 50, calificacion: 50, sintesis: texto, positivos: '', mejoras: '' };
