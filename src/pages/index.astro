@@ -55,33 +55,50 @@ const gridItems = [
 	</section>
 
 	{noticiasDestacadas.length > 0 && (
-	<section class="noticias-preview">
-		<div class="container">
-			<div class="np-header">
-				<h2>Últimas Novedades</h2>
-				<a href="/noticias" class="np-ver-todas">Ver todas →</a>
-			</div>
-			<div class="np-grid">
-				{noticiasDestacadas.map((n: any) => (
-					<a href={n.link || '/noticias'} class="np-card" target={n.link ? '_blank' : '_self'} rel={n.link ? 'noopener noreferrer' : undefined}>
-						<div class="np-img-wrap">
-							{n.imagen
-								? <img src={n.imagen + '?w=600&auto=format'} alt={n.titulo} loading="lazy" />
-								: <div class="np-img-placeholder"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v4"/><path d="M2 13h10M9 18H2M2 9h6"/></svg></div>
-							}
+	<section class="idx-news-slider" id="idx-hero-slider" aria-label="Últimas novedades">
+
+		<div class="idx-slider-track" id="idx-slider-track">
+			{noticiasDestacadas.map((n: any, idx: number) => (
+				<article class="idx-hs-slide" aria-hidden={idx !== 0 ? 'true' : 'false'}>
+					{n.imagen
+						? <img src={n.imagen + '?w=1200&auto=format'} alt={n.titulo} class="idx-hs-bg" loading={idx === 0 ? 'eager' : 'lazy'} />
+						: <div class="idx-hs-fallback" style={`background: linear-gradient(135deg, ${catColors[n.categoria] || '#1b5e20'} 0%, #0a1a0d 100%)`}></div>
+					}
+					<div class="idx-hs-overlay"></div>
+					<div class="idx-hs-content">
+						<div class="idx-hs-meta">
+							{n.categoria && <span class="idx-hs-badge" style={`background: ${catColors[n.categoria] || '#16a34a'}`}>{n.categoria}</span>}
+							{n.fecha && <time class="idx-hs-date">{formatFecha(n.fecha)}</time>}
 						</div>
-						<div class="np-body">
-							<div class="np-meta">
-								{n.categoria && <span class="np-cat" style={`background:${catColors[n.categoria] || '#4b5563'}22; color:${catColors[n.categoria] || '#4b5563'}`}>{n.categoria}</span>}
-								{n.fecha && <time class="np-fecha">{formatFecha(n.fecha)}</time>}
-							</div>
-							<h3 class="np-titulo">{n.titulo}</h3>
-							{n.bajada && <p class="np-bajada">{n.bajada}</p>}
-						</div>
-					</a>
-				))}
-			</div>
+						<h2 class="idx-hs-title">{n.titulo}</h2>
+						{n.bajada && <p class="idx-hs-bajada">{n.bajada}</p>}
+						<a href={n.link || '/noticias'} class="idx-hs-btn" target={n.link ? '_blank' : '_self'} rel={n.link ? 'noopener noreferrer' : undefined}>
+							Leer más
+							<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+						</a>
+					</div>
+				</article>
+			))}
 		</div>
+
+		{noticiasDestacadas.length > 1 && (
+			<>
+				<button class="idx-sl-arrow idx-sl-prev" id="idx-slider-prev" aria-label="Novedad anterior">
+					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>
+				</button>
+				<button class="idx-sl-arrow idx-sl-next" id="idx-slider-next" aria-label="Siguiente novedad">
+					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><polyline points="9 18 15 12 9 6"/></svg>
+				</button>
+				<div class="idx-slider-dots">
+					{noticiasDestacadas.map((_: any, i: number) => (
+						<button class={`idx-sl-dot${i === 0 ? ' active' : ''}`} data-idx={i} aria-label={`Ir a novedad ${i + 1}`}></button>
+					))}
+				</div>
+			</>
+		)}
+
+		<a href="/noticias" class="idx-ver-todas">Ver todas las novedades →</a>
+
 	</section>
 	)}
 
@@ -105,6 +122,49 @@ const gridItems = [
 			</div>
 		</div>
 	</section>
+
+	<script>
+		// ── Index novedades slider ──────────────────────────────
+		const idxTrack   = document.getElementById('idx-slider-track') as HTMLElement | null;
+		const idxSlides  = document.querySelectorAll<HTMLElement>('.idx-hs-slide');
+		const idxDots    = document.querySelectorAll<HTMLButtonElement>('.idx-sl-dot');
+		const idxPrev    = document.getElementById('idx-slider-prev') as HTMLButtonElement | null;
+		const idxNext    = document.getElementById('idx-slider-next') as HTMLButtonElement | null;
+		const idxSlider  = document.getElementById('idx-hero-slider');
+
+		if (idxTrack && idxSlides.length > 1) {
+			let idxCurrent = 0;
+			let idxTimer: ReturnType<typeof setInterval> | null = null;
+
+			function idxGoTo(idx: number) {
+				idxCurrent = ((idx % idxSlides.length) + idxSlides.length) % idxSlides.length;
+				idxTrack!.style.transform = `translateX(-${idxCurrent * 100}%)`;
+				idxSlides.forEach((s, i) => s.setAttribute('aria-hidden', String(i !== idxCurrent)));
+				idxDots.forEach((d, i) => d.classList.toggle('active', i === idxCurrent));
+			}
+
+			function idxStartAuto() {
+				if (idxTimer) clearInterval(idxTimer);
+				idxTimer = setInterval(() => idxGoTo(idxCurrent + 1), 5500);
+			}
+
+			idxPrev?.addEventListener('click', () => { idxGoTo(idxCurrent - 1); idxStartAuto(); });
+			idxNext?.addEventListener('click', () => { idxGoTo(idxCurrent + 1); idxStartAuto(); });
+			idxDots.forEach((dot, i) => dot.addEventListener('click', () => { idxGoTo(i); idxStartAuto(); }));
+
+			idxSlider?.addEventListener('mouseenter', () => { if (idxTimer) clearInterval(idxTimer); });
+			idxSlider?.addEventListener('mouseleave', idxStartAuto);
+
+			let idxTx = 0;
+			idxSlider?.addEventListener('touchstart', (e) => { idxTx = (e as TouchEvent).touches[0].clientX; }, { passive: true });
+			idxSlider?.addEventListener('touchend', (e) => {
+				const dx = (e as TouchEvent).changedTouches[0].clientX - idxTx;
+				if (Math.abs(dx) > 48) { idxGoTo(dx < 0 ? idxCurrent + 1 : idxCurrent - 1); idxStartAuto(); }
+			}, { passive: true });
+
+			idxStartAuto();
+		}
+	</script>
 
 	<script>
 		// ── Hero particles ──────────────────────────────────────
@@ -319,137 +379,207 @@ const gridItems = [
 			text-transform: uppercase;
 		}
 
-		/* ── NOTICIAS PREVIEW ────────────────────── */
-		.noticias-preview {
-			padding: 2.5rem 0 1.5rem;
-			background: transparent;
-		}
-
-		.np-header {
-			display: flex;
-			align-items: baseline;
-			justify-content: space-between;
-			margin-bottom: 1.5rem;
-		}
-
-		.np-header h2 {
-			font-family: 'Outfit', sans-serif;
-			font-size: 1.35rem;
-			font-weight: 700;
-			color: var(--primary);
-			letter-spacing: 0.02em;
-		}
-
-		.np-ver-todas {
-			font-size: 0.85rem;
-			font-weight: 700;
-			color: var(--primary);
-			text-decoration: none;
-			letter-spacing: 0.04em;
-			text-transform: uppercase;
-			transition: opacity 0.2s;
-		}
-		.np-ver-todas:hover { opacity: 0.7; }
-
-		.np-grid {
-			display: grid;
-			grid-template-columns: repeat(3, 1fr);
-			gap: 1.25rem;
-		}
-
-		.np-card {
-			background: var(--white);
-			border-radius: 12px;
-			border: 1px solid var(--gray-200);
+		/* ── NOVEDADES SLIDER (index) ─────────────── */
+		.idx-news-slider {
+			position: relative;
+			width: 100%;
+			height: 60vh;
+			min-height: 420px;
+			max-height: 680px;
 			overflow: hidden;
-			text-decoration: none;
-			display: flex;
-			flex-direction: column;
-			transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-		}
-		.np-card:hover {
-			transform: translateY(-5px);
-			box-shadow: var(--shadow-lg);
-			border-color: var(--primary);
+			background: #0a1a0d;
 		}
 
-		.np-img-wrap {
-			height: 148px;
-			overflow: hidden;
-			background: #e8f0ea;
+		.idx-slider-track {
+			display: flex;
+			height: 100%;
+			transition: transform 0.65s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+			will-change: transform;
+		}
+
+		.idx-hs-slide {
+			position: relative;
+			min-width: 100%;
+			height: 100%;
 			flex-shrink: 0;
+			overflow: hidden;
 		}
-		.np-img-wrap img {
-			width: 100%;
-			height: 100%;
+
+		.idx-hs-bg {
+			position: absolute; inset: 0;
+			width: 100%; height: 100%;
 			object-fit: cover;
-			transition: transform 0.4s;
-		}
-		.np-card:hover .np-img-wrap img { transform: scale(1.06); }
-		.np-img-placeholder {
-			width: 100%;
-			height: 100%;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			color: #7db88a;
+			object-position: center top;
 		}
 
-		.np-body {
-			padding: 1rem 1.25rem 1.25rem;
-			flex: 1;
-			display: flex;
-			flex-direction: column;
+		.idx-hs-fallback { position: absolute; inset: 0; }
+
+		.idx-hs-overlay {
+			position: absolute; inset: 0;
+			background: linear-gradient(
+				105deg,
+				rgba(0,0,0,0.88) 0%,
+				rgba(0,0,0,0.68) 38%,
+				rgba(0,0,0,0.22) 65%,
+				rgba(0,0,0,0.02) 100%
+			);
 		}
 
-		.np-meta {
+		.idx-hs-content {
+			position: absolute;
+			left: clamp(1.5rem, 8vw, 7rem);
+			top: 50%;
+			transform: translateY(-50%);
+			max-width: min(580px, 58vw);
+			color: #fff;
+			z-index: 2;
+		}
+
+		.idx-hs-meta {
 			display: flex;
 			align-items: center;
-			gap: 0.6rem;
-			margin-bottom: 0.6rem;
+			gap: 0.75rem;
+			margin-bottom: 1rem;
 			flex-wrap: wrap;
 		}
 
-		.np-cat {
-			font-size: 0.7rem;
+		.idx-hs-badge {
+			display: inline-block;
+			padding: 0.25rem 0.75rem;
+			border-radius: 20px;
+			font-size: 0.68rem;
 			font-weight: 700;
 			text-transform: uppercase;
-			letter-spacing: 0.06em;
-			padding: 0.2em 0.65em;
-			border-radius: 99px;
+			letter-spacing: 0.09em;
+			color: #fff;
 		}
 
-		.np-fecha {
-			font-size: 0.75rem;
-			color: var(--text-light);
+		.idx-hs-date {
+			font-size: 0.78rem;
+			color: rgba(255,255,255,0.62);
 		}
 
-		.np-titulo {
-			font-size: 0.98rem;
+		.idx-hs-title {
+			font-size: clamp(1.4rem, 3.2vw, 2.4rem);
 			font-weight: 700;
-			color: var(--text);
-			line-height: 1.35;
-			margin-bottom: 0.5rem;
+			line-height: 1.2;
+			margin: 0 0 0.85rem;
+			color: #fff;
+			text-shadow: 0 2px 12px rgba(0,0,0,0.4);
 		}
 
-		.np-bajada {
-			font-size: 0.82rem;
-			color: var(--text-light);
-			line-height: 1.5;
+		.idx-hs-bajada {
+			font-size: clamp(0.85rem, 1.3vw, 1rem);
+			line-height: 1.6;
+			color: rgba(255,255,255,0.78);
+			margin-bottom: 1.5rem;
 			display: -webkit-box;
 			-webkit-line-clamp: 2;
 			-webkit-box-orient: vertical;
 			overflow: hidden;
 		}
 
-		@media (max-width: 900px) {
-			.np-grid { grid-template-columns: repeat(2, 1fr); }
-			.np-grid .np-card:nth-child(3) { display: none; }
+		.idx-hs-btn {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.45rem;
+			padding: 0.6rem 1.3rem;
+			border-radius: 7px;
+			font-size: 0.86rem;
+			font-weight: 600;
+			text-decoration: none;
+			background: var(--primary, #1a5c2a);
+			color: #fff;
+			border: 2px solid var(--primary, #1a5c2a);
+			transition: all 0.2s ease;
+			white-space: nowrap;
 		}
-		@media (max-width: 560px) {
-			.np-grid { grid-template-columns: 1fr; }
-			.np-grid .np-card:nth-child(3) { display: flex; }
-			.np-grid .np-card:nth-child(2) { display: none; }
+		.idx-hs-btn:hover {
+			background: transparent;
+			color: #fff;
+		}
+
+		/* Flechas */
+		.idx-sl-arrow {
+			position: absolute;
+			top: 50%;
+			transform: translateY(-50%);
+			z-index: 10;
+			width: 44px; height: 44px;
+			border-radius: 50%;
+			border: 2px solid rgba(255,255,255,0.35);
+			background: rgba(0,0,0,0.30);
+			color: #fff;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			cursor: pointer;
+			transition: all 0.2s ease;
+			backdrop-filter: blur(6px);
+		}
+		.idx-sl-arrow:hover {
+			background: rgba(0,0,0,0.60);
+			border-color: #fff;
+		}
+		.idx-sl-prev { left: 1.25rem; }
+		.idx-sl-next { right: 1.25rem; }
+
+		/* Puntos */
+		.idx-slider-dots {
+			position: absolute;
+			bottom: 3.4rem;
+			left: 50%;
+			transform: translateX(-50%);
+			display: flex;
+			gap: 6px;
+			z-index: 10;
+		}
+
+		.idx-sl-dot {
+			width: 26px; height: 4px;
+			border-radius: 2px;
+			border: none;
+			background: rgba(255,255,255,0.30);
+			cursor: pointer;
+			padding: 0;
+			transition: width 0.28s ease, background 0.28s ease;
+		}
+		.idx-sl-dot.active {
+			width: 50px;
+			background: #fff;
+		}
+
+		/* Enlace Ver todas */
+		.idx-ver-todas {
+			position: absolute;
+			bottom: 1rem;
+			right: 1.5rem;
+			z-index: 10;
+			font-size: 0.78rem;
+			font-weight: 700;
+			color: rgba(255,255,255,0.70);
+			text-decoration: none;
+			letter-spacing: 0.04em;
+			text-transform: uppercase;
+			transition: color 0.2s;
+		}
+		.idx-ver-todas:hover { color: #fff; }
+
+		@media (max-width: 820px) {
+			.idx-news-slider { height: 58vh; min-height: 380px; }
+			.idx-hs-content {
+				left: 1.5rem; right: 1.5rem;
+				max-width: none;
+				top: auto; bottom: 5rem;
+				transform: none;
+			}
+			.idx-hs-title { font-size: 1.4rem; }
+			.idx-sl-arrow { width: 38px; height: 38px; }
+		}
+		@media (max-width: 480px) {
+			.idx-hs-bajada { display: none; }
+			.idx-sl-prev { left: 0.5rem; }
+			.idx-sl-next { right: 0.5rem; }
 		}
 
 		/* ── GRID ─────────────────────────────────── */
