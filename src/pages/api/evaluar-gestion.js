@@ -142,19 +142,67 @@ Basate en la información provista. Si no hay datos suficientes para una métric
   });
   userParts.push({ text: promptTexto });
 
-  function sanitizarJSON(str) {
-    let inStr = false, escaped = false, result = '';
+  // Escapa caracteres de control dentro de strings JSON
+  function sanitizarStr(str) {
+    let inStr = false, esc = false, out = '';
     for (let i = 0; i < str.length; i++) {
-      const c = str[i];
-      if (escaped) { result += c; escaped = false; continue; }
-      if (c === '\\') { result += c; escaped = true; continue; }
-      if (c === '"') { inStr = !inStr; result += c; continue; }
-      if (inStr && c === '\n') { result += '\\n'; continue; }
-      if (inStr && c === '\r') { result += '\\r'; continue; }
-      if (inStr && c === '\t') { result += '\\t'; continue; }
-      result += c;
+      const c = str[i], code = str.charCodeAt(i);
+      if (esc)          { out += c; esc = false; continue; }
+      if (c === '\\')   { out += c; esc = true;  continue; }
+      if (c === '"')    { inStr = !inStr; out += c; continue; }
+      if (inStr && code < 0x20) {
+        if      (c === '\n') out += '\\n';
+        else if (c === '\r') out += '\\r';
+        else if (c === '\t') out += '\\t';
+        else out += '\\u' + code.toString(16).padStart(4, '0');
+        continue;
+      }
+      out += c;
     }
-    return result;
+    return out;
+  }
+
+  // Extrae evaluacion del texto de Gemini con 4 niveles de fallback
+  function extraerEvaluacion(raw) {
+    // 1. Parse directo tras quitar markdown
+    try {
+      const clean = raw.replace(/^```(?:json)?\s*/im, '').replace(/\s*```\s*$/im, '').trim();
+      const e = JSON.parse(sanitizarStr(clean));
+      if (e && e.transparencia != null) return e;
+    } catch {}
+
+    // 2. Localizar JSON por profundidad de llaves (ignora texto antes/después)
+    for (let start = 0; start < raw.length; start++) {
+      if (raw[start] !== '{') continue;
+      let depth = 0;
+      for (let i = start; i < raw.length; i++) {
+        if (raw[i] === '{') depth++;
+        else if (raw[i] === '}') {
+          depth--;
+          if (depth === 0) {
+            try {
+              const e = JSON.parse(sanitizarStr(raw.slice(start, i + 1)));
+              if (e && e.transparencia != null) return e;
+            } catch {}
+            break;
+          }
+        }
+      }
+    }
+
+    // 3. Extracción manual campo por campo — infalible
+    const num = k => { const m = raw.match(new RegExp('"' + k + '"\\s*:\\s*(\\d+)')); return m ? Number(m[1]) : 50; };
+    const str = k => { const m = raw.match(new RegExp('"' + k + '"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"')); return m ? m[1].replace(/\\n/g, '\n') : ''; };
+    return {
+      transparencia: num('transparencia'),
+      eficiencia:    num('eficiencia'),
+      crecimiento:   num('crecimiento'),
+      respuesta:     num('respuesta'),
+      calificacion:  num('calificacion'),
+      sintesis:      str('sintesis')  || 'Evaluación basada en los documentos disponibles.',
+      positivos:     str('positivos') || '',
+      mejoras:       str('mejoras')   || '',
+    };
   }
 
   try {
@@ -187,22 +235,12 @@ Basate en la información provista. Si no hay datos suficientes para una métric
       return json({ error: data.error.message || 'Error de la API de IA' }, 502);
     }
 
+    // Tomar todas las partes: primero non-thought, si no hay, la última con texto
     const _partes = data.candidates?.[0]?.content?.parts || [];
-    const texto = (_partes.find(p => !p.thought && p.text) || _partes.find(p => p.text) || {}).text || '';
-    if (!texto) return json({ error: 'El servicio de IA no devolvió respuesta' }, 502);
+    const textoRaw = (_partes.find(p => !p.thought && p.text) || _partes.slice().reverse().find(p => p.text) || {}).text || '';
+    if (!textoRaw) return json({ error: 'El servicio de IA no devolvió respuesta' }, 502);
 
-    let evaluacion;
-    try {
-      const clean = texto.replace(/^```(?:json)?\s*/im, '').replace(/\s*```\s*$/im, '').trim();
-      evaluacion = JSON.parse(sanitizarJSON(clean));
-    } catch {
-      const m = texto.match(/\{[\s\S]*\}/);
-      if (m) { try { evaluacion = JSON.parse(sanitizarJSON(m[0])); } catch {} }
-    }
-    if (!evaluacion) {
-      evaluacion = { transparencia: 50, eficiencia: 50, crecimiento: 50, respuesta: 50, calificacion: 50, sintesis: texto, positivos: '', mejoras: '' };
-    }
-
+    const evaluacion = extraerEvaluacion(textoRaw);
     return json({ evaluacion });
   } catch (err) {
     console.error('[evaluar-gestion] Error:', err);
