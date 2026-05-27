@@ -3,5 +3,7 @@
   "buildCommand": "npm run build",
   "installCommand": "npm install",
   "outputDirectory": ".vercel/output",
-  "rewrites": []
+  "redirects": [
+    { "source": "/admin-colegio", "destination": "https://colegio-criminalistica.sanity.studio", "permanent": false }
+  ]
 }

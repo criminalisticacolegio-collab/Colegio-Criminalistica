@@ -79,7 +79,6 @@ export default defineConfig({
       structure: deskStructure,
     }),
   ],
-  basePath: '/admin-colegio',
   schema: {
     types: schemaTypes,
   },

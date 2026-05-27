@@ -5,5 +5,5 @@ export default defineCliConfig({
     projectId: '8q7vz6co',
     dataset: 'production',
   },
-  studioHost: 'cpcctm',
+  studioHost: 'colegio-criminalistica',
 });
