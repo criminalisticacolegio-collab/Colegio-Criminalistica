@@ -199,7 +199,8 @@ ESTILO DE RESPUESTA:
       return json({ error: data.error.message || 'Error de la API de IA' }, 502);
     }
 
-    const texto = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const _partes = data.candidates?.[0]?.content?.parts || [];
+    const texto = (_partes.find(p => !p.thought && p.text) || _partes.find(p => p.text) || {}).text || '';
     if (!texto) return json({ error: 'El servicio de IA no devolvió respuesta' }, 502);
 
     return json({ respuesta: texto });

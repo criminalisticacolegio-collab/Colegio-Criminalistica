@@ -142,14 +142,34 @@ Respondé ÚNICAMENTE con un JSON con exactamente estas 6 claves (sin markdown n
       return json({ error: data.error.message || 'Error de la API de IA' }, 502);
     }
 
-    const texto = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const _partes = data.candidates?.[0]?.content?.parts || [];
+    const texto = (_partes.find(p => !p.thought && p.text) || _partes.find(p => p.text) || {}).text || '';
     if (!texto) return json({ error: 'El servicio de IA no devolvió respuesta' }, 502);
+
+    function sanitizarJSON(str) {
+      let inStr = false, escaped = false, result = '';
+      for (let i = 0; i < str.length; i++) {
+        const c = str[i];
+        if (escaped) { result += c; escaped = false; continue; }
+        if (c === '\\') { result += c; escaped = true; continue; }
+        if (c === '"') { inStr = !inStr; result += c; continue; }
+        if (inStr && c === '\n') { result += '\\n'; continue; }
+        if (inStr && c === '\r') { result += '\\r'; continue; }
+        if (inStr && c === '\t') { result += '\\t'; continue; }
+        result += c;
+      }
+      return result;
+    }
 
     let analisis;
     try {
-      const clean = texto.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-      analisis = JSON.parse(clean);
+      const clean = texto.replace(/^```(?:json)?\s*/im, '').replace(/\s*```\s*$/im, '').trim();
+      analisis = JSON.parse(sanitizarJSON(clean));
     } catch {
+      const m = texto.match(/\{[\s\S]*\}/);
+      if (m) { try { analisis = JSON.parse(sanitizarJSON(m[0])); } catch {} }
+    }
+    if (!analisis) {
       analisis = {
         resumen: texto,
         transgresiones: '—',
