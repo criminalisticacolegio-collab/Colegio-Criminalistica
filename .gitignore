@@ -1,6 +1,7 @@
 # build output
 dist/
 public/admin-colegio/
+public/admin-colegio-test/
 # generated types
 .astro/
 
