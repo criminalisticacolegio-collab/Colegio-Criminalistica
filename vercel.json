@@ -5,5 +5,11 @@
   "outputDirectory": ".vercel/output",
   "redirects": [
     { "source": "/admin-colegio", "destination": "https://colegio-criminalistica.sanity.studio", "permanent": false }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron-mora",
+      "schedule": "0 11 1 * *"
+    }
   ]
 }
