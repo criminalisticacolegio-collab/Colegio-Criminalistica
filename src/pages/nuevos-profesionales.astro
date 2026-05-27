@@ -2,8 +2,12 @@
 import MainLayout from '../layouts/MainLayout.astro';
 import { sanityClient } from 'sanity:client';
 
-const jurisdicciones = await sanityClient.fetch(`*[_type == "jurisdiccion" && activa == true] | order(numero asc)`);
-const especialidades = await sanityClient.fetch(`*[_type == "especialidad"] | order(titulo asc)`);
+const [jurisdicciones, especialidades, cobrosConfig] = await Promise.all([
+  sanityClient.fetch(`*[_type == "jurisdiccion" && activa == true] | order(numero asc)`),
+  sanityClient.fetch(`*[_type == "especialidad"] | order(titulo asc)`),
+  sanityClient.fetch(`*[_type == "configuracionCobros"][0]{ enlaceNuevoProfesional }`),
+]);
+const enlacePagoInscripcion = cobrosConfig?.enlaceNuevoProfesional || '';
 ---
 
 <MainLayout title="Nuevos Profesionales" showBack={true}>
@@ -113,7 +117,13 @@ const especialidades = await sanityClient.fetch(`*[_type == "especialidad"] | or
                 <span class="file-icon">💳</span>
                 <span>Comprobante de Pago de Matrícula</span>
               </label>
-              <p class="file-note">Realizá el pago antes de enviar el formulario. <a href="https://link.mercadopago.com.ar/manoscolaborativas" target="_blank" rel="noopener" class="pay-link">Link de pago →</a></p>
+              <p class="file-note">
+                Realizá el pago antes de enviar el formulario.
+                {enlacePagoInscripcion
+                  ? <a href={enlacePagoInscripcion} target="_blank" rel="noopener" class="pay-link">Link de pago →</a>
+                  : <span class="pay-link-pending">Link de pago no disponible — consultá a Secretaría</span>
+                }
+              </p>
               <input type="file" name="comprobante_file" accept=".pdf,image/*" required />
             </div>
           </div>
@@ -242,6 +252,7 @@ const especialidades = await sanityClient.fetch(`*[_type == "especialidad"] | or
   .file-note { font-size: 0.78rem; color: var(--text-light); margin: 0; line-height: 1.4; }
   .pay-link { color: var(--primary); font-weight: 700; text-decoration: none; }
   .pay-link:hover { text-decoration: underline; }
+  .pay-link-pending { color: var(--text-light); font-style: italic; }
 
   .btn-primary {
     background: var(--primary); color: white; border: none;
