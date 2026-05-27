@@ -146,7 +146,7 @@ const gridItems = [
 				const len = r * 2.6;
 				const diag = len * 0.52;
 				gCtx.save();
-				gCtx.strokeStyle = `rgba(212, 224, 242, ${alpha * 0.88})`;
+				gCtx.strokeStyle = `rgba(80, 140, 100, ${alpha * 0.7})`;
 				gCtx.lineWidth = 0.75;
 				gCtx.beginPath();
 				// Cruz principal
@@ -158,8 +158,8 @@ const gridItems = [
 				gCtx.stroke();
 				// Núcleo con glow radial
 				const g = gCtx.createRadialGradient(x, y, 0, x, y, r * 1.4);
-				g.addColorStop(0, `rgba(238, 244, 255, ${alpha})`);
-				g.addColorStop(1, `rgba(195, 212, 238, 0)`);
+				g.addColorStop(0, `rgba(140, 210, 160, ${alpha * 0.9})`);
+				g.addColorStop(1, `rgba(80, 160, 100, 0)`);
 				gCtx.beginPath();
 				gCtx.arc(x, y, r * 1.4, 0, Math.PI * 2);
 				gCtx.fillStyle = g;
@@ -179,7 +179,7 @@ const gridItems = [
 					} else {
 						gCtx.beginPath();
 						gCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-						gCtx.fillStyle = `rgba(188, 204, 224, ${p.alpha * 0.68})`;
+						gCtx.fillStyle = `rgba(100, 160, 120, ${p.alpha * 0.55})`;
 						gCtx.fill();
 					}
 				}
@@ -188,6 +188,21 @@ const gridItems = [
 			tickGrid();
 		}
 	</script>
+
+	<!-- Zoom 110% + fondo puntillado solo en el index -->
+	<style is:global>
+		@media (min-width: 1100px) {
+			html { zoom: 1.1; }
+		}
+		body {
+			background-color: #f0f5f1 !important;
+			background-image: radial-gradient(circle, rgba(27,94,32,0.08) 1.5px, transparent 1.5px) !important;
+			background-size: 28px 28px !important;
+			animation: none !important;
+			background-attachment: scroll !important;
+		}
+		body::before { display: none !important; }
+	</style>
 
 	<style>
 		/* ── HERO ─────────────────────────────────── */
@@ -265,15 +280,16 @@ const gridItems = [
 			z-index: 0;
 		}
 
-		.grid-section .container {
+		.grid-section :global(.container) {
 			position: relative;
 			z-index: 1;
+			max-width: min(1480px, 97vw);
 		}
 
 		.main-grid {
 			display: grid;
-			grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-			gap: 2rem;
+			grid-template-columns: repeat(3, 1fr);
+			gap: 1.75rem;
 		}
 
 		.grid-item {
@@ -344,7 +360,10 @@ const gridItems = [
 			letter-spacing: 0.05em;
 		}
 
-		@media (max-width: 640px) {
+		@media (max-width: 900px) {
+			.main-grid { grid-template-columns: repeat(2, 1fr); }
+		}
+		@media (max-width: 560px) {
 			.main-grid { grid-template-columns: 1fr; }
 		}
 	</style>
