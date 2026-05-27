@@ -177,14 +177,14 @@ Basate en la información provista. Si no hay datos suficientes para una métric
 
     let evaluacion;
     try {
-      const clean = texto.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+      const clean = texto.replace(/^```(?:json)?\s*/im, '').replace(/\s*```\s*$/im, '').trim();
       evaluacion = JSON.parse(clean);
     } catch {
-      evaluacion = {
-        transparencia: 50, eficiencia: 50, crecimiento: 50,
-        respuesta: 50, calificacion: 50,
-        sintesis: texto, positivos: '', mejoras: '',
-      };
+      const m = texto.match(/\{[\s\S]*\}/);
+      if (m) { try { evaluacion = JSON.parse(m[0]); } catch {} }
+    }
+    if (!evaluacion) {
+      evaluacion = { transparencia: 50, eficiencia: 50, crecimiento: 50, respuesta: 50, calificacion: 50, sintesis: texto, positivos: '', mejoras: '' };
     }
 
     return json({ evaluacion });
