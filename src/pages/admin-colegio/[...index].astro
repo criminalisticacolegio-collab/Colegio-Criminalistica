@@ -1,7 +1,13 @@
 ---
-export const prerender = false;
-import { Studio } from 'sanity';
-import config from '../../../sanity.config.js';
+export const prerender = true;
+
+export function getStaticPaths() {
+  // Genera el HTML base en /admin-colegio/
+  // Vercel reescribe todas las sub-rutas de Studio a este archivo estático
+  return [{ params: { index: undefined } }];
+}
+
+import SanityStudio from '../../components/SanityStudio.jsx';
 ---
 
 <!DOCTYPE html>
@@ -12,10 +18,10 @@ import config from '../../../sanity.config.js';
     <title>Panel de Administración | CPCC</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { height: 100%; }
+        html, body { height: 100%; overflow: hidden; }
     </style>
 </head>
 <body>
-    <Studio config={config} client:only="react" />
+    <SanityStudio client:only="react" />
 </body>
 </html>
