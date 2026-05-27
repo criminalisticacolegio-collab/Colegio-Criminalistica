@@ -1232,36 +1232,234 @@ export async function enviarConsultaContacto({ nombre, email, mensaje }) {
     `,
   });
 
-  // 2. Acuse de recibo al remitente
+  // 2. Acuse de recibo al remitente — template institucional formal
+  const fechaConsulta = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
   await transporter.sendMail({
     from: FROM,
     to: email,
-    subject: 'CPCC — Recibimos tu consulta',
+    subject: 'Consulta recibida — Colegio de Profesionales en Ciencias Criminalísticas de Catamarca',
     html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; border-radius: 12px; overflow: hidden;">
-        <div style="background: #1b5e20; padding: 32px 40px; text-align: center;">
-          <h1 style="color: white; margin: 0; font-size: 20px; font-weight: 700; line-height: 1.4;">
-            Colegio de Profesionales en<br/>Ciencias Criminalísticas de Catamarca
-          </h1>
-        </div>
-        <div style="padding: 40px; background: white;">
-          <h2 style="color: #1b5e20; font-size: 20px; margin: 0 0 12px;">Recibimos tu consulta ✅</h2>
-          <p style="color: #444; line-height: 1.6; margin: 0 0 24px;">
-            Hola <strong>${nombre}</strong>, tu mensaje fue recibido correctamente.
-            Te responderemos a la brevedad.<br/>
-            Horario de atención: Lunes a Viernes · 8:00 a 14:00 hs.
-          </p>
-          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 20px;">
-            <p style="color: #166534; font-weight: 700; margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em;">Tu mensaje:</p>
-            <p style="color: #444; margin: 0; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">${mensaje}</p>
-          </div>
-        </div>
-        <div style="background: #1b5e20; padding: 20px 40px; text-align: center;">
-          <p style="color: rgba(255,255,255,0.7); font-size: 12px; margin: 0;">
-            CPCC · San Fernando del Valle de Catamarca
-          </p>
-        </div>
-      </div>
+      <!DOCTYPE html>
+      <html lang="es">
+      <body style="margin:0;padding:0;background:#f0f2f0;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f2f0;padding:32px 16px;">
+        <tr><td align="center">
+          <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+
+            <!-- HEADER -->
+            <tr>
+              <td style="background:#1a5c2a;padding:36px 40px;text-align:center;">
+                <p style="color:rgba(255,255,255,0.7);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;margin:0 0 10px;">República Argentina · Provincia de Catamarca</p>
+                <h1 style="color:white;margin:0;font-size:20px;font-weight:700;line-height:1.5;">
+                  Colegio de Profesionales en<br/>Ciencias Criminalísticas de Catamarca
+                </h1>
+                <p style="color:rgba(255,255,255,0.6);font-size:11px;margin:8px 0 0;">Ley Provincial N° 5.595/19</p>
+              </td>
+            </tr>
+
+            <!-- BANDA IDENTIFICADORA -->
+            <tr>
+              <td style="background:#2e7d32;padding:10px 40px;text-align:center;">
+                <p style="color:rgba(255,255,255,0.9);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin:0;">
+                  Acuse de Recibo — Consulta Institucional
+                </p>
+              </td>
+            </tr>
+
+            <!-- CUERPO -->
+            <tr>
+              <td style="padding:40px 40px 32px;">
+
+                <p style="color:#1a2d1a;font-size:15px;line-height:1.8;margin:0 0 16px;">
+                  Estimado/a <strong>${nombre}</strong>,
+                </p>
+                <p style="color:#333;font-size:15px;line-height:1.8;margin:0 0 16px;">
+                  Nos dirigimos a usted a fin de comunicarle que su consulta dirigida al <strong>Colegio de Profesionales en Ciencias Criminalísticas de Catamarca</strong> ha sido recibida correctamente con fecha <strong>${fechaConsulta}</strong>.
+                </p>
+                <p style="color:#333;font-size:15px;line-height:1.8;margin:0 0 28px;">
+                  La misma ha sido derivada al área correspondiente para su atención. Le responderemos a través de la dirección de correo electrónico consignada en el presente formulario, dentro del horario de atención institucional.
+                </p>
+
+                <!-- Copia del mensaje -->
+                <div style="background:#f5f9f5;border-left:4px solid #1a5c2a;border-radius:0 8px 8px 0;padding:20px 24px;margin-bottom:28px;">
+                  <p style="color:#1a5c2a;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;margin:0 0 12px;">Copia de su consulta</p>
+                  <p style="color:#444;font-size:14px;line-height:1.7;margin:0;white-space:pre-wrap;">${mensaje}</p>
+                </div>
+
+                <!-- Datos de contacto y horarios -->
+                <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:20px 24px;margin-bottom:32px;">
+                  <p style="color:#1a5c2a;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;margin:0 0 14px;">Datos de contacto del Colegio</p>
+                  <table style="width:100%;border-collapse:collapse;font-size:14px;">
+                    <tr>
+                      <td style="padding:5px 0;color:#666;width:40%;">Horario de atención:</td>
+                      <td style="color:#111;font-weight:600;">Lun. a Vie. · 08:00 — 14:00 hs.</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:5px 0;color:#666;">Correo electrónico:</td>
+                      <td><a href="mailto:criminalisticacolegio@gmail.com" style="color:#1a5c2a;font-weight:600;text-decoration:none;">criminalisticacolegio@gmail.com</a></td>
+                    </tr>
+                    <tr>
+                      <td style="padding:5px 0;color:#666;">Sede:</td>
+                      <td style="color:#111;">Av. América Latina 1672, Capital</td>
+                    </tr>
+                  </table>
+                </div>
+
+                <!-- Firma -->
+                <div style="border-top:1px solid #e5e7eb;padding-top:24px;">
+                  <p style="color:#333;font-size:14px;line-height:1.8;margin:0;">
+                    Saluda atentamente,<br/><br/>
+                    <strong style="color:#1a5c2a;font-size:15px;">Secretaría del Colegio</strong><br/>
+                    Colegio de Profesionales en Ciencias Criminalísticas<br/>
+                    Provincia de Catamarca
+                  </p>
+                </div>
+
+              </td>
+            </tr>
+
+            <!-- FOOTER -->
+            <tr>
+              <td style="background:#1a5c2a;padding:24px 40px;text-align:center;">
+                <p style="color:rgba(255,255,255,0.5);font-size:11px;margin:0 0 5px;">
+                  Avenida América Latina 1672 — San Fernando del Valle de Catamarca
+                </p>
+                <p style="color:rgba(255,255,255,0.7);font-size:12px;margin:0 0 8px;">
+                  <a href="mailto:criminalisticacolegio@gmail.com" style="color:rgba(255,255,255,0.9);text-decoration:none;">criminalisticacolegio@gmail.com</a>
+                </p>
+                <p style="color:rgba(255,255,255,0.4);font-size:10px;margin:0;">
+                  © 2025 CPCC — Ley Provincial N° 5.595/19 · Este es un correo automático, por favor no lo responda directamente.
+                </p>
+              </td>
+            </tr>
+
+          </table>
+        </td></tr>
+      </table>
+      </body></html>
+    `,
+  });
+}
+
+/**
+ * Acuse de recibo institucional cuando alguien envía una propuesta o proyecto al Colegio.
+ */
+export async function enviarAcuseReciboPropuesta({ nombre, email, tituloPropuesta, tipoPropuesta, fechaEnvio }) {
+  const fechaStr = fechaEnvio
+    ? new Date(fechaEnvio).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
+    : new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+
+  await transporter.sendMail({
+    from: FROM,
+    to: email,
+    subject: 'Propuesta recibida — Colegio de Profesionales en Ciencias Criminalísticas de Catamarca',
+    html: `
+      <!DOCTYPE html>
+      <html lang="es">
+      <body style="margin:0;padding:0;background:#f0f2f0;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f2f0;padding:32px 16px;">
+        <tr><td align="center">
+          <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+
+            <!-- HEADER -->
+            <tr>
+              <td style="background:#1a5c2a;padding:36px 40px;text-align:center;">
+                <p style="color:rgba(255,255,255,0.7);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;margin:0 0 10px;">República Argentina · Provincia de Catamarca</p>
+                <h1 style="color:white;margin:0;font-size:20px;font-weight:700;line-height:1.5;">
+                  Colegio de Profesionales en<br/>Ciencias Criminalísticas de Catamarca
+                </h1>
+                <p style="color:rgba(255,255,255,0.6);font-size:11px;margin:8px 0 0;">Ley Provincial N° 5.595/19</p>
+              </td>
+            </tr>
+
+            <!-- BANDA IDENTIFICADORA -->
+            <tr>
+              <td style="background:#2e7d32;padding:10px 40px;text-align:center;">
+                <p style="color:rgba(255,255,255,0.9);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin:0;">
+                  Acuse de Recibo — Propuesta Institucional
+                </p>
+              </td>
+            </tr>
+
+            <!-- CUERPO -->
+            <tr>
+              <td style="padding:40px 40px 32px;">
+
+                <p style="color:#1a2d1a;font-size:15px;line-height:1.8;margin:0 0 16px;">
+                  Estimado/a <strong>${nombre}</strong>,
+                </p>
+                <p style="color:#333;font-size:15px;line-height:1.8;margin:0 0 16px;">
+                  El <strong>Colegio de Profesionales en Ciencias Criminalísticas de Catamarca</strong> se complace en comunicarle que su propuesta ha sido recibida y registrada correctamente en el sistema institucional con fecha <strong>${fechaStr}</strong>.
+                </p>
+                <p style="color:#333;font-size:15px;line-height:1.8;margin:0 0 28px;">
+                  Su aporte será sometido a análisis y evaluación por parte de la <strong>Comisión Directiva</strong>, la cual determinará su viabilidad y los lineamientos para su eventual implementación en el marco de los objetivos institucionales del Colegio. Le informaremos sobre el resultado de dicha evaluación a través del correo electrónico consignado.
+                </p>
+
+                <!-- Datos de la propuesta -->
+                <div style="background:#f5f9f5;border:1px solid #c6e6c8;border-radius:8px;padding:20px 24px;margin-bottom:28px;">
+                  <p style="color:#1a5c2a;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;margin:0 0 14px;">Datos de la propuesta registrada</p>
+                  <table style="width:100%;border-collapse:collapse;font-size:14px;">
+                    <tr style="border-bottom:1px solid #e0f0e0;">
+                      <td style="padding:8px 0;color:#555;width:35%;">Título:</td>
+                      <td style="color:#111;font-weight:700;padding:8px 0;">${tituloPropuesta}</td>
+                    </tr>
+                    ${tipoPropuesta ? `
+                    <tr style="border-bottom:1px solid #e0f0e0;">
+                      <td style="padding:8px 0;color:#555;">Categoría:</td>
+                      <td style="color:#111;font-weight:600;padding:8px 0;">${tipoPropuesta}</td>
+                    </tr>` : ''}
+                    <tr style="border-bottom:1px solid #e0f0e0;">
+                      <td style="padding:8px 0;color:#555;">Remitente:</td>
+                      <td style="color:#111;font-weight:600;padding:8px 0;">${nombre}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:8px 0;color:#555;">Fecha de envío:</td>
+                      <td style="color:#111;font-weight:600;padding:8px 0;">${fechaStr}</td>
+                    </tr>
+                  </table>
+                </div>
+
+                <!-- Nota de proceso -->
+                <div style="background:#fffbeb;border-left:4px solid #d97706;border-radius:0 8px 8px 0;padding:16px 20px;margin-bottom:32px;">
+                  <p style="color:#92400e;font-size:13px;font-weight:700;margin:0 0 6px;">Proceso de evaluación</p>
+                  <p style="color:#555;font-size:13px;line-height:1.7;margin:0;">
+                    Las propuestas son evaluadas en reunión de Comisión Directiva. El tiempo de respuesta puede variar según la agenda institucional. Si necesita hacer seguimiento de su presentación, puede comunicarse con la Secretaría del Colegio.
+                  </p>
+                </div>
+
+                <!-- Firma -->
+                <div style="border-top:1px solid #e5e7eb;padding-top:24px;">
+                  <p style="color:#333;font-size:14px;line-height:1.8;margin:0;">
+                    Agradecemos su compromiso con el fortalecimiento institucional.<br/><br/>
+                    Saluda atentamente,<br/><br/>
+                    <strong style="color:#1a5c2a;font-size:15px;">Comisión Directiva</strong><br/>
+                    Colegio de Profesionales en Ciencias Criminalísticas<br/>
+                    Provincia de Catamarca
+                  </p>
+                </div>
+
+              </td>
+            </tr>
+
+            <!-- FOOTER -->
+            <tr>
+              <td style="background:#1a5c2a;padding:24px 40px;text-align:center;">
+                <p style="color:rgba(255,255,255,0.5);font-size:11px;margin:0 0 5px;">
+                  Avenida América Latina 1672 — San Fernando del Valle de Catamarca
+                </p>
+                <p style="color:rgba(255,255,255,0.7);font-size:12px;margin:0 0 8px;">
+                  <a href="mailto:criminalisticacolegio@gmail.com" style="color:rgba(255,255,255,0.9);text-decoration:none;">criminalisticacolegio@gmail.com</a>
+                </p>
+                <p style="color:rgba(255,255,255,0.4);font-size:10px;margin:0;">
+                  © 2025 CPCC — Ley Provincial N° 5.595/19 · Este es un correo automático, por favor no lo responda directamente.
+                </p>
+              </td>
+            </tr>
+
+          </table>
+        </td></tr>
+      </table>
+      </body></html>
     `,
   });
 }

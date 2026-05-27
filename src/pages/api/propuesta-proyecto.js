@@ -2,6 +2,7 @@ export const prerender = false;
 
 import { createClient } from '@sanity/client';
 import { Resend } from 'resend';
+import { enviarAcuseReciboPropuesta } from '../../lib/email.js';
 
 const sanity = createClient({
   projectId: import.meta.env.PUBLIC_SANITY_PROJECT_ID,
@@ -103,43 +104,13 @@ export async function POST({ request }) {
       `,
     });
 
-    // Confirm to submitter
-    await resend.emails.send({
-      from: FROM,
-      to: [email.trim()],
-      subject: 'CPCC — Recibimos tu propuesta',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; border-radius: 12px; overflow: hidden;">
-          <div style="background: #1b5e20; padding: 32px 40px; text-align: center;">
-            <h1 style="color: white; margin: 0; font-size: 20px; font-weight: 700; line-height: 1.4;">
-              Colegio de Profesionales en<br/>Ciencias Criminalísticas de Catamarca
-            </h1>
-          </div>
-          <div style="padding: 40px; background: white;">
-            <h2 style="color: #1b5e20; font-size: 22px; margin: 0 0 12px;">¡Propuesta recibida! ✅</h2>
-            <p style="color: #444; line-height: 1.6; margin: 0 0 24px;">
-              Hola <strong>${nombre.trim()}</strong>, tu propuesta fue recibida y registrada correctamente.
-              Las autoridades del Colegio la evaluarán y te responderemos por este email a la brevedad.
-            </p>
-            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
-              <h3 style="color: #166534; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 12px;">Datos de tu propuesta</h3>
-              <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                <tr><td style="padding: 6px 0; color: #666; width: 35%;">Título:</td><td style="color: #111; font-weight: 700;">${titulo.trim()}</td></tr>
-                <tr><td style="padding: 6px 0; color: #666;">Tipo:</td><td style="color: #111; font-weight: 600;">${tipoLabel}</td></tr>
-                <tr><td style="padding: 6px 0; color: #666;">Fecha:</td><td style="color: #111; font-weight: 600;">${fechaEnvio}</td></tr>
-              </table>
-            </div>
-            <p style="color: #666; font-size: 13px; line-height: 1.6; margin: 0;">
-              Si tenés consultas adicionales, contactanos en secretaría o respondé este email.
-            </p>
-          </div>
-          <div style="background: #1b5e20; padding: 20px 40px; text-align: center;">
-            <p style="color: rgba(255,255,255,0.7); font-size: 12px; margin: 0;">
-              CPCC · San Fernando del Valle de Catamarca · criminalisticacolegio@gmail.com
-            </p>
-          </div>
-        </div>
-      `,
+    // Acuse de recibo institucional al remitente
+    await enviarAcuseReciboPropuesta({
+      nombre: nombre.trim(),
+      email: email.trim().toLowerCase(),
+      tituloPropuesta: titulo.trim(),
+      tipoPropuesta: tipoLabel,
+      fechaEnvio,
     });
 
     return new Response(JSON.stringify({ ok: true }), {
