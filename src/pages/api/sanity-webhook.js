@@ -2,7 +2,7 @@ export const prerender = false;
 
 import { createClient } from '@sanity/client';
 import { adminAuth } from '../../lib/firebase-admin.js';
-import { enviarNotificacionSuspension } from '../../lib/email.js';
+import { enviarNotificacionSuspension, enviarReactivacion } from '../../lib/email.js';
 
 const sanity = createClient({
   projectId: '8q7vz6co',
@@ -142,9 +142,12 @@ export const POST = async ({ request }) => {
     return json({ error: err.message }, 500);
   }
 
-  // Notificar al matriculado si su estado cambió de Activo → Suspendido o Baja
   const eraActivo = resultado.oldEstado === 'Activo';
+  const eraSuspendido = resultado.oldEstado === 'Suspendido' || resultado.oldEstado === 'Baja';
+  const ahoraActivo = matriculado.estado === 'Activo';
   const ahoraSuspendido = matriculado.estado === 'Suspendido' || matriculado.estado === 'Baja';
+
+  // Activo → Suspendido/Baja: notificar suspensión
   if (eraActivo && ahoraSuspendido) {
     try {
       await enviarNotificacionSuspension({
@@ -156,6 +159,20 @@ export const POST = async ({ request }) => {
       console.log(`[sanity-webhook] Email de suspensión enviado a: ${matriculado.email}`);
     } catch (e) {
       console.warn('[sanity-webhook] No se pudo enviar email de suspensión:', e.message);
+    }
+  }
+
+  // Suspendido/Baja → Activo: notificar reactivación
+  if (eraSuspendido && ahoraActivo) {
+    try {
+      await enviarReactivacion({
+        nombreCompleto: matriculado.nombreCompleto,
+        email: matriculado.email,
+        numeroMatricula: matriculado.numeroMatricula,
+      });
+      console.log(`[sanity-webhook] Email de reactivación enviado a: ${matriculado.email}`);
+    } catch (e) {
+      console.warn('[sanity-webhook] No se pudo enviar email de reactivación:', e.message);
     }
   }
 
