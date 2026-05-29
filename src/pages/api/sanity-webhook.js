@@ -158,7 +158,7 @@ export const POST = async ({ request }) => {
       });
       console.log(`[sanity-webhook] Email de suspensión enviado a: ${matriculado.email}`);
     } catch (e) {
-      console.warn('[sanity-webhook] No se pudo enviar email de suspensión:', e.message);
+      console.error(`[sanity-webhook] ERROR enviando email de suspensión a ${matriculado.email}:`, e.message, e.stack);
     }
   }
 
@@ -172,7 +172,7 @@ export const POST = async ({ request }) => {
       });
       console.log(`[sanity-webhook] Email de reactivación enviado a: ${matriculado.email}`);
     } catch (e) {
-      console.warn('[sanity-webhook] No se pudo enviar email de reactivación:', e.message);
+      console.error(`[sanity-webhook] ERROR enviando email de reactivación a ${matriculado.email}:`, e.message, e.stack);
     }
   }
 
