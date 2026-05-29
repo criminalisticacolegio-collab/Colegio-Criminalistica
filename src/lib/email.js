@@ -1034,6 +1034,101 @@ export async function enviarAvisoRiesgoMora({ nombreCompleto, email, numeroMatri
 /**
  * Notificación formal de mora al matriculado con 3 o más meses consecutivos pendientes.
  */
+/**
+ * Notificación al matriculado cuando su estado pasa a Suspendido o Baja por acción administrativa.
+ */
+export async function enviarNotificacionSuspension({ nombreCompleto, email, numeroMatricula, estado }) {
+  const contactoEmail = 'criminalisticacolegio@gmail.com';
+  const esBaja = estado === 'Baja';
+  const etiqueta = esBaja ? 'BAJA' : 'SUSPENDIDA';
+  const descripcion = esBaja
+    ? 'Su matrícula ha sido dada de baja en el registro oficial del Colegio.'
+    : 'Su matrícula ha sido suspendida temporalmente por disposición de la administración del Colegio.';
+
+  await transporter.sendMail({
+    from: FROM,
+    replyTo: REPLY_TO,
+    to: email,
+    subject: `Notificación de estado de matrícula — CPCC Catamarca`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;border-radius:12px;overflow:hidden;">
+
+        <div style="background:#1a5c2a;padding:32px 40px;text-align:center;">
+          <h1 style="color:white;margin:0;font-size:20px;font-weight:700;line-height:1.4;">
+            Colegio de Profesionales en<br/>Ciencias Criminalísticas de Catamarca
+          </h1>
+          <p style="color:rgba(255,255,255,0.6);font-size:11px;margin:8px 0 0;">Ley Provincial N° 5.595/19</p>
+        </div>
+
+        <div style="background:#7f1d1d;padding:12px 40px;text-align:center;">
+          <p style="color:white;font-size:13px;font-weight:700;margin:0;text-transform:uppercase;letter-spacing:0.07em;">
+            Actualización de estado — Matrícula ${etiqueta}
+          </p>
+        </div>
+
+        <div style="padding:40px;background:white;">
+          <p style="color:#1a2d1a;font-size:15px;line-height:1.8;margin:0 0 16px;">
+            Estimado/a <strong>${nombreCompleto}</strong>,
+          </p>
+          <p style="color:#444;font-size:15px;line-height:1.8;margin:0 0 16px;">
+            Le comunicamos que su situación en el Padrón Oficial del <strong>Colegio de Profesionales en Ciencias Criminalísticas de Catamarca</strong> ha sido actualizada.
+          </p>
+          <p style="color:#444;font-size:15px;line-height:1.8;margin:0 0 28px;">
+            ${descripcion}
+          </p>
+
+          <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:20px 24px;margin-bottom:24px;">
+            <p style="color:#991b1b;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;margin:0 0 12px;">Situación actual de su matrícula</p>
+            <table style="width:100%;border-collapse:collapse;font-size:14px;">
+              <tr style="border-bottom:1px solid #fecaca;">
+                <td style="padding:7px 0;color:#666;width:40%;">Titular:</td>
+                <td style="color:#111;font-weight:700;padding:7px 0;">${nombreCompleto}</td>
+              </tr>
+              ${numeroMatricula ? `<tr style="border-bottom:1px solid #fecaca;">
+                <td style="padding:7px 0;color:#666;">N° de matrícula:</td>
+                <td style="color:#111;font-weight:700;padding:7px 0;">${numeroMatricula}</td>
+              </tr>` : ''}
+              <tr>
+                <td style="padding:7px 0;color:#666;">Estado:</td>
+                <td style="color:#991b1b;font-weight:800;padding:7px 0;">${etiqueta}</td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="background:#f5f9f5;border:1px solid #c6e6c8;border-radius:8px;padding:16px 20px;margin-bottom:32px;">
+            <p style="color:#1a5c2a;font-size:13px;font-weight:700;margin:0 0 8px;">¿Qué hacer a continuación?</p>
+            <p style="color:#444;font-size:14px;line-height:1.7;margin:0;">
+              Comuníquese con la Secretaría del Colegio para obtener información sobre su situación y los pasos necesarios para regularizarla.
+            </p>
+            <p style="color:#444;font-size:14px;margin:10px 0 0;">
+              📧 <a href="mailto:${contactoEmail}" style="color:#1a5c2a;font-weight:700;">${contactoEmail}</a><br/>
+              🕐 Horario de atención: Lun. a Vie. · 08:00 — 14:00 hs.
+            </p>
+          </div>
+
+          <div style="border-top:1px solid #e5e7eb;padding-top:20px;">
+            <p style="color:#444;font-size:14px;line-height:1.8;margin:0;">
+              Saluda atentamente,<br/><br/>
+              <strong style="color:#1a5c2a;font-size:15px;">Secretaría del Colegio</strong><br/>
+              Colegio de Profesionales en Ciencias Criminalísticas<br/>
+              Provincia de Catamarca
+            </p>
+          </div>
+        </div>
+
+        <div style="background:#1a5c2a;padding:20px 40px;text-align:center;">
+          <p style="color:rgba(255,255,255,0.5);font-size:11px;margin:0 0 5px;">
+            Avenida América Latina 1672 — San Fernando del Valle de Catamarca
+          </p>
+          <p style="color:rgba(255,255,255,0.7);font-size:12px;margin:0;">
+            <a href="mailto:${contactoEmail}" style="color:rgba(255,255,255,0.9);text-decoration:none;">${contactoEmail}</a>
+          </p>
+        </div>
+      </div>
+    `,
+  });
+}
+
 export async function enviarNotificacionMoraFormal({ nombreCompleto, email, numeroMatricula }) {
   const contactoEmail = 'criminalisticacolegio@gmail.com';
 

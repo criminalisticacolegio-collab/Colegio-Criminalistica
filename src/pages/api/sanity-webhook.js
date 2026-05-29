@@ -2,6 +2,7 @@ export const prerender = false;
 
 import { createClient } from '@sanity/client';
 import { adminAuth } from '../../lib/firebase-admin.js';
+import { enviarNotificacionSuspension } from '../../lib/email.js';
 
 const sanity = createClient({
   projectId: '8q7vz6co',
@@ -44,10 +45,12 @@ async function sincronizarConFirebase(matriculado) {
   const emailNorm = matriculado.email.trim().toLowerCase();
   let uid;
   let operacion;
+  let oldEstado = null; // null = usuario nuevo, string = estado previo en Firebase
 
   try {
     const existing = await adminAuth.getUserByEmail(emailNorm);
     uid = existing.uid;
+    oldEstado = existing.customClaims?.estado || 'Activo';
     await adminAuth.updateUser(uid, { displayName: matriculado.nombreCompleto });
     operacion = 'actualizado';
   } catch (err) {
@@ -72,7 +75,7 @@ async function sincronizarConFirebase(matriculado) {
     jurisdiccion: matriculado.jurisdiccion || null,
   });
 
-  return { uid, operacion };
+  return { uid, operacion, oldEstado };
 }
 
 export const POST = async ({ request }) => {
@@ -130,14 +133,33 @@ export const POST = async ({ request }) => {
     return json({ ok: true, message: 'Documento no encontrado, puede haberse eliminado' });
   }
 
+  let resultado;
   try {
-    const resultado = await sincronizarConFirebase(matriculado);
+    resultado = await sincronizarConFirebase(matriculado);
     console.log(`[sanity-webhook] ${resultado.operacion.toUpperCase()}: ${matriculado.email} (uid: ${resultado.uid})`);
-    return json({ ok: true, operacion: resultado.operacion, email: matriculado.email, uid: resultado.uid });
   } catch (err) {
     console.error('[sanity-webhook] Error sincronizando con Firebase:', err.message);
     return json({ error: err.message }, 500);
   }
+
+  // Notificar al matriculado si su estado cambió de Activo → Suspendido o Baja
+  const eraActivo = resultado.oldEstado === 'Activo';
+  const ahoraSuspendido = matriculado.estado === 'Suspendido' || matriculado.estado === 'Baja';
+  if (eraActivo && ahoraSuspendido) {
+    try {
+      await enviarNotificacionSuspension({
+        nombreCompleto: matriculado.nombreCompleto,
+        email: matriculado.email,
+        numeroMatricula: matriculado.numeroMatricula,
+        estado: matriculado.estado,
+      });
+      console.log(`[sanity-webhook] Email de suspensión enviado a: ${matriculado.email}`);
+    } catch (e) {
+      console.warn('[sanity-webhook] No se pudo enviar email de suspensión:', e.message);
+    }
+  }
+
+  return json({ ok: true, operacion: resultado.operacion, email: matriculado.email, uid: resultado.uid });
 };
 
 function json(data, status = 200) {

@@ -2,6 +2,9 @@
 import MainLayout from '../layouts/MainLayout.astro';
 import { createClient } from '@sanity/client';
 
+// Forzar respuesta fresca — nunca cachear en el edge de Vercel
+Astro.response.headers.set('Cache-Control', 'no-store, must-revalidate');
+
 const sanityDirect = createClient({
   projectId: '8q7vz6co',
   dataset: 'production',
