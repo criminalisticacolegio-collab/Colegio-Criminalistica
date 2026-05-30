@@ -35,8 +35,8 @@ export const POST = async ({ request }) => {
     matriculado = await sanity.fetch(
       `*[_type == "matriculado" && lower(email) == lower($email)][0]{
         _id, nombreCompleto, numeroMatricula, estado, email,
-        "especialidad": especialidad->nombre,
-        "jurisdiccion": jurisdiccion->nombre
+        "especialidad": especialidad->titulo,
+        "jurisdiccion": jurisdiccion->titulo
       }`,
       { email }
     );
