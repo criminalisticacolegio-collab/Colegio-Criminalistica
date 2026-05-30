@@ -63,7 +63,7 @@ export const POST = async ({ request }) => {
   let mat;
   try {
     mat = await sanityRead.fetch(
-      `*[_type == "matriculado" && email == $email][0]{
+      `*[_type == "matriculado" && lower(email) == lower($email)][0]{
         _id, nombreCompleto, numeroMatricula, email, estado,
         "especialidad": especialidad->titulo,
         "jurisdiccion": jurisdiccion->titulo,

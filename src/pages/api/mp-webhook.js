@@ -79,7 +79,7 @@ async function processPayment(mpPaymentId) {
   if (payerEmail) {
     try {
       matriculado = await sanity.fetch(
-        `*[_type == "matriculado" && email == $email][0]{ nombreCompleto, numeroMatricula, email }`,
+        `*[_type == "matriculado" && lower(email) == lower($email)][0]{ nombreCompleto, numeroMatricula, email }`,
         { email: payerEmail }
       );
     } catch (err) {
@@ -159,7 +159,7 @@ async function processCoursePayment(mpPaymentId, payment, extRef) {
   let esMatriculado = false;
   try {
     const mat = await sanity.fetch(
-      `*[_type == "matriculado" && email == $email && estado == "Activo"][0]{ nombreCompleto }`,
+      `*[_type == "matriculado" && lower(email) == lower($email) && estado == "Activo"][0]{ nombreCompleto }`,
       { email }
     );
     if (mat) {

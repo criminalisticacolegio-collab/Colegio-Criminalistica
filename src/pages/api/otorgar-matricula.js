@@ -67,7 +67,7 @@ export const POST = async ({ request }) => {
   let duplicado;
   try {
     duplicado = await sanity.fetch(
-      `*[_type == "matriculado" && (email == $email || numeroMatricula == $num)][0]._id`,
+      `*[_type == "matriculado" && (lower(email) == lower($email) || numeroMatricula == $num)][0]._id`,
       { email: emailNorm, num: numeroMatricula }
     );
   } catch (err) {

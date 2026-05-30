@@ -31,7 +31,7 @@ export const POST = async ({ request }) => {
   let mat;
   try {
     mat = await sanity.fetch(
-      `*[_type == "matriculado" && email == $email][0]{ nombreCompleto, numeroMatricula, email, estado }`,
+      `*[_type == "matriculado" && lower(email) == lower($email)][0]{ nombreCompleto, numeroMatricula, email, estado }`,
       { email }
     );
   } catch (e) {

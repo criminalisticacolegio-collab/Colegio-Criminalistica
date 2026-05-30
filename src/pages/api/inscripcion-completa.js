@@ -47,7 +47,7 @@ export const POST = async ({ request }) => {
         { k: cursoKey }
       ),
       sanity.fetch(
-        `*[_type == "matriculado" && email == $email && estado == "ACTIVO"][0]{ _id }`,
+        `*[_type == "matriculado" && lower(email) == lower($email) && estado == "Activo"][0]{ _id }`,
         { email }
       ),
     ]);

@@ -21,7 +21,7 @@ export const GET = async ({ url }) => {
 
   try {
     const matriculado = await client.fetch(
-      `*[_type == "matriculado" && email == $email][0]`,
+      `*[_type == "matriculado" && lower(email) == lower($email)][0]`,
       { email }
     );
 
