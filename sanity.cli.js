@@ -6,4 +6,7 @@ export default defineCliConfig({
     dataset: 'production',
   },
   studioHost: 'colegio-criminalistica',
+  deployment: {
+    appId: 'axd3l138xvsbeg40cfrcz00h',
+  },
 });
