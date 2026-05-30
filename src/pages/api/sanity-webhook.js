@@ -43,37 +43,96 @@ async function sincronizarConFirebase(matriculado) {
   }
 
   const emailNorm = matriculado.email.trim().toLowerCase();
-  let uid;
+  let uid = null;
   let operacion;
-  let oldEstado = null; // null = usuario nuevo, string = estado previo en Firebase
+  let oldEstado = null;
 
-  try {
-    const existing = await adminAuth.getUserByEmail(emailNorm);
-    uid = existing.uid;
-    oldEstado = existing.customClaims?.estado || 'Activo';
-    await adminAuth.updateUser(uid, { displayName: matriculado.nombreCompleto });
-    operacion = 'actualizado';
-  } catch (err) {
-    if (err.code === 'auth/user-not-found') {
-      const created = await adminAuth.createUser({
-        email: emailNorm,
-        password: matriculado.numeroMatricula,
-        displayName: matriculado.nombreCompleto,
-        disabled: false,
-      });
-      uid = created.uid;
-      operacion = 'creado';
-    } else {
-      throw err;
+  // ── Paso 1: buscar por UID guardado en Sanity (más confiable) ──
+  if (matriculado.firebaseUid) {
+    try {
+      const existing = await adminAuth.getUser(matriculado.firebaseUid);
+      uid = existing.uid;
+      oldEstado = existing.customClaims?.estado || 'Activo';
+      const updates = { displayName: matriculado.nombreCompleto };
+      if (existing.email !== emailNorm) {
+        updates.email = emailNorm;
+        console.log(`[sanity-webhook] Email actualizado: ${existing.email} → ${emailNorm}`);
+      }
+      await adminAuth.updateUser(uid, updates);
+      operacion = 'actualizado';
+    } catch (err) {
+      if (err.code !== 'auth/user-not-found') throw err;
+      uid = null; // UID desactualizado, seguir buscando
     }
   }
 
+  // ── Paso 2: buscar por email actual ───────────────────────────
+  if (!uid) {
+    try {
+      const existing = await adminAuth.getUserByEmail(emailNorm);
+      uid = existing.uid;
+      oldEstado = existing.customClaims?.estado || 'Activo';
+      await adminAuth.updateUser(uid, { displayName: matriculado.nombreCompleto });
+      operacion = 'actualizado';
+    } catch (err) {
+      if (err.code !== 'auth/user-not-found') throw err;
+    }
+  }
+
+  // ── Paso 3: buscar por numeroMatricula en claims (email cambió) ─
+  if (!uid) {
+    try {
+      let pageToken;
+      do {
+        const page = await adminAuth.listUsers(1000, pageToken);
+        for (const user of page.users) {
+          if (user.customClaims?.numeroMatricula === matriculado.numeroMatricula) {
+            uid = user.uid;
+            oldEstado = user.customClaims?.estado || 'Activo';
+            const updates = { displayName: matriculado.nombreCompleto };
+            if (user.email !== emailNorm) {
+              updates.email = emailNorm;
+              console.log(`[sanity-webhook] Email corregido por matrícula ${matriculado.numeroMatricula}: ${user.email} → ${emailNorm}`);
+            }
+            await adminAuth.updateUser(uid, updates);
+            operacion = 'actualizado';
+            break;
+          }
+        }
+        pageToken = page.pageToken;
+      } while (pageToken && !uid);
+    } catch (err) {
+      console.error('[sanity-webhook] Error en búsqueda por matrícula:', err.message);
+    }
+  }
+
+  // ── Paso 4: no existe — crear cuenta nueva ────────────────────
+  if (!uid) {
+    const created = await adminAuth.createUser({
+      email: emailNorm,
+      password: matriculado.numeroMatricula,
+      displayName: matriculado.nombreCompleto,
+      disabled: false,
+    });
+    uid = created.uid;
+    operacion = 'creado';
+    console.log(`[sanity-webhook] Cuenta nueva creada: ${emailNorm}`);
+  }
+
+  // ── Claims ────────────────────────────────────────────────────
   await adminAuth.setCustomUserClaims(uid, {
     numeroMatricula: matriculado.numeroMatricula,
     estado: matriculado.estado || 'Activo',
     especialidad: matriculado.especialidad || null,
     jurisdiccion: matriculado.jurisdiccion || null,
   });
+
+  // ── Guardar UID en Sanity para futuros lookups ────────────────
+  try {
+    await sanity.patch(matriculado._id).set({ firebaseUid: uid }).commit();
+  } catch (e) {
+    console.warn('[sanity-webhook] No se pudo guardar firebaseUid:', e.message);
+  }
 
   return { uid, operacion, oldEstado };
 }
@@ -117,7 +176,7 @@ export const POST = async ({ request }) => {
   try {
     matriculado = await sanity.fetch(
       `*[_type == "matriculado" && _id == $id][0]{
-        _id, email, nombreCompleto, numeroMatricula, estado,
+        _id, email, nombreCompleto, numeroMatricula, estado, firebaseUid,
         "especialidad": especialidad->titulo,
         "jurisdiccion": jurisdiccion->titulo
       }`,

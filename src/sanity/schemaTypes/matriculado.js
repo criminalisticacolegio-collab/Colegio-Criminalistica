@@ -13,6 +13,14 @@ export default defineType({
             validation: Rule => Rule.required(),
         }),
         defineField({
+            name: 'firebaseUid',
+            title: 'Firebase UID',
+            type: 'string',
+            description: 'Generado automáticamente por el sistema. No editar.',
+            readOnly: true,
+            hidden: true,
+        }),
+        defineField({
             name: 'email',
             title: 'Email (Primary Key)',
             type: 'string',
