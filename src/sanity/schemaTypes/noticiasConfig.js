@@ -25,13 +25,10 @@ export default defineType({
                             title: 'titulo',
                             subtitle: 'fecha',
                             media: 'imagen',
-                            destacado: 'destacado',
-                            publicado: 'publicado',
                         },
-                        prepare({ title, subtitle, media, destacado, publicado }) {
-                            const estado = publicado === false ? ' [oculta]' : destacado ? ' ⭐' : '';
+                        prepare({ title, subtitle, media }) {
                             return {
-                                title: (title || 'Sin título') + estado,
+                                title: title || 'Sin título',
                                 subtitle: subtitle
                                     ? new Date(subtitle).toLocaleDateString('es-AR')
                                     : 'Sin fecha',
