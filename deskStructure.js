@@ -36,7 +36,6 @@ export const deskStructure = (S) =>
           S.list()
             .title('Padrón Oficial')
             .items([
-              singleton(S, 'Configuración de la Página', 'padronConfig', '⚙️'),
               listDocs(S, 'Matriculados', 'matriculado', '👤'),
               listDocs(S, 'Jurisdicciones', 'jurisdiccion', '📍'),
               listDocs(S, 'Especialidades', 'especialidad', '🎓'),
@@ -54,7 +53,6 @@ export const deskStructure = (S) =>
           S.list()
             .title('Nuevos Profesionales')
             .items([
-              singleton(S, 'Configuración del Portal', 'matriculadosConfig', '⚙️'),
               listDocs(S, 'Solicitudes de Aspirantes', 'aspirante', '📋'),
             ])
         ),

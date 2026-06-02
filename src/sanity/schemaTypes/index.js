@@ -1,7 +1,5 @@
 import homeConfig from './homeConfig';
 import institucionalConfig from './institucionalConfig';
-import matriculadosConfig from './matriculadosConfig';
-import padronConfig from './padronConfig';
 import capacitacionConfig from './capacitacionConfig';
 import tribunalConfig from './tribunalConfig';
 import gestionConfig from './gestionConfig';
@@ -25,8 +23,6 @@ import configuracionIA from './configuracionIA';
 export const schemaTypes = [
   homeConfig,
   institucionalConfig,
-  matriculadosConfig,
-  padronConfig,
   capacitacionConfig,
   tribunalConfig,
   gestionConfig,
