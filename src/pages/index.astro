@@ -6,7 +6,7 @@ const home = await sanityClient.fetch(`*[_type == "homeConfig"][0]`).catch(() =>
 
 const noticiasDestacadas = await sanityClient.fetch(`
   *[_type == "noticiasConfig"][0]{
-    "novedades": novedades[publicado != false] | order(fecha desc) [0..2] {
+    "novedades": novedades[publicado != false && destacado == true] | order(fecha desc) [0..2] {
       titulo, bajada, fecha, categoria,
       "imagen": imagen.asset->url,
       link

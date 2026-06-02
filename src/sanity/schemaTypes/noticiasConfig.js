@@ -25,10 +25,13 @@ export default defineType({
                             title: 'titulo',
                             subtitle: 'fecha',
                             media: 'imagen',
+                            destacado: 'destacado',
+                            publicado: 'publicado',
                         },
-                        prepare({ title, subtitle, media }) {
+                        prepare({ title, subtitle, media, destacado, publicado }) {
+                            const estado = publicado === false ? ' [oculta]' : destacado ? ' ⭐' : '';
                             return {
-                                title: title || 'Sin título',
+                                title: (title || 'Sin título') + estado,
                                 subtitle: subtitle
                                     ? new Date(subtitle).toLocaleDateString('es-AR')
                                     : 'Sin fecha',
@@ -43,6 +46,13 @@ export default defineType({
                             type: 'boolean',
                             initialValue: true,
                             description: 'Desactivar para ocultar sin borrar',
+                        },
+                        {
+                            name: 'destacado',
+                            title: '⭐ Destacado en Inicio',
+                            type: 'boolean',
+                            initialValue: false,
+                            description: 'Activar para que aparezca en el slider de la página principal',
                         },
                         {
                             name: 'titulo',
