@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import { readFileSync } from 'fs';
+import { getContacto } from '../../lib/contacto.js';
 
 export const prerender = false;
 
@@ -85,6 +86,7 @@ export async function POST({ request }) {
       vigStr = `${pad2(parseInt(vp[2]))}/${pad2(parseInt(vp[1]))}/${vp[0]}`;
     }
 
+    const contacto = await getContacto();
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
     // Header
@@ -238,8 +240,8 @@ export async function POST({ request }) {
     doc.setDrawColor(...GOLD); doc.setLineWidth(0.5); doc.line(0, 274, 210, 274);
     doc.setFillColor(...GREEN); doc.rect(0, 274, 210, 23, 'F');
     doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5);
-    doc.text('Avenida América Latina 1672 — San Fernando del Valle de Catamarca', 105, 281, { align: 'center' });
-    doc.text(`criminalisticacolegio@gmail.com  ·  Ley Provincial N° 5.595/19`, 105, 288, { align: 'center' });
+    doc.text(contacto.direccion, 105, 281, { align: 'center' });
+    doc.text(`${contacto.correo}  ·  Ley Provincial N° 5.595/19`, 105, 288, { align: 'center' });
     doc.setFontSize(6.5); doc.setTextColor(190, 225, 190);
     doc.text(`Emitido el ${fmtD(hoy)} · ${preNum}`, 105, 294, { align: 'center' });
 

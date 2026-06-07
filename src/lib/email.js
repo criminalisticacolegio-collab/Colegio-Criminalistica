@@ -777,6 +777,11 @@ export async function enviarAccesoCurso({ nombre, email, cursoNombre, fechaInici
             <div style="text-align:center;background:white;border:2px solid #1a5c2a;border-radius:8px;padding:12px 20px;margin-bottom:12px;">
               <span style="font-size:26px;font-weight:800;letter-spacing:0.2em;color:#1a5c2a;font-family:monospace;">${codigoClassroom}</span>
             </div>` : ''}
+            ${!linkClassroom && !codigoClassroom ? `
+            <p style="color:#7c5e00;font-size:13px;line-height:1.6;margin:0;">
+              📬 <strong>Secretaría te enviará el enlace de acceso al aula en breve</strong> al mismo correo en que recibís este mensaje.<br/>
+              Ante cualquier consulta escribinos a <a href="mailto:${contacto.correo}" style="color:#1a5c2a;font-weight:700;">${contacto.correo}</a>
+            </p>` : ''}
           </div>
           <div style="background:#f8f9fa;border-left:4px solid #1a5c2a;padding:14px 18px;border-radius:0 8px 8px 0;margin-bottom:24px;">
             <p style="color:#1a2d4a;font-size:13px;line-height:1.7;margin:0;">

@@ -401,7 +401,7 @@ const pteTribunalCargo = tribunal?.presidenteTrib_especialidad  || 'Presidente d
     let mat: any = null;
     try {
       mat = await sanity.fetch(
-        `*[_type == "matriculado" && email == $email][0]{
+        `*[_type == "matriculado" && lower(email) == lower($email)][0]{
           nombreCompleto, numeroMatricula, estado, email,
           especialidad->{ titulo }, jurisdiccion->{ titulo }
         }`,
@@ -932,6 +932,9 @@ const pteTribunalCargo = tribunal?.presidenteTrib_especialidad  || 'Presidente d
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const logo = await getLogoBase64();
+    const ctc = await sanity.fetch(`*[_type == "contactoConfig"][0]{ direccion, correo }`).catch(() => null);
+    const footerDir = ctc?.direccion || 'Sede Oficial — San Fernando del Valle de Catamarca';
+    const footerEmail = ctc?.correo || 'criminalisticacolegio@gmail.com';
     const hoy = new Date();
     const vencimiento = new Date(hoy); vencimiento.setDate(hoy.getDate() + 30);
     const fmtFecha = (d: Date) => d.toLocaleDateString('es-AR', { day:'2-digit', month:'long', year:'numeric' });
@@ -1000,7 +1003,7 @@ const pteTribunalCargo = tribunal?.presidenteTrib_especialidad  || 'Presidente d
     doc.setFillColor(27, 94, 32);
     doc.rect(0, 290, 210, 7, 'F');
     doc.setTextColor(255, 255, 255); doc.setFontSize(6.5); doc.setFont('helvetica', 'normal');
-    doc.text('Avenida América Latina 1672 — San Fernando del Valle de Catamarca  ·  criminalisticacolegio@gmail.com  ·  Ley N° 5.595/19', 105, 294, { align: 'center' });
+    doc.text(`${footerDir}  ·  ${footerEmail}  ·  Ley N° 5.595/19`, 105, 294, { align: 'center' });
 
     doc.save(`constancia-matricula-${mat.numeroMatricula}.pdf`);
   }
@@ -1023,6 +1026,9 @@ const pteTribunalCargo = tribunal?.presidenteTrib_especialidad  || 'Presidente d
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const logo = await getLogoBase64();
+    const ctcE = await sanity.fetch(`*[_type == "contactoConfig"][0]{ direccion, correo }`).catch(() => null);
+    const footerDirE = ctcE?.direccion || 'Sede Oficial — San Fernando del Valle de Catamarca';
+    const footerEmailE = ctcE?.correo || 'criminalisticacolegio@gmail.com';
     const hoy = new Date();
     const fmtFecha = (d: Date) => d.toLocaleDateString('es-AR', { day:'2-digit', month:'long', year:'numeric' });
 
@@ -1081,7 +1087,7 @@ const pteTribunalCargo = tribunal?.presidenteTrib_especialidad  || 'Presidente d
 
     doc.setFillColor(27, 94, 32); doc.rect(0, 290, 210, 7, 'F');
     doc.setTextColor(255, 255, 255); doc.setFontSize(6.5); doc.setFont('helvetica', 'normal');
-    doc.text('Avenida América Latina 1672 — San Fernando del Valle de Catamarca  ·  criminalisticacolegio@gmail.com  ·  Ley N° 5.595/19', 105, 294, { align: 'center' });
+    doc.text(`${footerDirE}  ·  ${footerEmailE}  ·  Ley N° 5.595/19`, 105, 294, { align: 'center' });
 
     doc.save(`constancia-etica-${mat.numeroMatricula}.pdf`);
     btn.disabled = false;
