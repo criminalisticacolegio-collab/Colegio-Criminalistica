@@ -9,8 +9,10 @@ try {
   // Logo no disponible, el encabezado se mostrará solo con texto
 }
 
-const FOOTER_LINE1 = 'Avenida América Latina 1672 — San Fernando del Valle de Catamarca';
-const FOOTER_LINE2 = 'criminalisticacolegio@gmail.com';
+const FOOTER_DEFAULTS = {
+  direccion: 'Sede Oficial — San Fernando del Valle de Catamarca',
+  correo: 'criminalisticacolegio@gmail.com',
+};
 
 /**
  * Genera el comprobante de pago como Buffer (para adjuntar en emails o descargar).
@@ -24,7 +26,9 @@ const FOOTER_LINE2 = 'criminalisticacolegio@gmail.com';
  * @param {Date}   params.fecha
  * @returns {Buffer}
  */
-export function generarComprobantePago({ nombreCompleto, numeroMatricula, email, monto, concepto, mpPaymentId, fecha }) {
+export function generarComprobantePago({ nombreCompleto, numeroMatricula, email, monto, concepto, mpPaymentId, fecha, contacto }) {
+  const footerL1 = contacto?.direccion || FOOTER_DEFAULTS.direccion;
+  const footerL2 = contacto?.correo    || FOOTER_DEFAULTS.correo;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const fechaStr = (fecha instanceof Date ? fecha : new Date(fecha)).toLocaleDateString('es-AR', {
     day: '2-digit', month: '2-digit', year: 'numeric'
@@ -133,8 +137,8 @@ export function generarComprobantePago({ nombreCompleto, numeroMatricula, email,
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
-  doc.text(FOOTER_LINE1, 105, 286, { align: 'center' });
-  doc.text(FOOTER_LINE2, 105, 292, { align: 'center' });
+  doc.text(footerL1, 105, 286, { align: 'center' });
+  doc.text(footerL2, 105, 292, { align: 'center' });
 
   return Buffer.from(doc.output('arraybuffer'));
 }
@@ -142,7 +146,9 @@ export function generarComprobantePago({ nombreCompleto, numeroMatricula, email,
 /**
  * Genera carta de bienvenida para aspirantes como Buffer.
  */
-export function generarCartaAspirante({ nombre, apellido, dni, email, tituloProfesional, fecha }) {
+export function generarCartaAspirante({ nombre, apellido, dni, email, tituloProfesional, fecha, contacto }) {
+  const footerL1 = contacto?.direccion || FOOTER_DEFAULTS.direccion;
+  const footerL2 = contacto?.correo    || FOOTER_DEFAULTS.correo;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const fechaStr = new Date(fecha).toLocaleDateString('es-AR', {
     day: '2-digit', month: 'long', year: 'numeric'
@@ -248,8 +254,8 @@ export function generarCartaAspirante({ nombre, apellido, dni, email, tituloProf
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
-  doc.text(FOOTER_LINE1, 105, 286, { align: 'center' });
-  doc.text(FOOTER_LINE2, 105, 292, { align: 'center' });
+  doc.text(footerL1, 105, 286, { align: 'center' });
+  doc.text(footerL2, 105, 292, { align: 'center' });
 
   return Buffer.from(doc.output('arraybuffer'));
 }
@@ -262,7 +268,9 @@ export function generarCartaAspirante({ nombre, apellido, dni, email, tituloProf
  * @param {Date}   params.fecha
  * @returns {Buffer}
  */
-export function generarCertificadoCurso({ nombreCompleto, cursoTitulo, fecha }) {
+export function generarCertificadoCurso({ nombreCompleto, cursoTitulo, fecha, contacto }) {
+  const footerL1 = contacto?.direccion || FOOTER_DEFAULTS.direccion;
+  const footerL2 = contacto?.correo    || FOOTER_DEFAULTS.correo;
   const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' });
   const fechaStr = new Date(fecha).toLocaleDateString('es-AR', {
     day: '2-digit', month: 'long', year: 'numeric'
@@ -356,7 +364,7 @@ export function generarCertificadoCurso({ nombreCompleto, cursoTitulo, fecha }) 
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.5);
-  doc.text(`${FOOTER_LINE1}  ·  ${FOOTER_LINE2}  ·  Ley N° 5.595/19`, 148, 206, { align: 'center' });
+  doc.text(`${footerL1}  ·  ${footerL2}  ·  Ley N° 5.595/19`, 148, 206, { align: 'center' });
 
   return Buffer.from(doc.output('arraybuffer'));
 }

@@ -1,25 +1,14 @@
 import { transporter, FROM, REPLY_TO } from './mailer.js';
 import { generarComprobantePago, generarCartaAspirante, generarCertificadoCurso } from './pdf.js';
-import { createClient } from '@sanity/client';
-
-const sanityPublic = createClient({
-  projectId: '8q7vz6co',
-  dataset: 'production',
-  useCdn: false,
-  apiVersion: '2023-05-03',
-});
+import { getContacto } from './contacto.js';
 
 /**
  * Email de confirmación al aspirante cuando completa el formulario de registro.
  */
 export async function enviarConfirmacionAspirante({ nombre, apellido, dni, email, tituloProfesional, cuil, jurisdiccion, documentosRecibidos = [] }) {
-  // Leer datos de contacto desde Sanity para el footer
-  const contacto = await sanityPublic.fetch(
-    `*[_type == "contactoConfig"][0]{ correo, telefonoOficial }`
-  ).catch(() => null);
-
-  const emailContacto = contacto?.correo || 'criminalisticacolegio@gmail.com';
-  const telContacto = contacto?.telefonoOficial || null;
+  const contacto = await getContacto();
+  const emailContacto = contacto.correo;
+  const telContacto = contacto.telefono;
 
   let pdfBuffer;
   try {
@@ -30,6 +19,7 @@ export async function enviarConfirmacionAspirante({ nombre, apellido, dni, email
       email,
       tituloProfesional,
       fecha: new Date(),
+      contacto,
     });
   } catch (err) {
     console.error('[email] Error generando carta aspirante PDF:', err);
@@ -109,6 +99,7 @@ export async function enviarConfirmacionAspirante({ nombre, apellido, dni, email
  * La contraseña inicial es el número de matrícula.
  */
 export async function enviarBienvenidaMatriculacion({ nombreCompleto, email, numeroMatricula, jurisdiccion }) {
+  const contacto = await getContacto();
   const fechaAlta = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
   const siteUrl = import.meta.env.SITE || 'https://cpcc-catamarca.com';
 
@@ -228,7 +219,7 @@ export async function enviarBienvenidaMatriculacion({ nombreCompleto, email, num
                 <div style="border-left:4px solid #1a5c2a;padding:12px 16px;margin-bottom:32px;background:#f9fafb;border-radius:0 8px 8px 0;">
                   <p style="color:#555;font-size:13px;line-height:1.7;margin:0;">
                     📌 Tu cuota mensual vence el día <strong>20 de cada mes</strong>.<br/>
-                    📌 Ante cualquier consulta escribinos a <a href="mailto:criminalisticacolegio@gmail.com" style="color:#1a5c2a;font-weight:700;">criminalisticacolegio@gmail.com</a><br/>
+                    📌 Ante cualquier consulta escribinos a <a href="mailto:${contacto.correo}" style="color:#1a5c2a;font-weight:700;">${contacto.correo}</a><br/>
                     📌 Seguinos en nuestras redes para estar al día con novedades y capacitaciones.
                   </p>
                 </div>
@@ -250,10 +241,10 @@ export async function enviarBienvenidaMatriculacion({ nombreCompleto, email, num
             <tr>
               <td style="background:#1a5c2a;padding:28px 40px;text-align:center;">
                 <p style="color:rgba(255,255,255,0.5);font-size:11px;margin:0 0 6px;">
-                  San Fernando del Valle de Catamarca
+                  ${contacto.direccion}
                 </p>
                 <p style="color:rgba(255,255,255,0.7);font-size:12px;margin:0 0 10px;">
-                  <a href="mailto:criminalisticacolegio@gmail.com" style="color:rgba(255,255,255,0.9);text-decoration:none;">criminalisticacolegio@gmail.com</a>
+                  <a href="mailto:${contacto.correo}" style="color:rgba(255,255,255,0.9);text-decoration:none;">${contacto.correo}</a>
                 </p>
                 <p style="color:rgba(255,255,255,0.45);font-size:10px;margin:0;">
                   © 2025 CPCC Catamarca — Ley Provincial N° 5.595/19
@@ -273,6 +264,7 @@ export async function enviarBienvenidaMatriculacion({ nombreCompleto, email, num
  * Email con comprobante de pago en PDF adjunto, enviado tras confirmación del webhook.
  */
 export async function enviarComprobantePago({ nombreCompleto, numeroMatricula, email, monto, concepto, mpPaymentId, fecha }) {
+  const contacto = await getContacto();
   let pdfBuffer;
   try {
     pdfBuffer = generarComprobantePago({
@@ -283,6 +275,7 @@ export async function enviarComprobantePago({ nombreCompleto, numeroMatricula, e
       concepto,
       mpPaymentId,
       fecha,
+      contacto,
     });
   } catch (err) {
     console.error('[email] Error generando comprobante PDF:', err);
@@ -356,7 +349,7 @@ export async function enviarComprobantePago({ nombreCompleto, numeroMatricula, e
         <!-- Footer -->
         <div style="background: #1b5e20; padding: 20px 40px; text-align: center;">
           <p style="color: rgba(255,255,255,0.7); font-size: 12px; margin: 0;">
-            CPCC · San Fernando del Valle de Catamarca · criminalisticacolegio@gmail.com
+            CPCC · ${contacto.direccion} · ${contacto.correo}
           </p>
         </div>
       </div>
@@ -369,6 +362,7 @@ export async function enviarComprobantePago({ nombreCompleto, numeroMatricula, e
  * Confirmación de inscripción a un curso (gratuito o pago ya aprobado).
  */
 export async function enviarConfirmacionInscripcion({ nombre, email, cursoTitulo, esMatriculado, tipoAcceso }) {
+  const contacto = await getContacto();
   const esPago = tipoAcceso?.startsWith('pago_');
   const descuentoMatriculado = esMatriculado && tipoAcceso === 'pago_matriculados';
 
@@ -405,7 +399,7 @@ export async function enviarConfirmacionInscripcion({ nombre, email, cursoTitulo
         </div>
         <div style="background: #1b5e20; padding: 20px 40px; text-align: center;">
           <p style="color: rgba(255,255,255,0.7); font-size: 12px; margin: 0;">
-            CPCC · San Fernando del Valle de Catamarca · criminalisticacolegio@gmail.com
+            CPCC · ${contacto.direccion} · ${contacto.correo}
           </p>
         </div>
       </div>
@@ -417,9 +411,10 @@ export async function enviarConfirmacionInscripcion({ nombre, email, cursoTitulo
  * Email con certificado PDF de aprobación de curso, adjunto.
  */
 export async function enviarCertificadoCurso({ nombre, email, cursoTitulo, fecha }) {
+  const contacto = await getContacto();
   let pdfBuffer;
   try {
-    pdfBuffer = generarCertificadoCurso({ nombreCompleto: nombre, cursoTitulo, fecha });
+    pdfBuffer = generarCertificadoCurso({ nombreCompleto: nombre, cursoTitulo, fecha, contacto });
   } catch (err) {
     console.error('[email] Error generando certificado PDF:', err);
   }
@@ -474,7 +469,7 @@ export async function enviarCertificadoCurso({ nombre, email, cursoTitulo, fecha
         </div>
         <div style="background: #1b5e20; padding: 20px 40px; text-align: center;">
           <p style="color: rgba(255,255,255,0.7); font-size: 12px; margin: 0;">
-            CPCC · San Fernando del Valle de Catamarca · criminalisticacolegio@gmail.com
+            CPCC · ${contacto.direccion} · ${contacto.correo}
           </p>
         </div>
       </div>
@@ -487,6 +482,7 @@ export async function enviarCertificadoCurso({ nombre, email, cursoTitulo, fecha
  * Email de reseteo / primer acceso al área privada de matriculados.
  */
 export async function enviarResetPassword({ nombre, email, resetLink }) {
+  const contacto = await getContacto();
   const nombreMostrado = nombre || 'Estimado/a profesional';
 
   await transporter.sendMail({
@@ -540,7 +536,7 @@ export async function enviarResetPassword({ nombre, email, resetLink }) {
             El link expira en 1 hora.
           </p>
           <p style="color: rgba(255,255,255,0.6); font-size: 12px; margin: 0;">
-            CPCC — criminalisticacolegio@gmail.com
+            CPCC — ${contacto.correo}
           </p>
         </div>
       </div>
@@ -552,6 +548,7 @@ export async function enviarResetPassword({ nombre, email, resetLink }) {
  * Email de bienvenida al nuevo matriculado activo.
  */
 export async function enviarBienvenida({ nombreCompleto, email, numeroMatricula, especialidad, jurisdiccion, resetLink }) {
+  const contacto = await getContacto();
   const fechaAlta = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
 
   await transporter.sendMail({
@@ -666,7 +663,7 @@ export async function enviarBienvenida({ nombreCompleto, email, numeroMatricula,
                 <div style="border-left:4px solid #1b5e20;padding:12px 16px;margin-bottom:32px;background:#f9fafb;border-radius:0 8px 8px 0;">
                   <p style="color:#555;font-size:13px;line-height:1.7;margin:0;">
                     📌 Tu cuota mensual vence el día <strong>20 de cada mes</strong>.<br/>
-                    📌 Ante cualquier consulta escribinos a <a href="mailto:criminalisticacolegio@gmail.com" style="color:#1b5e20;font-weight:700;">criminalisticacolegio@gmail.com</a><br/>
+                    📌 Ante cualquier consulta escribinos a <a href="mailto:${contacto.correo}" style="color:#1b5e20;font-weight:700;">${contacto.correo}</a><br/>
                     📌 Seguinos en nuestras redes para estar al día con novedades, capacitaciones y comunicados.
                   </p>
                 </div>
@@ -693,10 +690,10 @@ export async function enviarBienvenida({ nombreCompleto, email, numeroMatricula,
             <tr>
               <td style="background:#1b5e20;padding:28px 40px;text-align:center;">
                 <p style="color:rgba(255,255,255,0.5);font-size:11px;margin:0 0 6px;">
-                  Avenida América Latina 1672 — San Fernando del Valle de Catamarca
+                  ${contacto.direccion}
                 </p>
                 <p style="color:rgba(255,255,255,0.7);font-size:12px;margin:0 0 10px;">
-                  <a href="mailto:criminalisticacolegio@gmail.com" style="color:rgba(255,255,255,0.9);text-decoration:none;">criminalisticacolegio@gmail.com</a>
+                  <a href="mailto:${contacto.correo}" style="color:rgba(255,255,255,0.9);text-decoration:none;">${contacto.correo}</a>
                 </p>
                 <p style="color:rgba(255,255,255,0.45);font-size:10px;margin:0;">
                   © 2025 CPC Catamarca — Ley Provincial N° 5.595/19
@@ -716,6 +713,7 @@ export async function enviarBienvenida({ nombreCompleto, email, numeroMatricula,
  * Email de acceso al campus virtual enviado al inscripto cuando se confirma la inscripción.
  */
 export async function enviarAccesoCurso({ nombre, email, cursoNombre, fechaInicio, linkClassroom, codigoClassroom = '', precioAbonado = 0, esPreinscripcion = false }) {
+  const contacto = await getContacto();
   const fechaStr = fechaInicio
     ? new Date(fechaInicio).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
     : 'A confirmar';
@@ -737,7 +735,7 @@ export async function enviarAccesoCurso({ nombre, email, cursoNombre, fechaInici
           <p style="color:#1a2d4a;line-height:1.6;margin:0;">Te notificaremos por este email en cuanto el curso esté disponible para inscripción.</p>
         </div>
         <div style="background:#1a2d4a;padding:20px 40px;text-align:center;">
-          <p style="color:rgba(255,255,255,0.6);font-size:12px;margin:0;">CPCC — criminalisticacolegio@gmail.com</p>
+          <p style="color:rgba(255,255,255,0.6);font-size:12px;margin:0;">CPCC — ${contacto.correo}</p>
         </div>
       </div>`
     : `
@@ -784,7 +782,7 @@ export async function enviarAccesoCurso({ nombre, email, cursoNombre, fechaInici
             <p style="color:#1a2d4a;font-size:13px;line-height:1.7;margin:0;">
               ⚠️ <strong>Acceso personal e intransferible.</strong><br/>
               📌 Necesitás cuenta Google para ingresar al aula.<br/>
-              📌 Ante inconvenientes escribinos a <a href="mailto:criminalisticacolegio@gmail.com" style="color:#1a5c2a;font-weight:700;">criminalisticacolegio@gmail.com</a>
+              📌 Ante inconvenientes escribinos a <a href="mailto:${contacto.correo}" style="color:#1a5c2a;font-weight:700;">${contacto.correo}</a>
             </p>
           </div>
 
@@ -794,7 +792,7 @@ export async function enviarAccesoCurso({ nombre, email, cursoNombre, fechaInici
           </div>
         </div>
         <div style="background:#1a2d4a;padding:20px 40px;text-align:center;">
-          <p style="color:rgba(255,255,255,0.6);font-size:12px;margin:0;">CPCC — criminalisticacolegio@gmail.com</p>
+          <p style="color:rgba(255,255,255,0.6);font-size:12px;margin:0;">CPCC — ${contacto.correo}</p>
         </div>
       </div>`;
 
@@ -909,6 +907,7 @@ export async function enviarNotificacionMora({ nombreCompleto, numeroMatricula, 
  * Email al matriculado cuando el admin reactiva su matrícula en Sanity.
  */
 export async function enviarReactivacion({ nombreCompleto, email, numeroMatricula }) {
+  const contacto = await getContacto();
   await transporter.sendMail({
     from: FROM,
     replyTo: REPLY_TO,
@@ -949,11 +948,11 @@ export async function enviarReactivacion({ nombreCompleto, email, numeroMatricul
             </a>
           </div>
           <p style="color:#666;font-size:12px;text-align:center;margin:0;">
-            Ante cualquier consulta escribinos a <a href="mailto:criminalisticacolegio@gmail.com" style="color:#1b5e20;font-weight:700;">criminalisticacolegio@gmail.com</a>
+            Ante cualquier consulta escribinos a <a href="mailto:${contacto.correo}" style="color:#1b5e20;font-weight:700;">${contacto.correo}</a>
           </p>
         </div>
         <div style="background:#1b5e20;padding:20px 40px;text-align:center;">
-          <p style="color:rgba(255,255,255,0.7);font-size:12px;margin:0;">CPCC · San Fernando del Valle de Catamarca · criminalisticacolegio@gmail.com</p>
+          <p style="color:rgba(255,255,255,0.7);font-size:12px;margin:0;">CPCC · ${contacto.direccion} · ${contacto.correo}</p>
         </div>
       </div>
     `,
@@ -964,7 +963,8 @@ export async function enviarReactivacion({ nombreCompleto, email, numeroMatricul
  * Aviso al matriculado que acumula exactamente 2 meses consecutivos pendientes (en riesgo).
  */
 export async function enviarAvisoRiesgoMora({ nombreCompleto, email, numeroMatricula }) {
-  const contactoEmail = 'criminalisticacolegio@gmail.com';
+  const contacto = await getContacto();
+  const contactoEmail = contacto.correo;
 
   await transporter.sendMail({
     from: FROM,
@@ -1038,7 +1038,8 @@ export async function enviarAvisoRiesgoMora({ nombreCompleto, email, numeroMatri
  * Notificación al matriculado cuando su estado pasa a Suspendido o Baja por acción administrativa.
  */
 export async function enviarNotificacionSuspension({ nombreCompleto, email, numeroMatricula, estado }) {
-  const contactoEmail = 'criminalisticacolegio@gmail.com';
+  const contacto = await getContacto();
+  const contactoEmail = contacto.correo;
   const esBaja = estado === 'Baja';
   const etiqueta = esBaja ? 'BAJA' : 'SUSPENDIDA';
   const descripcion = esBaja
@@ -1102,7 +1103,7 @@ export async function enviarNotificacionSuspension({ nombreCompleto, email, nume
             </p>
             <p style="color:#444;font-size:14px;margin:10px 0 0;">
               📧 <a href="mailto:${contactoEmail}" style="color:#1a5c2a;font-weight:700;">${contactoEmail}</a><br/>
-              🕐 Horario de atención: Lun. a Vie. · 08:00 — 14:00 hs.
+              🕐 Horario de atención: ${contacto.horarios}
             </p>
           </div>
 
@@ -1118,7 +1119,7 @@ export async function enviarNotificacionSuspension({ nombreCompleto, email, nume
 
         <div style="background:#1a5c2a;padding:20px 40px;text-align:center;">
           <p style="color:rgba(255,255,255,0.5);font-size:11px;margin:0 0 5px;">
-            Avenida América Latina 1672 — San Fernando del Valle de Catamarca
+            ${contacto.direccion}
           </p>
           <p style="color:rgba(255,255,255,0.7);font-size:12px;margin:0;">
             <a href="mailto:${contactoEmail}" style="color:rgba(255,255,255,0.9);text-decoration:none;">${contactoEmail}</a>
@@ -1130,7 +1131,8 @@ export async function enviarNotificacionSuspension({ nombreCompleto, email, nume
 }
 
 export async function enviarNotificacionMoraFormal({ nombreCompleto, email, numeroMatricula }) {
-  const contactoEmail = 'criminalisticacolegio@gmail.com';
+  const contacto = await getContacto();
+  const contactoEmail = contacto.correo;
 
   await transporter.sendMail({
     from: FROM,
@@ -1301,6 +1303,7 @@ export async function enviarResumenMoraAdmin({ enRiesgo = [], enMora = [], fecha
  * Notificación a secretaría + acuse de recibo al remitente cuando alguien usa el formulario de contacto.
  */
 export async function enviarConsultaContacto({ nombre, email, mensaje }) {
+  const contacto = await getContacto();
   // 1. Notificación interna a la secretaría
   await transporter.sendMail({
     from: FROM,
@@ -1387,15 +1390,15 @@ export async function enviarConsultaContacto({ nombre, email, mensaje }) {
                   <table style="width:100%;border-collapse:collapse;font-size:14px;">
                     <tr>
                       <td style="padding:5px 0;color:#666;width:40%;">Horario de atención:</td>
-                      <td style="color:#111;font-weight:600;">Lun. a Vie. · 08:00 — 14:00 hs.</td>
+                      <td style="color:#111;font-weight:600;">${contacto.horarios}</td>
                     </tr>
                     <tr>
                       <td style="padding:5px 0;color:#666;">Correo electrónico:</td>
-                      <td><a href="mailto:criminalisticacolegio@gmail.com" style="color:#1a5c2a;font-weight:600;text-decoration:none;">criminalisticacolegio@gmail.com</a></td>
+                      <td><a href="mailto:${contacto.correo}" style="color:#1a5c2a;font-weight:600;text-decoration:none;">${contacto.correo}</a></td>
                     </tr>
                     <tr>
                       <td style="padding:5px 0;color:#666;">Sede:</td>
-                      <td style="color:#111;">Av. América Latina 1672, Capital</td>
+                      <td style="color:#111;">${contacto.direccion}</td>
                     </tr>
                   </table>
                 </div>
@@ -1417,10 +1420,10 @@ export async function enviarConsultaContacto({ nombre, email, mensaje }) {
             <tr>
               <td style="background:#1a5c2a;padding:24px 40px;text-align:center;">
                 <p style="color:rgba(255,255,255,0.5);font-size:11px;margin:0 0 5px;">
-                  Avenida América Latina 1672 — San Fernando del Valle de Catamarca
+                  ${contacto.direccion}
                 </p>
                 <p style="color:rgba(255,255,255,0.7);font-size:12px;margin:0 0 8px;">
-                  <a href="mailto:criminalisticacolegio@gmail.com" style="color:rgba(255,255,255,0.9);text-decoration:none;">criminalisticacolegio@gmail.com</a>
+                  <a href="mailto:${contacto.correo}" style="color:rgba(255,255,255,0.9);text-decoration:none;">${contacto.correo}</a>
                 </p>
                 <p style="color:rgba(255,255,255,0.4);font-size:10px;margin:0;">
                   © 2025 CPCC — Ley Provincial N° 5.595/19 · Este es un correo automático, por favor no lo responda directamente.
@@ -1440,6 +1443,7 @@ export async function enviarConsultaContacto({ nombre, email, mensaje }) {
  * Acuse de recibo institucional cuando alguien envía una propuesta o proyecto al Colegio.
  */
 export async function enviarAcuseReciboPropuesta({ nombre, email, tituloPropuesta, tipoPropuesta, fechaEnvio }) {
+  const contacto = await getContacto();
   const fechaStr = fechaEnvio
     ? new Date(fechaEnvio).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
     : new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
@@ -1540,10 +1544,10 @@ export async function enviarAcuseReciboPropuesta({ nombre, email, tituloPropuest
             <tr>
               <td style="background:#1a5c2a;padding:24px 40px;text-align:center;">
                 <p style="color:rgba(255,255,255,0.5);font-size:11px;margin:0 0 5px;">
-                  Avenida América Latina 1672 — San Fernando del Valle de Catamarca
+                  ${contacto.direccion}
                 </p>
                 <p style="color:rgba(255,255,255,0.7);font-size:12px;margin:0 0 8px;">
-                  <a href="mailto:criminalisticacolegio@gmail.com" style="color:rgba(255,255,255,0.9);text-decoration:none;">criminalisticacolegio@gmail.com</a>
+                  <a href="mailto:${contacto.correo}" style="color:rgba(255,255,255,0.9);text-decoration:none;">${contacto.correo}</a>
                 </p>
                 <p style="color:rgba(255,255,255,0.4);font-size:10px;margin:0;">
                   © 2025 CPCC — Ley Provincial N° 5.595/19 · Este es un correo automático, por favor no lo responda directamente.
