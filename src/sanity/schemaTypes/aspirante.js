@@ -41,14 +41,6 @@ export default defineType({
             }).warning(),
         }),
         defineField({
-            name: 'documentacion',
-            title: 'Documentación',
-            type: 'file',
-            options: {
-                accept: '.pdf,.doc,.docx,.jpg,.png'
-            }
-        }),
-        defineField({
             name: 'cuil',
             type: 'string',
             title: 'CUIL/CUIT'
