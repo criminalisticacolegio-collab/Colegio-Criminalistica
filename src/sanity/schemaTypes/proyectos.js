@@ -1,4 +1,5 @@
 import { defineField, defineType } from 'sanity'
+import { FileDownloadInput } from '../components/FileDownload.jsx'
 
 export default defineType({
   name: 'proyectos',
@@ -59,7 +60,7 @@ export default defineType({
       name: 'archivosAdjuntos',
       title: 'Archivos Adjuntos',
       type: 'array',
-      of: [{ type: 'file' }],
+      of: [{ type: 'file', components: { input: FileDownloadInput } }],
       options: { layout: 'list' },
       validation: Rule => Rule.max(3).warning('Máximo 3 archivos adjuntos'),
     }),

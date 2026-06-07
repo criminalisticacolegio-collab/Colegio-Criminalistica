@@ -342,7 +342,7 @@ const pteTribunalCargo = tribunal?.presidenteTrib_especialidad  || 'Presidente d
   import { createClient } from '@sanity/client';
 
   const sanity = createClient({
-    projectId: '8q7vz6co', dataset: 'production', useCdn: true, apiVersion: '2023-05-03',
+    projectId: '8q7vz6co', dataset: 'production', useCdn: false, apiVersion: '2023-05-03',
   });
 
   const cfg = document.getElementById('cfg')!;
