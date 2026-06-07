@@ -45,10 +45,10 @@ export const POST = async ({ request }) => {
     return json({ error: 'Error interno. Intentá de nuevo.' }, 500);
   }
 
-  // ── 2. No existe en el padrón → redirigir ──────────────────
+  // ── 2. No existe en el padrón ──────────────────────────────
   if (!matriculado) {
     console.log('[send-reset-email] Email no encontrado en padrón:', email);
-    return json({ redirect: '/nuevos-profesionales' }, 200);
+    return json({ notInPadron: true }, 200);
   }
 
   console.log(`[send-reset-email] Matriculado encontrado: ${matriculado.nombreCompleto} (${matriculado.estado})`);

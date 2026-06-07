@@ -69,7 +69,8 @@ const pteTribunalCargo = tribunal?.presidenteTrib_especialidad  || 'Presidente d
           <p id="reset-error" class="reset-msg reset-msg-error hidden"></p>
           <p id="reset-success" class="reset-msg reset-msg-ok hidden"></p>
           <div id="reset-not-padron" class="reset-not-padron hidden">
-            <p>Este email no está registrado en el Colegio.</p>
+            <p>Este email no está registrado en el padrón activo del Colegio.<br/>
+            Si estás matriculado/a, verificá que el email ingresado coincida exactamente con el registrado en Secretaría, o contactanos.</p>
             <a href="/nuevos-profesionales" class="btn-matricularse">¿Querés matricularte? →</a>
           </div>
         </div>
@@ -606,7 +607,15 @@ const pteTribunalCargo = tribunal?.presidenteTrib_especialidad  || 'Presidente d
     try {
       await signInWithEmailAndPassword(auth, email, pass);
       hide(stateLogin);
-    } catch {
+    } catch (err: any) {
+      const code = err?.code || '';
+      if (code === 'auth/user-not-found' || code === 'auth/invalid-credential' || code === 'auth/wrong-password') {
+        gateError.textContent = 'Credenciales incorrectas. Si es tu primera vez, usá el botón de abajo para obtener acceso.';
+      } else if (code === 'auth/too-many-requests') {
+        gateError.textContent = 'Demasiados intentos. Esperá unos minutos e intentá de nuevo.';
+      } else {
+        gateError.textContent = 'Error al ingresar. Verificá tu conexión e intentá de nuevo.';
+      }
       show(gateError);
       gateBtn.disabled = false;
       gateBtn.textContent = 'Ingresar';
@@ -667,10 +676,7 @@ const pteTribunalCargo = tribunal?.presidenteTrib_especialidad  || 'Presidente d
       });
       const data = await res.json();
 
-      if (data.redirect) {
-        window.location.href = data.redirect;
-        return;
-      } else if (data.notInPadron) {
+      if (data.notInPadron) {
         resetNotPadron.classList.remove('hidden');
       } else if (!res.ok || data.error) {
         resetError.textContent = data.error || 'No se pudo enviar el email. Intentá de nuevo.';
