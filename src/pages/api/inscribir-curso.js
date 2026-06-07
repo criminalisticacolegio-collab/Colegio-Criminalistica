@@ -50,9 +50,18 @@ export async function POST({ request }) {
 
     let emailEnviado = false;
 
-    // Gratuito (no pre-inscripción) → enviar acceso inmediato si hay classroom
-    if (esGratuito && !esPreinscripcion) {
-      try {
+    // ── Email para TODOS los tipos de curso ──────────────────────────
+    // Próximamente (esPreinscripcion): avisa que está en lista de espera
+    // Todos los demás (gratuito, pago, promo, seminario): envía link de classroom
+    try {
+      if (esPreinscripcion) {
+        await enviarAccesoCurso({
+          nombre: nombreCompleto,
+          email,
+          cursoNombre: cursoNombre || 'Curso',
+          esPreinscripcion: true,
+        });
+      } else {
         await enviarAccesoCurso({
           nombre: nombreCompleto,
           email,
@@ -60,34 +69,18 @@ export async function POST({ request }) {
           fechaInicio,
           linkClassroom: linkClassroom || '',
           codigoClassroom: codigoClassroom || '',
-          precioAbonado: 0,
-          esPreinscripcion: false,
+          precioAbonado: precioAbonado || 0,
         });
-        await sanity.patch(inscripcion._id)
-          .set({ accesoEnviado: true, fechaEnvioAcceso: new Date().toISOString() })
-          .commit();
-        emailEnviado = true;
-      } catch (emailErr) {
-        console.error('[inscribir-curso] Error enviando email acceso:', emailErr?.message || emailErr);
       }
+      await sanity.patch(inscripcion._id)
+        .set({ accesoEnviado: true, fechaEnvioAcceso: new Date().toISOString() })
+        .commit();
+      emailEnviado = true;
+    } catch (emailErr) {
+      console.error('[inscribir-curso] Error enviando email:', emailErr?.message || emailErr);
     }
 
-    // Pre-inscripción → email de aviso
-    if (esPreinscripcion) {
-      try {
-        await enviarAccesoCurso({
-          nombre: nombreCompleto,
-          email,
-          cursoNombre: cursoNombre || 'Curso',
-          esPreinscripcion: true,
-        });
-        emailEnviado = true;
-      } catch (emailErr) {
-        console.error('[inscribir-curso] Error enviando email pre-inscripcion:', emailErr?.message || emailErr);
-      }
-    }
-
-    // ── Cursos de PAGO: verificar email+matrícula y devolver link ──
+    // ── Cursos de PAGO: además del email, devolver link de pago ──────
     if (!esGratuito && !esPreinscripcion) {
       let linkPago = null;
       try {
@@ -98,7 +91,6 @@ export async function POST({ request }) {
           { key: cursoKey }
         );
         if (curso) {
-          // Verificar email + matrícula juntos contra el padrón
           if (emailNorm && numeroMatricula) {
             const activo = await sanity.fetch(
               `*[_type == "matriculado" && lower(email) == lower($email) && numeroMatricula == $mat && estado == "Activo"][0]{_id}`,
@@ -106,27 +98,23 @@ export async function POST({ request }) {
             );
             if (activo && curso.linkPagoMatriculado) {
               linkPago = curso.linkPagoMatriculado;
-              console.log(`[inscribir-curso] Matrícula verificada (${numeroMatricula}) → link matriculado`);
             }
           }
           if (!linkPago) {
             linkPago = curso.linkPagoPublico || curso.linkPagoExterno || null;
-            console.log(`[inscribir-curso] → link público`);
           }
         }
       } catch (err) {
         console.error('[inscribir-curso] Error determinando link de pago:', err.message);
       }
-      return json({ ok: true, linkPago, message: '¡Pre-inscripción registrada! Te redirigimos al pago.' }, 200);
+      return json({ ok: true, linkPago, emailEnviado, message: '¡Inscripción registrada! Te redirigimos al pago.' }, 200);
     }
 
     const message = esPreinscripcion
       ? '¡Listo! Te avisaremos cuando el curso esté disponible.'
-      : esGratuito
-        ? emailEnviado
-          ? `¡Inscripción confirmada! Revisá tu email ${email} — te enviamos el acceso al campus.`
-          : `¡Inscripción confirmada! Ante cualquier inconveniente escribinos a criminalisticacolegio@gmail.com.`
-        : '¡Pre-inscripción registrada! Tu acceso se activará al confirmar el pago.';
+      : emailEnviado
+        ? `¡Inscripción confirmada! Revisá tu email ${email} — te enviamos el acceso al campus.`
+        : `¡Inscripción confirmada! Ante cualquier inconveniente escribinos.`;
 
     return json({ ok: true, message, emailEnviado }, 200);
 

@@ -712,18 +712,49 @@ export async function enviarBienvenida({ nombreCompleto, email, numeroMatricula,
 /**
  * Email de acceso al campus virtual enviado al inscripto cuando se confirma la inscripción.
  */
-export async function enviarAccesoCurso({ nombre, email, cursoNombre, fechaInicio, linkClassroom, codigoClassroom = '', precioAbonado = 0, esPreinscripcion = false }) {
+export async function enviarAccesoCurso({ nombre, email, cursoNombre, fechaInicio, linkClassroom, codigoClassroom = '', precioAbonado = 0, esPreinscripcion = false, esInscripcionPago = false }) {
   const contacto = await getContacto();
   const fechaStr = fechaInicio
     ? new Date(fechaInicio).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
     : 'A confirmar';
   const montoStr = precioAbonado > 0 ? `$${Number(precioAbonado).toLocaleString('es-AR')}` : 'Gratuito';
 
-  const subject = esPreinscripcion
-    ? `CPCC — Pre-inscripción registrada: ${cursoNombre}`
-    : `¡Tu acceso al curso ${cursoNombre} está listo! — CPCC`;
+  const subject = esInscripcionPago
+    ? `CPCC — Inscripción recibida: ${cursoNombre}`
+    : esPreinscripcion
+      ? `CPCC — Pre-inscripción registrada: ${cursoNombre}`
+      : `¡Tu acceso al curso ${cursoNombre} está listo! — CPCC`;
 
-  const body = esPreinscripcion
+  const body = esInscripcionPago
+    ? `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f8f9fa;border-radius:12px;overflow:hidden;">
+        <div style="background:#1a5c2a;padding:32px 40px;text-align:center;">
+          <h1 style="color:white;margin:0;font-size:20px;font-weight:700;line-height:1.4;">CPCC Catamarca</h1>
+        </div>
+        <div style="padding:32px 40px;background:white;">
+          <h2 style="color:#1a2d4a;font-size:20px;margin:0 0 12px;">¡Recibimos tu inscripción! 📋</h2>
+          <p style="color:#1a2d4a;line-height:1.6;margin:0 0 20px;">Hola <strong>${nombre}</strong>, registramos tu solicitud de inscripción al curso <strong>${cursoNombre}</strong>.</p>
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:20px;margin-bottom:24px;">
+            <table style="width:100%;border-collapse:collapse;font-size:14px;">
+              <tr style="border-bottom:1px solid #d1fae5;"><td style="padding:8px 0;color:#1a2d4a;">📚 Curso:</td><td style="color:#111;font-weight:700;text-align:right;">${cursoNombre}</td></tr>
+              <tr style="border-bottom:1px solid #d1fae5;"><td style="padding:8px 0;color:#1a2d4a;">📅 Fecha de inicio:</td><td style="color:#111;font-weight:600;text-align:right;">${fechaStr}</td></tr>
+              <tr><td style="padding:8px 0;color:#1a2d4a;">💰 Monto a abonar:</td><td style="color:#111;font-weight:700;text-align:right;">${montoStr}</td></tr>
+            </table>
+          </div>
+          <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:20px;margin-bottom:24px;">
+            <p style="color:#7c5e00;font-size:14px;font-weight:700;margin:0 0 8px;">⚠️ Próximo paso: completar el pago</p>
+            <p style="color:#7c5e00;font-size:13px;line-height:1.6;margin:0;">
+              Te abrimos el link de pago en una nueva pestaña al momento de tu inscripción.<br/>
+              Una vez que se acredite tu pago, recibirás por este email el acceso al campus virtual.<br/>
+              Ante cualquier consulta escribinos a <a href="mailto:${contacto.correo}" style="color:#1a5c2a;font-weight:700;">${contacto.correo}</a>
+            </p>
+          </div>
+        </div>
+        <div style="background:#1a2d4a;padding:20px 40px;text-align:center;">
+          <p style="color:rgba(255,255,255,0.6);font-size:12px;margin:0;">CPCC — ${contacto.correo}</p>
+        </div>
+      </div>`
+    : esPreinscripcion
     ? `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f8f9fa;border-radius:12px;overflow:hidden;">
         <div style="background:#1a5c2a;padding:32px 40px;text-align:center;">

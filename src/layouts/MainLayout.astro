@@ -213,6 +213,7 @@ function socialIcon(plataforma: string) {
 				background: var(--gray-50);
 				color: var(--text-main);
 				scroll-behavior: smooth;
+				overflow-x: hidden;
 			}
 
 			body {
@@ -224,6 +225,7 @@ function socialIcon(plataforma: string) {
 				animation: professionalShimmer 20s ease-in-out infinite;
 				position: relative;
 				background-attachment: fixed;
+				overflow-x: hidden;
 			}
 
 			body::before {
@@ -523,6 +525,9 @@ function socialIcon(plataforma: string) {
 			}
 
 			@media (max-width: 768px) {
+				body {
+					background-attachment: scroll;
+				}
 				.header-content {
 					flex-direction: column;
 					padding-bottom: 1rem;
