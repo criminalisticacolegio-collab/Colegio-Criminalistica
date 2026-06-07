@@ -119,8 +119,8 @@ export async function POST({ request }) {
     doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(70, 70, 70);
     doc.text(pteTribunalCargo, 195, 230, { align: 'right' });
     doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(44, 62, 80);
-    doc.text('Presidente del Tribunal de Ética', 195, 236, { align: 'right' });
-    doc.text('y Disciplina — CPCC Catamarca', 195, 241, { align: 'right' });
+    doc.text('Presidente del Tribunal de Ética y Disciplina', 195, 236, { align: 'right' });
+    doc.text('Presidente — CPCC Catamarca', 195, 242, { align: 'right' });
 
     drawFooter(doc, contactoData);
 

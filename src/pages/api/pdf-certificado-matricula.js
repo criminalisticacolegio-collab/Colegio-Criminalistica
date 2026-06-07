@@ -107,13 +107,13 @@ export async function POST({ request }) {
 
     // Firma
     doc.setDrawColor(120, 120, 120); doc.setLineWidth(0.4);
-    doc.line(115, 260, 195, 260);
+    doc.line(115, 245, 195, 245);
     doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(44, 62, 80);
-    doc.text(pteColegio, 195, 266, { align: 'right' });
+    doc.text(pteColegio, 195, 251, { align: 'right' });
     doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(70, 70, 70);
-    doc.text(pteColegioCargo, 195, 272, { align: 'right' });
+    doc.text(pteColegioCargo, 195, 257, { align: 'right' });
     doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(44, 62, 80);
-    doc.text('Presidente del Consejo Directivo', 195, 278, { align: 'right' });
+    doc.text('Presidente — CPCC Catamarca', 195, 263, { align: 'right' });
 
     drawFooter(doc, contactoData);
 
