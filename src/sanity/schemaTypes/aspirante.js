@@ -58,22 +58,30 @@ export default defineType({
         defineField({
             name: 'archivoTitulo',
             type: 'file',
-            title: 'Documento: Título Profesional'
+            title: 'Documento: Título Profesional',
+            description: 'Subido por el solicitante. Solo lectura.',
+            readOnly: true,
         }),
         defineField({
             name: 'archivoDNI',
             type: 'file',
-            title: 'Documento: DNI'
+            title: 'Documento: DNI',
+            description: 'Subido por el solicitante. Solo lectura.',
+            readOnly: true,
         }),
         defineField({
             name: 'certificadoAntecedentes',
             type: 'file',
-            title: 'Documento: Certificado de Antecedentes Penales'
+            title: 'Documento: Certificado de Antecedentes Penales',
+            description: 'Subido por el solicitante. Solo lectura.',
+            readOnly: true,
         }),
         defineField({
             name: 'archivoComprobante',
             type: 'file',
-            title: 'Documento: Comprobante de Pago de Matrícula'
+            title: 'Documento: Comprobante de Pago de Matrícula',
+            description: 'Subido por el solicitante. Solo lectura.',
+            readOnly: true,
         }),
     ],
     preview: {
