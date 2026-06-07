@@ -438,17 +438,20 @@ const pteTribunalCargo = tribunal?.presidenteTrib_especialidad  || 'Presidente d
     hide(stateLoading);
     if (!user) { show(stateLogin); return; }
 
-    // Buscar matriculado en Sanity
+    // Buscar matriculado via endpoint server-side (evita restricciones CORS de Sanity)
     let mat: any = null;
     try {
-      mat = await sanity.fetch(
-        `*[_type == "matriculado" && lower(email) == lower($email)][0]{
-          nombreCompleto, numeroMatricula, estado, email,
-          especialidad->{ titulo }, jurisdiccion->{ titulo }
-        }`,
-        { email: user.email }
-      );
-    } catch (e) { console.error(e); }
+      const idToken = await user.getIdToken();
+      const res = await fetch('/api/get-matriculado', {
+        headers: { 'Authorization': `Bearer ${idToken}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        mat = data.mat || null;
+      } else {
+        console.error('[matriculados] get-matriculado error:', res.status, await res.text());
+      }
+    } catch (e) { console.error('[matriculados] fetch error:', e); }
 
 
 
