@@ -1,6 +1,6 @@
 import { createClient } from '@sanity/client';
 import { jsPDF } from 'jspdf';
-import { readFileSync } from 'fs';
+import { LOGO_B64 } from '../../lib/pdf-helper.js';
 
 export const prerender = false;
 
@@ -13,11 +13,6 @@ const sanity = createClient({
 
 const GREEN = [26, 92, 42];
 const GOLD  = [139, 115, 85];
-
-let LOGO_BASE64 = '';
-try {
-  LOGO_BASE64 = readFileSync(new URL('../../../public/LOGO-CENTRAL.jpg', import.meta.url)).toString('base64');
-} catch {}
 
 export async function GET() {
   try {
@@ -51,21 +46,21 @@ export async function GET() {
 
     const drawHeader = (d) => {
       d.setFillColor(...GREEN);
-      d.rect(0, 0, 210, 44, 'F');
-      if (LOGO_BASE64) {
-        d.addImage(`data:image/jpeg;base64,${LOGO_BASE64}`, 'JPEG', 8, 7, 26, 26);
+      d.rect(0, 0, 210, 54, 'F');
+      if (LOGO_B64) {
+        d.addImage(`data:image/jpeg;base64,${LOGO_B64}`, 'JPEG', 94, 5, 22, 22);
       }
       d.setTextColor(255, 255, 255);
       d.setFont('helvetica', 'bold');
       d.setFontSize(12);
-      d.text('COLEGIO DE PROFESIONALES EN CIENCIAS CRIMINALÍSTICAS', 105, 14, { align: 'center' });
+      d.text('COLEGIO DE PROFESIONALES EN CIENCIAS CRIMINALÍSTICAS', 105, 32, { align: 'center' });
       d.setFont('helvetica', 'normal');
       d.setFontSize(9);
-      d.text('PROVINCIA DE CATAMARCA  ·  Ley Provincial N° 5.595/19', 105, 22, { align: 'center' });
+      d.text('PROVINCIA DE CATAMARCA', 105, 41, { align: 'center' });
       d.setFont('helvetica', 'bold');
       d.setFontSize(11);
       d.setTextColor(255, 235, 160);
-      d.text('PADRÓN OFICIAL DE MATRICULADOS ACTIVOS', 105, 34, { align: 'center' });
+      d.text('PADRÓN OFICIAL DE MATRICULADOS ACTIVOS', 105, 50, { align: 'center' });
     };
 
     const drawTableHead = (d, y) => {

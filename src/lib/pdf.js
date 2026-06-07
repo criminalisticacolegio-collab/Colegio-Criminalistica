@@ -1,18 +1,5 @@
 import { jsPDF } from 'jspdf';
-import { readFileSync } from 'fs';
-
-let LOGO_BASE64 = '';
-try {
-  const logoPath = new URL('../../public/LOGO-CENTRAL.jpg', import.meta.url);
-  LOGO_BASE64 = readFileSync(logoPath).toString('base64');
-} catch {
-  // Logo no disponible, el encabezado se mostrará solo con texto
-}
-
-const FOOTER_DEFAULTS = {
-  direccion: 'Sede Oficial — San Fernando del Valle de Catamarca',
-  correo: 'criminalisticacolegio@gmail.com',
-};
+import { drawHeader, drawFooter, LOGO_B64 } from './pdf-helper.js';
 
 /**
  * Genera el comprobante de pago como Buffer (para adjuntar en emails o descargar).
@@ -27,35 +14,23 @@ const FOOTER_DEFAULTS = {
  * @returns {Buffer}
  */
 export function generarComprobantePago({ nombreCompleto, numeroMatricula, email, monto, concepto, mpPaymentId, fecha, contacto }) {
-  const footerL1 = contacto?.direccion || FOOTER_DEFAULTS.direccion;
-  const footerL2 = contacto?.correo    || FOOTER_DEFAULTS.correo;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const fechaStr = (fecha instanceof Date ? fecha : new Date(fecha)).toLocaleDateString('es-AR', {
     day: '2-digit', month: '2-digit', year: 'numeric'
   });
 
-  // ── Encabezado ──────────────────────────────────────────────
-  doc.setFillColor(27, 94, 32);
-  doc.rect(0, 0, 210, 40, 'F');
+  drawHeader(doc);
 
-  if (LOGO_BASE64) {
-    doc.addImage(`data:image/jpeg;base64,${LOGO_BASE64}`, 'JPEG', 6, 6, 26, 26);
-  }
-
+  // Subtítulo del documento
   doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
-  doc.text('COLEGIO DE PROFESIONALES EN CIENCIAS', 105, 13, { align: 'center' });
-  doc.text('CRIMINALÍSTICAS DE CATAMARCA', 105, 21, { align: 'center' });
-
-  doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text('COMPROBANTE OFICIAL DE PAGO', 105, 32, { align: 'center' });
+  doc.setFontSize(9);
+  doc.text('COMPROBANTE OFICIAL DE PAGO', 105, 47, { align: 'center' });
 
   // ── Línea separadora ────────────────────────────────────────
   doc.setDrawColor(27, 94, 32);
   doc.setLineWidth(0.5);
-  doc.line(15, 48, 195, 48);
+  doc.line(15, 58, 195, 58);
 
   // ── Datos del comprobante ───────────────────────────────────
   doc.setTextColor(0, 0, 0);
@@ -64,7 +39,7 @@ export function generarComprobantePago({ nombreCompleto, numeroMatricula, email,
 
   const col1 = 15;
   const col2 = 80;
-  let y = 58;
+  let y = 68;
   const lineH = 9;
 
   const campo = (label, valor) => {
@@ -131,14 +106,7 @@ export function generarComprobantePago({ nombreCompleto, numeroMatricula, email,
   doc.text('Este comprobante es válido como recibo de pago. La acreditación definitiva', 105, y, { align: 'center' });
   doc.text('impactará en su legajo en un plazo de 24 horas hábiles.', 105, y + 5, { align: 'center' });
 
-  // ── Pie de página ───────────────────────────────────────────
-  doc.setFillColor(27, 94, 32);
-  doc.rect(0, 279, 210, 18, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-  doc.text(footerL1, 105, 286, { align: 'center' });
-  doc.text(footerL2, 105, 292, { align: 'center' });
+  drawFooter(doc, contacto);
 
   return Buffer.from(doc.output('arraybuffer'));
 }
@@ -147,33 +115,18 @@ export function generarComprobantePago({ nombreCompleto, numeroMatricula, email,
  * Genera carta de bienvenida para aspirantes como Buffer.
  */
 export function generarCartaAspirante({ nombre, apellido, dni, email, tituloProfesional, fecha, contacto }) {
-  const footerL1 = contacto?.direccion || FOOTER_DEFAULTS.direccion;
-  const footerL2 = contacto?.correo    || FOOTER_DEFAULTS.correo;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const fechaStr = new Date(fecha).toLocaleDateString('es-AR', {
     day: '2-digit', month: 'long', year: 'numeric'
   });
 
-  doc.setFillColor(27, 94, 32);
-  doc.rect(0, 0, 210, 35, 'F');
-
-  if (LOGO_BASE64) {
-    doc.addImage(`data:image/jpeg;base64,${LOGO_BASE64}`, 'JPEG', 6, 4, 25, 25);
-  }
-
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  doc.text('COLEGIO DE PROFESIONALES EN CIENCIAS CRIMINALÍSTICAS', 105, 14, { align: 'center' });
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text('PROVINCIA DE CATAMARCA', 105, 25, { align: 'center' });
+  drawHeader(doc);
 
   doc.setTextColor(0, 0, 0);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
 
-  let y = 52;
+  let y = 62;
   doc.text(`Catamarca, ${fechaStr}`, 195, y, { align: 'right' });
   y += 14;
 
@@ -249,13 +202,7 @@ export function generarCartaAspirante({ nombre, apellido, dni, email, tituloProf
   doc.setFont('helvetica', 'normal');
   doc.text('CPCC', 15, y + 5);
 
-  doc.setFillColor(27, 94, 32);
-  doc.rect(0, 279, 210, 18, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-  doc.text(footerL1, 105, 286, { align: 'center' });
-  doc.text(footerL2, 105, 292, { align: 'center' });
+  drawFooter(doc, contacto);
 
   return Buffer.from(doc.output('arraybuffer'));
 }
@@ -269,28 +216,24 @@ export function generarCartaAspirante({ nombre, apellido, dni, email, tituloProf
  * @returns {Buffer}
  */
 export function generarCertificadoCurso({ nombreCompleto, cursoTitulo, fecha, contacto }) {
-  const footerL1 = contacto?.direccion || FOOTER_DEFAULTS.direccion;
-  const footerL2 = contacto?.correo    || FOOTER_DEFAULTS.correo;
   const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' });
   const fechaStr = new Date(fecha).toLocaleDateString('es-AR', {
     day: '2-digit', month: 'long', year: 'numeric'
   });
 
-  // ── Encabezado verde ────────────────────────────────────────
+  // ── Encabezado landscape (297x210mm) — logo centrado ────────
   doc.setFillColor(27, 94, 32);
-  doc.rect(0, 0, 297, 38, 'F');
-
-  if (LOGO_BASE64) {
-    doc.addImage(`data:image/jpeg;base64,${LOGO_BASE64}`, 'JPEG', 8, 5, 26, 26);
+  doc.rect(0, 0, 297, 48, 'F');
+  if (LOGO_B64) {
+    doc.addImage(`data:image/jpeg;base64,${LOGO_B64}`, 'JPEG', 137, 5, 22, 22);
   }
-
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.text('COLEGIO DE PROFESIONALES EN CIENCIAS CRIMINALÍSTICAS', 148, 17, { align: 'center' });
+  doc.setFontSize(13);
+  doc.text('COLEGIO DE PROFESIONALES EN CIENCIAS CRIMINALÍSTICAS', 148, 32, { align: 'center' });
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text('PROVINCIA DE CATAMARCA', 148, 28, { align: 'center' });
+  doc.text('PROVINCIA DE CATAMARCA', 148, 41, { align: 'center' });
 
   // ── Título ──────────────────────────────────────────────────
   doc.setTextColor(27, 94, 32);
@@ -358,13 +301,16 @@ export function generarCertificadoCurso({ nombreCompleto, cursoTitulo, fecha, co
   doc.text('Colegio de Profesionales en Ciencias Criminalísticas', 235, 192, { align: 'right' });
   doc.text('Provincia de Catamarca', 235, 197, { align: 'right' });
 
-  // ── Pie ─────────────────────────────────────────────────────
+  // ── Pie landscape ─────────────────────────────────────────
+  const dir = contacto?.direccion || 'Sede Oficial — San Fernando del Valle de Catamarca';
+  const parts = [contacto?.correo || 'criminalisticacolegio@gmail.com'];
+  if (contacto?.telefono) parts.push(contacto.telefono);
   doc.setFillColor(27, 94, 32);
   doc.rect(0, 200, 297, 10, 'F');
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.5);
-  doc.text(`${footerL1}  ·  ${footerL2}  ·  Ley N° 5.595/19`, 148, 206, { align: 'center' });
+  doc.text(`${dir}  ·  ${parts.join('  ·  ')}`, 148, 207, { align: 'center' });
 
   return Buffer.from(doc.output('arraybuffer'));
 }

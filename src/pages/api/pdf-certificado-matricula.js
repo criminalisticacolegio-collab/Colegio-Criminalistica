@@ -1,7 +1,7 @@
 import { createClient } from '@sanity/client';
 import { jsPDF } from 'jspdf';
-import { readFileSync } from 'fs';
 import { adminAuth } from '../../lib/firebase-admin.js';
+import { drawHeader, drawFooter } from '../../lib/pdf-helper.js';
 
 export const prerender = false;
 
@@ -12,13 +12,7 @@ const sanity = createClient({
   apiVersion: '2023-05-03',
 });
 
-const GREEN = [26, 92, 42];
 const GOLD  = [139, 115, 85];
-
-let LOGO_BASE64 = '';
-try {
-  LOGO_BASE64 = readFileSync(new URL('../../../public/LOGO-CENTRAL.jpg', import.meta.url)).toString('base64');
-} catch {}
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -54,7 +48,7 @@ export async function POST({ request }) {
         { email }
       ),
       sanity.fetch(`*[_type == "institucionalConfig"][0]{ presidente_nombre, presidente_especialidad }`),
-      sanity.fetch(`*[_type == "contactoConfig"][0]{ correo, direccion }`),
+      sanity.fetch(`*[_type == "contactoConfig"][0]{ correo, direccion, telefonoOficial }`),
     ]);
 
     if (!mat) return json({ error: 'Profesional no encontrado en el padrón.' }, 404);
@@ -62,8 +56,7 @@ export async function POST({ request }) {
 
     const pteColegio      = institucional?.presidente_nombre       || 'Presidente';
     const pteColegioCargo = institucional?.presidente_especialidad || 'Licenciado/a en Criminalística';
-    const correo          = contacto?.correo    || 'criminalisticacolegio@gmail.com';
-    const direccion       = contacto?.direccion || 'Avenida América Latina 1672 — San Fernando del Valle de Catamarca';
+    const contactoData    = { correo: contacto?.correo, direccion: contacto?.direccion, telefono: contacto?.telefonoOficial };
 
     const hoy = new Date();
     const vencimiento = new Date(hoy); vencimiento.setDate(hoy.getDate() + 30);
@@ -71,42 +64,29 @@ export async function POST({ request }) {
 
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
 
-    // Header
-    doc.setFillColor(...GREEN);
-    doc.rect(0, 0, 210, 40, 'F');
-    if (LOGO_BASE64) {
-      doc.addImage(`data:image/jpeg;base64,${LOGO_BASE64}`, 'JPEG', 6, 7, 26, 26);
-    }
-    doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(13);
-    doc.text('COLEGIO DE PROFESIONALES EN CIENCIAS CRIMINALÍSTICAS', 105, 16, { align: 'center' });
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text('PROVINCIA DE CATAMARCA', 105, 24, { align: 'center' });
-    doc.text(correo, 105, 31, { align: 'center' });
+    drawHeader(doc);
 
     // Gold separator
     doc.setDrawColor(...GOLD);
     doc.setLineWidth(0.8);
-    doc.line(15, 44, 195, 44);
+    doc.line(15, 54, 195, 54);
 
     // Título
-    doc.setTextColor(...GREEN);
+    doc.setTextColor(26, 92, 42);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(18);
-    doc.text('CONSTANCIA DE MATRÍCULA VIGENTE', 105, 60, { align: 'center' });
-    doc.setDrawColor(...GREEN);
+    doc.text('CONSTANCIA DE MATRÍCULA VIGENTE', 105, 70, { align: 'center' });
+    doc.setDrawColor(26, 92, 42);
     doc.setLineWidth(0.5);
-    doc.line(30, 65, 180, 65);
+    doc.line(30, 75, 180, 75);
 
     // Texto introductorio
     doc.setTextColor(40, 40, 40);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(11);
-    doc.text('El Colegio de Profesionales en Ciencias Criminalísticas de la Provincia de Catamarca', 105, 80, { align: 'center' });
-    doc.text('CERTIFICA que el/la profesional que se detalla a continuación se encuentra', 105, 88, { align: 'center' });
-    doc.text('MATRICULADO/A y HABILITADO/A para el ejercicio de la profesión.', 105, 96, { align: 'center' });
+    doc.text('El Colegio de Profesionales en Ciencias Criminalísticas de la Provincia de Catamarca', 105, 90, { align: 'center' });
+    doc.text('CERTIFICA que el/la profesional que se detalla a continuación se encuentra', 105, 98, { align: 'center' });
+    doc.text('MATRICULADO/A y HABILITADO/A para el ejercicio de la profesión.', 105, 106, { align: 'center' });
 
     // Datos
     const campo = (label, valor, y) => {
@@ -135,12 +115,7 @@ export async function POST({ request }) {
     doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(44, 62, 80);
     doc.text('Presidente CPCC', 195, 278, { align: 'right' });
 
-    // Footer
-    doc.setDrawColor(...GOLD); doc.setLineWidth(0.5); doc.line(0, 284, 210, 284);
-    doc.setFillColor(...GREEN);
-    doc.rect(0, 284, 210, 13, 'F');
-    doc.setTextColor(255, 255, 255); doc.setFontSize(6.5); doc.setFont('helvetica', 'normal');
-    doc.text(`${direccion}  ·  ${correo}  ·  Ley N° 5.595/19`, 105, 291, { align: 'center' });
+    drawFooter(doc, contactoData);
 
     const buffer = Buffer.from(doc.output('arraybuffer'));
     return new Response(buffer, {

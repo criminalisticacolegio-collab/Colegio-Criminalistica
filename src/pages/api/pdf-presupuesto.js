@@ -1,16 +1,11 @@
 import { jsPDF } from 'jspdf';
-import { readFileSync } from 'fs';
 import { getContacto } from '../../lib/contacto.js';
+import { drawHeader, drawFooter } from '../../lib/pdf-helper.js';
 
 export const prerender = false;
 
 const GREEN = [26, 92, 42];
 const GOLD  = [139, 115, 85];
-
-let LOGO_BASE64 = '';
-try {
-  LOGO_BASE64 = readFileSync(new URL('../../../public/LOGO-CENTRAL.jpg', import.meta.url)).toString('base64');
-} catch {}
 
 function fmtPesos(v) {
   return new Intl.NumberFormat('es-AR', {
@@ -89,28 +84,16 @@ export async function POST({ request }) {
     const contacto = await getContacto();
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
-    // Header
-    doc.setFillColor(...GREEN);
-    doc.rect(0, 0, 210, 40, 'F');
-    if (LOGO_BASE64) {
-      doc.addImage(`data:image/jpeg;base64,${LOGO_BASE64}`, 'JPEG', 14, 7, 26, 26);
-    }
-    doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11.5);
-    doc.text('COLEGIO DE PROFESIONALES EN CIENCIAS CRIMINALÍSTICAS', 105, 14, { align: 'center' });
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.text('Provincia de Catamarca · Ley Provincial N° 5.595/19', 105, 22, { align: 'center' });
+    drawHeader(doc);
 
     // Título
     doc.setTextColor(...GREEN);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(13.5);
-    doc.text('PRESUPUESTO DE HONORARIOS PERICIALES', 105, 50, { align: 'center' });
+    doc.text('PRESUPUESTO DE HONORARIOS PERICIALES', 105, 60, { align: 'center' });
     doc.setDrawColor(...GREEN);
     doc.setLineWidth(0.7);
-    doc.line(15, 54, 195, 54);
+    doc.line(15, 64, 195, 64);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
@@ -118,7 +101,7 @@ export async function POST({ request }) {
     doc.text(`N° ${preNum}`, 15, 60);
     doc.text(`Fecha de emisión: ${fmtD(hoy)}`, 195, 60, { align: 'right' });
 
-    let y = 68;
+    let y = 78;
 
     // Datos perito + causa
     const hayDatos = perito.nombre || perito.matricula || perito.especialidad || perito.contacto ||
@@ -238,11 +221,8 @@ export async function POST({ request }) {
 
     // Pie
     doc.setDrawColor(...GOLD); doc.setLineWidth(0.5); doc.line(0, 274, 210, 274);
-    doc.setFillColor(...GREEN); doc.rect(0, 274, 210, 23, 'F');
-    doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5);
-    doc.text(contacto.direccion, 105, 281, { align: 'center' });
-    doc.text(`${contacto.correo}  ·  Ley Provincial N° 5.595/19`, 105, 288, { align: 'center' });
-    doc.setFontSize(6.5); doc.setTextColor(190, 225, 190);
+    drawFooter(doc, { direccion: contacto.direccion, correo: contacto.correo, telefono: contacto.telefono });
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(190, 225, 190);
     doc.text(`Emitido el ${fmtD(hoy)} · ${preNum}`, 105, 294, { align: 'center' });
 
     const buffer = Buffer.from(doc.output('arraybuffer'));

@@ -367,6 +367,46 @@ const pteTribunalCargo = tribunal?.presidenteTrib_especialidad  || 'Presidente d
   function show(el: HTMLElement) { el.classList.remove('hidden'); }
   function hide(el: HTMLElement) { el.classList.add('hidden'); }
 
+  async function getLogoBase64(): Promise<string | null> {
+    try {
+      const resp = await fetch('/LOGO-CENTRAL.jpg');
+      if (!resp.ok) return null;
+      const blob = await resp.blob();
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch { return null; }
+  }
+
+  function drawPdfHeader(doc: any, logo: string | null) {
+    doc.setFillColor(27, 94, 32);
+    doc.rect(0, 0, 210, 50, 'F');
+    if (logo) doc.addImage(logo, 'JPEG', 94, 5, 22, 22);
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.text('COLEGIO DE PROFESIONALES EN CIENCIAS CRIMINALÍSTICAS', 105, 33, { align: 'center' });
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text('PROVINCIA DE CATAMARCA', 105, 42, { align: 'center' });
+  }
+
+  function drawPdfFooter(doc: any, ctc: any) {
+    const dir = ctc?.direccion || 'Sede Oficial — San Fernando del Valle de Catamarca';
+    const parts = [ctc?.correo || 'criminalisticacolegio@gmail.com'];
+    if (ctc?.telefono || ctc?.telefonoOficial) parts.push(ctc.telefono || ctc.telefonoOficial);
+    doc.setFillColor(27, 94, 32);
+    doc.rect(0, 275, 210, 22, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.text(dir, 105, 283, { align: 'center' });
+    doc.text(parts.join('  ·  '), 105, 291, { align: 'center' });
+  }
+
   // Fallback: si Firebase no responde en 6s, mostrar login con aviso
   const authFallback = setTimeout(() => {
     hide(stateLoading);
@@ -932,43 +972,29 @@ const pteTribunalCargo = tribunal?.presidenteTrib_especialidad  || 'Presidente d
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const logo = await getLogoBase64();
-    const ctc = await sanity.fetch(`*[_type == "contactoConfig"][0]{ direccion, correo }`).catch(() => null);
-    const footerDir = ctc?.direccion || 'Sede Oficial — San Fernando del Valle de Catamarca';
-    const footerEmail = ctc?.correo || 'criminalisticacolegio@gmail.com';
+    const ctc = await sanity.fetch(`*[_type == "contactoConfig"][0]{ direccion, correo, telefonoOficial }`).catch(() => null);
     const hoy = new Date();
     const vencimiento = new Date(hoy); vencimiento.setDate(hoy.getDate() + 30);
     const fmtFecha = (d: Date) => d.toLocaleDateString('es-AR', { day:'2-digit', month:'long', year:'numeric' });
 
-    // Header
-    doc.setFillColor(27, 94, 32);
-    doc.rect(0, 0, 210, 40, 'F');
-    if (logo) doc.addImage(logo, 'JPEG', 6, 7, 26, 26);
-    doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(13);
-    doc.text('COLEGIO DE PROFESIONALES EN CIENCIAS CRIMINALÍSTICAS', 105, 16, { align: 'center' });
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text('PROVINCIA DE CATAMARCA', 105, 24, { align: 'center' });
-    doc.text('criminalisticacolegio@gmail.com', 105, 31, { align: 'center' });
+    drawPdfHeader(doc, logo);
 
     // Título
     doc.setTextColor(27, 94, 32);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(18);
-    doc.text('CONSTANCIA DE MATRÍCULA VIGENTE', 105, 60, { align: 'center' });
-
+    doc.text('CONSTANCIA DE MATRÍCULA VIGENTE', 105, 70, { align: 'center' });
     doc.setDrawColor(27, 94, 32);
     doc.setLineWidth(0.5);
-    doc.line(30, 65, 180, 65);
+    doc.line(30, 75, 180, 75);
 
     // Cuerpo
     doc.setTextColor(40, 40, 40);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(11);
-    doc.text('El Colegio de Profesionales en Ciencias Criminalísticas de la Provincia de Catamarca', 105, 80, { align: 'center' });
-    doc.text('CERTIFICA que el/la profesional que se detalla a continuación se encuentra', 105, 88, { align: 'center' });
-    doc.text('MATRICULADO/A y HABILITADO/A para el ejercicio de la profesión.', 105, 96, { align: 'center' });
+    doc.text('El Colegio de Profesionales en Ciencias Criminalísticas de la Provincia de Catamarca', 105, 90, { align: 'center' });
+    doc.text('CERTIFICA que el/la profesional que se detalla a continuación se encuentra', 105, 98, { align: 'center' });
+    doc.text('MATRICULADO/A y HABILITADO/A para el ejercicio de la profesión.', 105, 106, { align: 'center' });
 
     // Datos
     const y0 = 115;
@@ -999,11 +1025,7 @@ const pteTribunalCargo = tribunal?.presidenteTrib_especialidad  || 'Presidente d
     doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(44, 62, 80);
     doc.text('Presidente CPCC', 195, 278, { align: 'right' });
 
-    // Footer
-    doc.setFillColor(27, 94, 32);
-    doc.rect(0, 290, 210, 7, 'F');
-    doc.setTextColor(255, 255, 255); doc.setFontSize(6.5); doc.setFont('helvetica', 'normal');
-    doc.text(`${footerDir}  ·  ${footerEmail}  ·  Ley N° 5.595/19`, 105, 294, { align: 'center' });
+    drawPdfFooter(doc, ctc);
 
     doc.save(`constancia-matricula-${mat.numeroMatricula}.pdf`);
   }
@@ -1026,29 +1048,20 @@ const pteTribunalCargo = tribunal?.presidenteTrib_especialidad  || 'Presidente d
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const logo = await getLogoBase64();
-    const ctcE = await sanity.fetch(`*[_type == "contactoConfig"][0]{ direccion, correo }`).catch(() => null);
-    const footerDirE = ctcE?.direccion || 'Sede Oficial — San Fernando del Valle de Catamarca';
-    const footerEmailE = ctcE?.correo || 'criminalisticacolegio@gmail.com';
+    const ctcE = await sanity.fetch(`*[_type == "contactoConfig"][0]{ direccion, correo, telefonoOficial }`).catch(() => null);
     const hoy = new Date();
     const fmtFecha = (d: Date) => d.toLocaleDateString('es-AR', { day:'2-digit', month:'long', year:'numeric' });
 
-    doc.setFillColor(27, 94, 32);
-    doc.rect(0, 0, 210, 40, 'F');
-    if (logo) doc.addImage(logo, 'JPEG', 6, 7, 26, 26);
-    doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
-    doc.text('COLEGIO DE PROFESIONALES EN CIENCIAS CRIMINALÍSTICAS', 105, 16, { align: 'center' });
-    doc.setFontSize(10); doc.setFont('helvetica', 'normal');
-    doc.text('PROVINCIA DE CATAMARCA — TRIBUNAL DE ÉTICA', 105, 24, { align: 'center' });
+    drawPdfHeader(doc, logo);
 
     doc.setTextColor(27, 94, 32);
     doc.setFont('helvetica', 'bold'); doc.setFontSize(17);
-    doc.text('CONSTANCIA DE ÉTICA PROFESIONAL', 105, 60, { align: 'center' });
-    doc.setDrawColor(27, 94, 32); doc.setLineWidth(0.5); doc.line(30, 65, 180, 65);
+    doc.text('CONSTANCIA DE ÉTICA PROFESIONAL', 105, 70, { align: 'center' });
+    doc.setDrawColor(27, 94, 32); doc.setLineWidth(0.5); doc.line(30, 75, 180, 75);
 
     doc.setTextColor(40, 40, 40); doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
-    doc.text('El Tribunal de Ética del Colegio de Profesionales en Ciencias Criminalísticas', 105, 80, { align: 'center' });
-    doc.text('de la Provincia de Catamarca CERTIFICA que:', 105, 88, { align: 'center' });
+    doc.text('El Tribunal de Ética del Colegio de Profesionales en Ciencias Criminalísticas', 105, 90, { align: 'center' });
+    doc.text('de la Provincia de Catamarca CERTIFICA que:', 105, 98, { align: 'center' });
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
     doc.setTextColor(27, 94, 32);
@@ -1085,9 +1098,7 @@ const pteTribunalCargo = tribunal?.presidenteTrib_especialidad  || 'Presidente d
     doc.text('Presidente del Tribunal de Ética', 195, 236, { align: 'right' });
     doc.text('y Disciplina CPCC', 195, 241, { align: 'right' });
 
-    doc.setFillColor(27, 94, 32); doc.rect(0, 290, 210, 7, 'F');
-    doc.setTextColor(255, 255, 255); doc.setFontSize(6.5); doc.setFont('helvetica', 'normal');
-    doc.text(`${footerDirE}  ·  ${footerEmailE}  ·  Ley N° 5.595/19`, 105, 294, { align: 'center' });
+    drawPdfFooter(doc, ctcE);
 
     doc.save(`constancia-etica-${mat.numeroMatricula}.pdf`);
     btn.disabled = false;

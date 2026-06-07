@@ -1,6 +1,6 @@
 import { createClient } from '@sanity/client';
 import { jsPDF } from 'jspdf';
-import { readFileSync } from 'fs';
+import { drawHeader, drawFooter } from '../../lib/pdf-helper.js';
 
 export const prerender = false;
 
@@ -13,11 +13,6 @@ const sanity = createClient({
 
 const GREEN = [26, 92, 42];
 const GOLD  = [139, 115, 85];
-
-let LOGO_BASE64 = '';
-try {
-  LOGO_BASE64 = readFileSync(new URL('../../../public/LOGO-CENTRAL.jpg', import.meta.url)).toString('base64');
-} catch {}
 
 function fmtPesos(v) {
   return new Intl.NumberFormat('es-AR', {
@@ -57,25 +52,14 @@ export async function GET() {
 
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
 
-    // Header
-    doc.setFillColor(...GREEN);
-    doc.rect(0, 0, 210, 40, 'F');
-    if (LOGO_BASE64) {
-      doc.addImage(`data:image/jpeg;base64,${LOGO_BASE64}`, 'JPEG', 14, 7, 26, 26);
-    }
+    drawHeader(doc);
+
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.text('TABLA DE ARANCELES PERICIALES', 105, 14, { align: 'center' });
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.text(`CPCC · Catamarca · 1 JUS = ${fmtPesos(valorJUS)}`, 105, 22, { align: 'center' });
-    if (vigStr) {
-      doc.setFontSize(8);
-      doc.text(`Vigente desde el ${vigStr}`, 105, 31, { align: 'center' });
-    }
+    doc.setFontSize(11);
+    doc.text('TABLA DE ARANCELES PERICIALES', 105, 47, { align: 'center' });
 
-    let y = 48;
+    let y = 60;
 
     const seccion = (titulo) => {
       if (y > 260) { doc.addPage(); y = 20; }
@@ -122,19 +106,8 @@ export async function GET() {
       honorarios.forEach((it, i) => fila(it, i, cobertura.length + 1));
     }
 
-    // Footer
-    doc.setDrawColor(...GOLD);
-    doc.setLineWidth(0.5);
-    doc.line(15, 274, 195, 274);
-    doc.setFillColor(...GREEN);
-    doc.rect(0, 277, 210, 20, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7.5);
-    doc.text(direccion, 105, 284, { align: 'center' });
-    doc.text(`${correo}  ·  Ley Provincial N° 5.595/19`, 105, 290, { align: 'center' });
-    doc.setFontSize(6.5);
-    doc.setTextColor(190, 225, 190);
+    drawFooter(doc, { direccion: contacto?.direccion, correo: contacto?.correo, telefono: contacto?.telefonoOficial });
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(190, 225, 190);
     doc.text(`Emitida el ${fmtD(hoy)}`, 105, 295, { align: 'center' });
 
     const buffer = Buffer.from(doc.output('arraybuffer'));

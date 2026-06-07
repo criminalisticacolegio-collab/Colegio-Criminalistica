@@ -1,7 +1,7 @@
 import { createClient } from '@sanity/client';
 import { jsPDF } from 'jspdf';
-import { readFileSync } from 'fs';
 import { adminAuth } from '../../lib/firebase-admin.js';
+import { drawHeader, drawFooter } from '../../lib/pdf-helper.js';
 
 export const prerender = false;
 
@@ -12,13 +12,7 @@ const sanity = createClient({
   apiVersion: '2023-05-03',
 });
 
-const GREEN = [26, 92, 42];
 const GOLD  = [139, 115, 85];
-
-let LOGO_BASE64 = '';
-try {
-  LOGO_BASE64 = readFileSync(new URL('../../../public/LOGO-CENTRAL.jpg', import.meta.url)).toString('base64');
-} catch {}
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -52,7 +46,7 @@ export async function POST({ request }) {
         { email }
       ),
       sanity.fetch(`*[_type == "tribunalConfig"][0]{ presidenteTrib_nombre, presidenteTrib_especialidad }`),
-      sanity.fetch(`*[_type == "contactoConfig"][0]{ correo, direccion }`),
+      sanity.fetch(`*[_type == "contactoConfig"][0]{ correo, direccion, telefonoOficial }`),
     ]);
 
     if (!mat) return json({ error: 'Profesional no encontrado en el padrón.' }, 404);
@@ -60,41 +54,28 @@ export async function POST({ request }) {
 
     const pteTribunal      = tribunal?.presidenteTrib_nombre        || 'Presidente del Tribunal';
     const pteTribunalCargo = tribunal?.presidenteTrib_especialidad  || 'Licenciado/a en Criminalística';
-    const correo           = contacto?.correo    || 'criminalisticacolegio@gmail.com';
-    const direccion        = contacto?.direccion || 'Avenida América Latina 1672 — San Fernando del Valle de Catamarca';
+    const contactoData     = { correo: contacto?.correo, direccion: contacto?.direccion, telefono: contacto?.telefonoOficial };
 
     const hoy = new Date();
     const fmtFecha = (d) => d.toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
 
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
 
-    // Header
-    doc.setFillColor(...GREEN);
-    doc.rect(0, 0, 210, 40, 'F');
-    if (LOGO_BASE64) {
-      doc.addImage(`data:image/jpeg;base64,${LOGO_BASE64}`, 'JPEG', 6, 7, 26, 26);
-    }
-    doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(13);
-    doc.text('COLEGIO DE PROFESIONALES EN CIENCIAS CRIMINALÍSTICAS', 105, 16, { align: 'center' });
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text('PROVINCIA DE CATAMARCA — TRIBUNAL DE ÉTICA', 105, 24, { align: 'center' });
+    drawHeader(doc);
 
     // Gold separator
     doc.setDrawColor(...GOLD);
     doc.setLineWidth(0.8);
-    doc.line(15, 44, 195, 44);
+    doc.line(15, 54, 195, 54);
 
     // Título
-    doc.setTextColor(...GREEN);
+    doc.setTextColor(26, 92, 42);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(17);
-    doc.text('CONSTANCIA DE ÉTICA PROFESIONAL', 105, 60, { align: 'center' });
-    doc.setDrawColor(...GREEN);
+    doc.text('CONSTANCIA DE ÉTICA PROFESIONAL', 105, 70, { align: 'center' });
+    doc.setDrawColor(26, 92, 42);
     doc.setLineWidth(0.5);
-    doc.line(30, 65, 180, 65);
+    doc.line(30, 75, 180, 75);
 
     // Texto introductorio
     doc.setTextColor(40, 40, 40);
@@ -140,12 +121,7 @@ export async function POST({ request }) {
     doc.text('Presidente del Tribunal de Ética', 195, 236, { align: 'right' });
     doc.text('y Disciplina CPCC', 195, 241, { align: 'right' });
 
-    // Footer
-    doc.setDrawColor(...GOLD); doc.setLineWidth(0.5); doc.line(0, 248, 210, 248);
-    doc.setFillColor(...GREEN);
-    doc.rect(0, 248, 210, 13, 'F');
-    doc.setTextColor(255, 255, 255); doc.setFontSize(6.5); doc.setFont('helvetica', 'normal');
-    doc.text(`${direccion}  ·  ${correo}  ·  Ley N° 5.595/19`, 105, 255, { align: 'center' });
+    drawFooter(doc, contactoData);
 
     const buffer = Buffer.from(doc.output('arraybuffer'));
     return new Response(buffer, {
