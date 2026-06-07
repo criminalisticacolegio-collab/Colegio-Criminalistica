@@ -4,6 +4,15 @@ import { createClient } from '@sanity/client';
 import { adminAuth } from '../../lib/firebase-admin.js';
 import { enviarBienvenidaMatriculacion } from '../../lib/email.js';
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': 'https://colegio-criminalistica.sanity.studio',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+export const OPTIONS = async () =>
+  new Response(null, { status: 204, headers: CORS_HEADERS });
+
 const sanity = createClient({
   projectId: '8q7vz6co',
   dataset: 'production',
@@ -171,6 +180,6 @@ export const POST = async ({ request }) => {
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
   });
 }

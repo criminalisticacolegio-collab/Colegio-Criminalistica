@@ -4,12 +4,15 @@ import { schemaTypes } from './src/sanity/schemaTypes';
 import { deskStructure } from './deskStructure';
 import { useState } from 'react';
 
+// URL base de la web (Vercel). Se configura en .env como SANITY_STUDIO_API_BASE
+const API_BASE = (import.meta.env.SANITY_STUDIO_API_BASE || '').replace(/\/$/, '');
+
 function ReenviarBienvenidaAction({ id, onComplete }) {
   return {
     label: '📧 Reenviar bienvenida',
     onHandle: async () => {
       try {
-        const res = await fetch('/api/bienvenida-matriculado', {
+        const res = await fetch(`${API_BASE}/api/bienvenida-matriculado`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ _id: id, forzar: true }),
@@ -44,7 +47,7 @@ function OtorgarMatriculaAction(props) {
       }
       setIsLoading(true);
       try {
-        const res = await fetch('/api/otorgar-matricula', {
+        const res = await fetch(`${API_BASE}/api/otorgar-matricula`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

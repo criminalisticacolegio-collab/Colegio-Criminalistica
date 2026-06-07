@@ -1,4 +1,5 @@
 import { defineField, defineType } from 'sanity'
+import { JurisdiccionSelect, EspecialidadSelect } from '../components/ReferenceSelect'
 
 export default defineType({
     name: 'matriculado',
@@ -52,6 +53,7 @@ export default defineType({
             to: [{ type: 'jurisdiccion' }],
             description: 'Crucial para los filtros',
             validation: Rule => Rule.required(),
+            components: { input: JurisdiccionSelect },
         }),
         defineField({
             name: 'especialidad',
@@ -60,6 +62,7 @@ export default defineType({
             to: [{ type: 'especialidad' }],
             description: 'Crucial para los filtros',
             validation: Rule => Rule.required(),
+            components: { input: EspecialidadSelect },
         }),
         defineField({
             name: 'foto',
