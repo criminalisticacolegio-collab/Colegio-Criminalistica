@@ -26,7 +26,7 @@ export const POST = async ({ request }) => {
 
     const tituloFile = data.get('titulo_file');
     const dniFile = data.get('dni_file');
-    const certificadoFile = data.get('certificado_file');
+    const certificadoFile = data.get('antecedentes_file');
     const comprobanteFile = data.get('comprobante_file');
 
     if (!nombre || !apellido || !dni || !email) {
