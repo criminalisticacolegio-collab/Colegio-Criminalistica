@@ -33,7 +33,7 @@ const catColors: Record<string, string> = {
 function cc(cat: string) { return catColors[cat] || '#4b5563'; }
 ---
 
-<MainLayout title="Noticias y Novedades">
+<MainLayout title="Noticias y Novedades" showBack={true}>
 
   {novedades.length === 0 ? (
 
@@ -52,11 +52,10 @@ function cc(cat: string) { return catColors[cat] || '#4b5563'; }
     <section class="grid-section">
       <div class="container">
 
-        <header class="grid-header">
-          <div>
-            <h1>Noticias y Comunicados</h1>
-            {data?.textoPrincipal && <p class="grid-intro">{data.textoPrincipal}</p>}
-          </div>
+        <header class="section-header">
+          <span class="sub-title">Institucional</span>
+          <h1>Noticias y Comunicados</h1>
+          <p>{data?.textoPrincipal || 'Manténgase informado sobre las novedades del Colegio.'}</p>
           <span class="grid-count">{novedades.length} {novedades.length === 1 ? 'novedad' : 'novedades'}</span>
         </header>
 
@@ -114,45 +113,52 @@ function cc(cat: string) { return catColors[cat] || '#4b5563'; }
       padding: 4rem 0 6rem;
     }
 
-    .grid-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 1rem;
-      margin-bottom: 2.25rem;
-      padding-bottom: 1.2rem;
-      border-bottom: 2px solid var(--gray-200, #e5e7eb);
+    /* Cabecera centrada — igual a padrón y otras páginas */
+    .section-header {
+      text-align: center;
+      margin-bottom: 3rem;
     }
 
-    .grid-header h1 {
-      font-size: clamp(1.4rem, 2.8vw, 1.9rem);
+    .sub-title {
+      color: var(--primary, #1a5c2a);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-size: 0.9rem;
+      display: block;
+      margin-bottom: 0.75rem;
+    }
+
+    .section-header h1 {
+      font-size: clamp(2rem, 4vw, 3rem);
       font-weight: 700;
       color: var(--accent, #1a2e1d);
-      margin-bottom: 0.3rem;
+      margin-bottom: 1rem;
     }
 
-    .grid-intro {
-      font-size: 0.92rem;
+    .section-header p {
+      font-size: 1.05rem;
       color: var(--text-light, #6b7280);
-      line-height: 1.5;
-      max-width: 560px;
+      max-width: 620px;
+      margin: 0 auto 1rem;
+      line-height: 1.6;
     }
 
     .grid-count {
+      display: inline-block;
       font-size: 0.8rem;
       font-weight: 600;
       color: var(--text-light, #6b7280);
       background: var(--gray-100, #f3f4f6);
-      padding: 0.22rem 0.7rem;
+      padding: 0.25rem 0.85rem;
       border-radius: 20px;
-      white-space: nowrap;
-      flex-shrink: 0;
-      margin-top: 0.35rem;
     }
 
+    /* Grid con flex para centrar fila incompleta */
     .news-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
       gap: 1.75rem;
     }
 
@@ -165,6 +171,8 @@ function cc(cat: string) { return catColors[cat] || '#4b5563'; }
       display: flex;
       flex-direction: column;
       transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+      width: calc(33.333% - 1.17rem);
+      min-width: 260px;
     }
     .nc:hover {
       transform: translateY(-5px);
@@ -292,14 +300,13 @@ function cc(cat: string) { return catColors[cat] || '#4b5563'; }
        RESPONSIVE
     ══════════════════════════════════════════ */
     @media (max-width: 1100px) {
-      .news-grid { grid-template-columns: repeat(2, 1fr); }
+      .nc { width: calc(50% - 0.875rem); }
     }
 
     @media (max-width: 640px) {
-      .news-grid { grid-template-columns: 1fr; gap: 1.25rem; }
+      .nc { width: 100%; }
       .grid-section { padding: 3rem 0 4rem; }
       .nc-img-wrap { height: 180px; }
-      .grid-header { flex-direction: column; }
     }
   </style>
 
