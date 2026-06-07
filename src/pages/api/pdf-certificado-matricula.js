@@ -113,7 +113,7 @@ export async function POST({ request }) {
     doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(70, 70, 70);
     doc.text(pteColegioCargo, 195, 272, { align: 'right' });
     doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(44, 62, 80);
-    doc.text('Presidente CPCC', 195, 278, { align: 'right' });
+    doc.text('Presidente del Consejo Directivo', 195, 278, { align: 'right' });
 
     drawFooter(doc, contactoData);
 
