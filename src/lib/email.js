@@ -1,6 +1,21 @@
 import { transporter, FROM, REPLY_TO } from './mailer.js';
 import { generarComprobantePago, generarCartaAspirante, generarCertificadoCurso } from './pdf.js';
 import { getContacto } from './contacto.js';
+import { LOGO_B64 } from './logo-base64.js';
+
+const _logoImg = LOGO_B64
+  ? `<img src="data:image/jpeg;base64,${LOGO_B64}" alt="Logo CPCC" style="width:72px;height:72px;object-fit:contain;border-radius:50%;border:3px solid rgba(255,255,255,0.3);margin:0 auto 14px;display:block;" />`
+  : '';
+
+const EMAIL_HEADER = `
+        <!-- Header -->
+        <div style="background: #1a5c2a; padding: 28px 40px 20px; text-align: center;">
+          ${_logoImg}
+          <h1 style="color: white; margin: 0; font-size: 18px; font-weight: 700; line-height: 1.5;">
+            Colegio de Profesionales en Ciencias Criminalísticas<br/>
+            <span style="font-size:13px;font-weight:400;opacity:0.85;">Provincia de Catamarca</span>
+          </h1>
+        </div>`;
 
 /**
  * Email de confirmación al aspirante cuando completa el formulario de registro.
@@ -44,12 +59,7 @@ export async function enviarConfirmacionAspirante({ nombre, apellido, dni, email
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; padding: 0; border-radius: 12px; overflow: hidden;">
 
-        <!-- Header -->
-        <div style="background: #1a5c2a; padding: 32px 40px; text-align: center;">
-          <h1 style="color: white; margin: 0; font-size: 20px; font-weight: 700; line-height: 1.4;">
-            Colegio de Profesionales en<br/>Ciencias Criminalísticas de Catamarca
-          </h1>
-        </div>
+        ${EMAIL_HEADER}
 
         <!-- Body -->
         <div style="padding: 40px; background: white;">
@@ -296,12 +306,7 @@ export async function enviarComprobantePago({ nombreCompleto, numeroMatricula, e
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; border-radius: 12px; overflow: hidden;">
 
-        <!-- Header -->
-        <div style="background: #1b5e20; padding: 32px 40px; text-align: center;">
-          <h1 style="color: white; margin: 0; font-size: 20px; font-weight: 700; line-height: 1.4;">
-            Colegio de Profesionales en<br/>Ciencias Criminalísticas de Catamarca
-          </h1>
-        </div>
+        ${EMAIL_HEADER}
 
         <!-- Body -->
         <div style="padding: 40px; background: white;">
@@ -373,11 +378,7 @@ export async function enviarConfirmacionInscripcion({ nombre, email, cursoTitulo
     subject: `CPCC — Inscripción confirmada: ${cursoTitulo}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; border-radius: 12px; overflow: hidden;">
-        <div style="background: #1b5e20; padding: 32px 40px; text-align: center;">
-          <h1 style="color: white; margin: 0; font-size: 20px; font-weight: 700; line-height: 1.4;">
-            Colegio de Profesionales en<br/>Ciencias Criminalísticas de Catamarca
-          </h1>
-        </div>
+        ${EMAIL_HEADER}
         <div style="padding: 40px; background: white;">
           <h2 style="color: #166534; font-size: 22px; margin: 0 0 12px;">¡Inscripción confirmada! ✅</h2>
           <p style="color: #444; line-height: 1.6; margin: 0 0 24px;">
@@ -433,11 +434,7 @@ export async function enviarCertificadoCurso({ nombre, email, cursoTitulo, fecha
     subject: `CPCC — Certificado de aprobación: ${cursoTitulo}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; border-radius: 12px; overflow: hidden;">
-        <div style="background: #1b5e20; padding: 32px 40px; text-align: center;">
-          <h1 style="color: white; margin: 0; font-size: 20px; font-weight: 700; line-height: 1.4;">
-            Colegio de Profesionales en<br/>Ciencias Criminalísticas de Catamarca
-          </h1>
-        </div>
+        ${EMAIL_HEADER}
         <div style="padding: 40px; background: white;">
           <div style="text-align: center; margin-bottom: 28px;">
             <div style="font-size: 48px; margin-bottom: 12px;">🎓</div>
@@ -493,12 +490,7 @@ export async function enviarResetPassword({ nombre, email, resetLink }) {
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa; border-radius: 12px; overflow: hidden;">
 
-        <!-- Header -->
-        <div style="background: #1a5c2a; padding: 32px 40px; text-align: center;">
-          <h1 style="color: white; margin: 0; font-size: 20px; font-weight: 700; line-height: 1.4;">
-            CPCC Catamarca
-          </h1>
-        </div>
+        ${EMAIL_HEADER}
 
         <!-- Body -->
         <div style="padding: 32px 40px; background: white;">

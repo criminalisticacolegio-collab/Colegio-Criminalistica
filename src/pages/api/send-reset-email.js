@@ -3,6 +3,7 @@ export const prerender = false;
 import { createClient } from '@sanity/client';
 import { adminAuth } from '../../lib/firebase-admin.js';
 import { transporter, FROM } from '../../lib/mailer.js';
+import { LOGO_B64 } from '../../lib/logo-base64.js';
 
 const sanity = createClient({
   projectId: '8q7vz6co',
@@ -108,9 +109,11 @@ export const POST = async ({ request }) => {
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;padding:0;border-radius:12px;overflow:hidden;">
 
       <!-- Header -->
-      <div style="background:#1a5c2a;padding:32px 40px;text-align:center;">
-        <h1 style="color:white;margin:0;font-size:20px;font-weight:700;line-height:1.4;">
-          Colegio de Profesionales en<br/>Ciencias Criminalísticas de Catamarca
+      <div style="background:#1a5c2a;padding:28px 40px 20px;text-align:center;">
+        ${LOGO_B64 ? `<img src="data:image/jpeg;base64,${LOGO_B64}" alt="Logo CPCC" style="width:72px;height:72px;object-fit:contain;border-radius:50%;border:3px solid rgba(255,255,255,0.3);margin-bottom:14px;display:block;margin-left:auto;margin-right:auto;" />` : ''}
+        <h1 style="color:white;margin:0;font-size:18px;font-weight:700;line-height:1.5;">
+          Colegio de Profesionales en Ciencias Criminalísticas<br/>
+          <span style="font-size:14px;font-weight:400;opacity:0.85;">Provincia de Catamarca</span>
         </h1>
       </div>
 
@@ -146,10 +149,13 @@ export const POST = async ({ request }) => {
       </div>
 
       <!-- Footer -->
-      <div style="background:#1a2d4a;padding:24px 40px;text-align:center;">
-        <p style="color:#a0b4c8;font-size:13px;margin:0;line-height:1.6;">
-          Colegio de Profesionales en Ciencias Criminalísticas de Catamarca<br/>
-          ${matriculado.jurisdiccion ? matriculado.jurisdiccion + ' · ' : ''}${matriculado.numeroMatricula}
+      <div style="background:#1a5c2a;padding:20px 40px;text-align:center;">
+        <p style="color:rgba(255,255,255,0.9);font-size:12px;margin:0 0 4px;font-weight:600;letter-spacing:0.3px;">
+          Comisión Directiva
+        </p>
+        <p style="color:rgba(255,255,255,0.7);font-size:11px;margin:0;line-height:1.6;">
+          Colegio de Profesionales en Ciencias Criminalísticas · Provincia de Catamarca<br/>
+          ${matriculado.jurisdiccion ? matriculado.jurisdiccion + ' · ' : ''}Matrícula ${matriculado.numeroMatricula}
         </p>
       </div>
 
