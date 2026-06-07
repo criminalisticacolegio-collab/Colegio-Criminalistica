@@ -51,7 +51,7 @@ function OtorgarMatriculaAction(props) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.PUBLIC_ADMIN_SECRET || ''}`,
+            'Authorization': `Bearer ${import.meta.env.SANITY_STUDIO_WEBHOOK_SECRET || ''}`,
           },
           body: JSON.stringify({
             aspiranteId: doc._id,

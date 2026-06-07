@@ -22,10 +22,12 @@ const sanity = createClient({
 });
 
 export const POST = async ({ request }) => {
-  // Solo accesible con ADMIN_SECRET — llamado desde Sanity Studio (admin autenticado)
-  const secret = import.meta.env.ADMIN_SECRET;
-  if (!secret) return json({ success: false, message: 'ADMIN_SECRET no configurado' }, 503);
-  if (request.headers.get('Authorization') !== `Bearer ${secret}`) {
+  // Verificar que viene del Studio usando SANITY_WEBHOOK_SECRET
+  const webhookSecret = import.meta.env.SANITY_WEBHOOK_SECRET;
+  const authHeader   = request.headers.get('Authorization') || '';
+  const token = authHeader.replace('Bearer ', '').trim();
+
+  if (!webhookSecret || token !== webhookSecret) {
     return json({ success: false, message: 'No autorizado' }, 401);
   }
 
